@@ -5,6 +5,7 @@ import { initExplore } from './screens/explore.js';
 import { initCollection } from './screens/collection.js';
 import { initBoosters, openBoosterClassic, openBoosterCustom, openBoosterCustomConfirm, confirmBoosterSave, toggleColorBtn, discardBooster, openBoosterModal } from './screens/boosters.js';
 import { initDecks } from './screens/decks.js';
+import { initAbout } from './screens/about.js';
 import { state } from './utils/state.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -20,6 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         initCollection();
         initBoosters();
         initDecks();
+        initAbout();
 
         // ── Startup Routing ──────────────────────────────────────────────────
         const lastTab = localStorage.getItem('mtg_last_tab');
