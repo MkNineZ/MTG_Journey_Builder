@@ -16,17 +16,28 @@ export async function initSettings() {
             <h2>Configuración del Simulador</h2>
             <p>Ajusta el idioma y sincroniza los sets que quieras utilizar.</p>
             
-            <!-- Language Selector - Visual Priority -->
-            <div style="margin: 2.5rem 0; padding: 2rem; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 20px; display: flex; flex-direction: column; align-items: center; gap: 1rem;">
-                <label for="lang-select" style="color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 800;">Idioma de las cartas</label>
-                <select id="lang-select" style="background: var(--surface-color); color: var(--text-primary); border: 1px solid var(--accent-color); padding: 0.8rem 1.5rem; border-radius: 12px; cursor: pointer; font-size: 1.1rem; width: 100%; max-width: 300px; text-align: center; font-weight: 600;">
-                    <option value="en" ${state.language === 'en' ? 'selected' : ''}>English</option>
-                    <option value="es" ${state.language === 'es' ? 'selected' : ''}>Español</option>
-                    <option value="fr" ${state.language === 'fr' ? 'selected' : ''}>Français</option>
-                    <option value="it" ${state.language === 'it' ? 'selected' : ''}>Italiano</option>
-                    <option value="de" ${state.language === 'de' ? 'selected' : ''}>Deutsch</option>
-                </select>
-                <p style="font-size: 0.8rem; opacity: 0.5;">Cambiar el idioma actualizará todas las imágenes de la app.</p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin: 2rem 0;">
+                <!-- Language Selector -->
+                <div style="padding: 1.5rem; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 20px; display: flex; flex-direction: column; gap: 0.8rem;">
+                    <label for="lang-select" style="color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 800;">Idioma de las cartas</label>
+                    <select id="lang-select" style="background: var(--surface-color); color: var(--text-primary); border: 1px solid var(--accent-color); padding: 0.6rem; border-radius: 10px; cursor: pointer; font-weight: 600;">
+                        <option value="en" ${state.language === 'en' ? 'selected' : ''}>English</option>
+                        <option value="es" ${state.language === 'es' ? 'selected' : ''}>Español</option>
+                        <option value="fr" ${state.language === 'fr' ? 'selected' : ''}>Français</option>
+                        <option value="it" ${state.language === 'it' ? 'selected' : ''}>Italiano</option>
+                        <option value="de" ${state.language === 'de' ? 'selected' : ''}>Deutsch</option>
+                    </select>
+                </div>
+
+                <!-- Visual Preferences (Zoom Slider) -->
+                <div style="padding: 1.5rem; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+                        <label style="color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 800;">Zoom del Inventario</label>
+                        <span id="zoom-val-display" style="font-weight: 800; color: var(--accent-color);">${state.hoverZoom}x</span>
+                    </div>
+                    <input type="range" id="setting-hover-zoom" min="1.1" max="2.0" step="0.05" value="${state.hoverZoom}" 
+                        style="width: 100%; accent-color: var(--accent-color); cursor: pointer;">
+                </div>
             </div>
         </div>
 
@@ -81,6 +92,15 @@ export async function initSettings() {
     accordionToggle.onclick = () => accordion.classList.toggle('open');
 
     langSelect.onchange = (e) => state.setLanguage(e.target.value);
+
+    // Zoom slider logic
+    const zoomSlider = document.getElementById('setting-hover-zoom');
+    const zoomDisplay = document.getElementById('zoom-val-display');
+    zoomSlider.oninput = (e) => {
+        const val = e.target.value;
+        zoomDisplay.textContent = `${val}x`;
+        state.setHoverZoom(val);
+    };
 
     // Search Filtering Logic
     searchInput.oninput = (e) => {

@@ -6,6 +6,26 @@ import { getCardImageUrl, getCardImageUrlEn } from '../utils/api.js';
 let currentFilteredCards = [];
 let currentCollectionModalIndex = -1;
 
+// ── Big Card Preview Overlay (Centered) ───────────────────────────────────────
+let bigPreview = null;
+function getBigPreview() {
+    if (!bigPreview) {
+        bigPreview = document.createElement('img');
+        bigPreview.className = 'card-big-preview';
+        document.body.appendChild(bigPreview);
+    }
+    return bigPreview;
+}
+function showBigPreview(card) {
+    const img = getBigPreview();
+    const lang = state.language || 'en';
+    img.src = getCardImageUrl(card, lang);
+    img.classList.add('visible');
+}
+function hideBigPreview() {
+    bigPreview?.classList.remove('visible');
+}
+
 export function initCollection() {
     const container = document.getElementById('collection');
     
@@ -73,6 +93,20 @@ export function initCollection() {
     const resultsContainer = document.getElementById('collection-results');
     const infoContainer = document.getElementById('collection-info');
     let lastRenderedHTML = '';
+
+    // Big Preview listeners
+    resultsContainer.addEventListener('mouseover', (e) => {
+        const cardEl = e.target.closest('.deck-inv-card');
+        if (!cardEl) return;
+        const uuid = cardEl.dataset.uuid;
+        const card = state.inventory.find(i => i.uuid === uuid);
+        if (card) showBigPreview(card);
+    });
+    resultsContainer.addEventListener('mouseout', (e) => {
+        if (!e.relatedTarget || !e.relatedTarget.closest?.('.deck-inv-card')) {
+            hideBigPreview();
+        }
+    });
 
     const render = (currentState) => {
         const inventory = currentState.inventory || [];

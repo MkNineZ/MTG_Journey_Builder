@@ -6,6 +6,7 @@ export const state = {
     inventory: [],          // Array of cards owned
     currentOpeningPack: [], // Cards in the currently open booster
     language: localStorage.getItem('mtg_language') || 'en',  // Persisted language for Scryfall
+    hoverZoom: parseFloat(localStorage.getItem('mtg_hover_zoom')) || 1.75, // Zoom multiplier for hover
     
     // Observers to react to state changes
     listeners: [],
@@ -24,6 +25,10 @@ export const state = {
             this.inventory = inv;
             this.activeSetsData = sets;
             this.selectedSets = sets.map(s => ({ code: s.code, name: s.name }));
+            
+            // Set initial CSS variable
+            document.documentElement.style.setProperty('--card-hover-zoom', this.hoverZoom);
+            
             this.notify();
             console.log(`[State] Cargadas ${inv.length} cartas y ${sets.length} sets activos.`);
         } catch (e) {
@@ -47,6 +52,13 @@ export const state = {
         console.log('[State] Idioma cambiado a:', lang);
         this.notify();
     },
+
+    setHoverZoom(val) {
+        this.hoverZoom = val;
+        localStorage.setItem('mtg_hover_zoom', val);
+        document.documentElement.style.setProperty('--card-hover-zoom', val);
+        this.notify();
+    },
     
     async loadInventory() {
         try {
@@ -62,7 +74,8 @@ export const state = {
             selectedSets: this.selectedSets,
             activeSetsData: this.activeSetsData,
             inventory: this.inventory,
-            language: this.language
+            language: this.language,
+            hoverZoom: this.hoverZoom
         }));
     }
 };

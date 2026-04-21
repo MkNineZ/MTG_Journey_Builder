@@ -49,6 +49,26 @@ function hideHoverPreview() {
     setTimeout(() => { if (!img.classList.contains('visible')) img.style.display = 'none'; }, 160);
 }
 
+// ── Big Card Preview Overlay (Centered) ───────────────────────────────────────
+let bigPreview = null;
+function getBigPreview() {
+    if (!bigPreview) {
+        bigPreview = document.createElement('img');
+        bigPreview.className = 'card-big-preview';
+        document.body.appendChild(bigPreview);
+    }
+    return bigPreview;
+}
+function showBigPreview(card) {
+    const img = getBigPreview();
+    const lang = state.language || 'en';
+    img.src = getCardImageUrl(card, lang);
+    img.classList.add('visible');
+}
+function hideBigPreview() {
+    bigPreview?.classList.remove('visible');
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const isBasicLand = c   => BASIC_LANDS.some(b => c.name?.startsWith(b));
 const ownedCount  = uuid => state.inventory.find(i => i.uuid === uuid)?.count ?? 0;
@@ -374,6 +394,20 @@ function renderEditView() {
             if (!isDisabled && (addBtn || e.target.tagName === 'IMG')) {
                 addCardToDeck(c, currentZone);
             }
+        }
+    });
+
+    // Big Preview on Inventory Grid
+    document.getElementById('de-inv-grid').addEventListener('mouseover', e => {
+        const cardEl = e.target.closest('.deck-inv-card');
+        if (!cardEl) return;
+        const uuid = cardEl.dataset.uuid;
+        const card = state.inventory.find(i => i.uuid === uuid);
+        if (card) showBigPreview(card);
+    });
+    document.getElementById('de-inv-grid').addEventListener('mouseout', e => {
+        if (!e.relatedTarget || !e.relatedTarget.closest?.('.deck-inv-card')) {
+            hideBigPreview();
         }
     });
 

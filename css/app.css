@@ -1040,6 +1040,10 @@ strong {
     top: 1rem;
 }
 
+:root {
+    --card-hover-zoom: 1.75;
+}
+
 /* ── Shared card grid styles ── */
 .deck-inv-card, .library-card, .de-card-item {
     display: block !important;
@@ -1061,12 +1065,33 @@ strong {
     backface-visibility: hidden;
 }
 .deck-inv-card:hover, .library-card:hover, .de-card-item:hover { 
-    transform: scale(1.75) !important; 
+    /* In-place scale removed to avoid panel clipping — now handled by fixed central preview */
     border-color: rgba(255, 250, 141, 1) !important; 
-    z-index: 9999 !important;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.9), 0 0 20px rgba(255, 250, 141, 0.2) !important;
+    z-index: 100 !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8), 0 0 15px rgba(255, 250, 141, 0.3) !important;
 }
 .deck-inv-card.over-limit { border-color: #c0392b; box-shadow: 0 0 8px rgba(192,57,43,0.35); }
+
+/* Fixed Big Preview Overlay (Step 1) */
+.card-big-preview {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(var(--card-hover-zoom));
+    z-index: 20000;
+    pointer-events: none;
+    border-radius: 14px;
+    box-shadow: 0 30px 90px rgba(0,0,0,0.9);
+    border: 2px solid rgba(255, 250, 141, 0.8);
+    opacity: 0;
+    transition: opacity 0.2s ease-out, transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: none;
+    max-height: 80vh;
+}
+.card-big-preview.visible {
+    display: block;
+    opacity: 1;
+}
 
 .deck-inv-img {
     width: 100% !important;
