@@ -1,0 +1,65 @@
+import { getSet, saveSet } from './db.js';
+import { state } from './state.js';
+
+const MTGJSON_API_BASE = 'https://mtgjson.com/api/v5';
+
+export async function fetchSetData(code, progressCallback) {
+    try {
+        // 1. Check local DB first
+        if (progressCallback) progressCallback(`Buscando ${code} en caché local...`);
+        const localData = await getSet(code);
+        
+        if (localData) {
+            if (progressCallback) progressCallback(`${code} cargado desde caché.`);
+            return localData;
+        }
+
+        // 2. Not in DB, fetch from API
+        if (progressCallback) progressCallback(`Descargando datos de ${code} desde MTGJSON...`);
+        const response = await fetch(`${MTGJSON_API_BASE}/${code}.json`);
+        
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status} al descargar ${code}`);
+        }
+        
+        const responseData = await response.json();
+        const setData = responseData.data; // MTGJSON wraps in { data: {...}, meta: {...} }
+        
+        // 3. Save to DB for future
+        if (progressCallback) progressCallback(`Guardando ${code} en caché local...`);
+        await saveSet(code, setData);
+        
+        return setData;
+        
+    } catch (error) {
+        console.error(`Error al obtener set ${code}:`, error);
+        throw error;
+    }
+}
+
+// Primary: set+number+lang — the most reliable Scryfall endpoint for localized images.
+// Fallback (onerror): English version via getCardImageUrlEn().
+export function getCardImageUrl(card, lang) {
+    // Priority: parameter > state.language > 'en'
+    const safeLang = lang || (state && state.language) || 'en';
+    const setLower = card.setCode ? card.setCode.toLowerCase() : '';
+    let url;
+    
+    if (card.number && setLower) {
+        url = `https://api.scryfall.com/cards/${setLower}/${card.number}/${safeLang}?format=image`;
+    } else {
+        url = `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(card.name)}&set=${setLower}&lang=${safeLang}&format=image`;
+    }
+    
+    console.log('Solicitando imagen:', card.name, 'en idioma:', safeLang);
+    return url;
+}
+
+// English-only fallback URL (always resolves — use as onerror src).
+export function getCardImageUrlEn(card) {
+    const setLower = card.setCode.toLowerCase();
+    if (card.number) {
+        return `https://api.scryfall.com/cards/${setLower}/${card.number}/en?format=image`;
+    }
+    return `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(card.name)}&set=${setLower}&lang=en&format=image`;
+}

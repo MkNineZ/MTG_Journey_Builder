@@ -1,0 +1,190 @@
+// searchEngine.js
+
+export function filterCards(cards, criteria) {
+    return cards.filter(card => {
+        if (criteria.name && !card.name?.toLowerCase().includes(criteria.name.toLowerCase())) return false;
+        if (criteria.oracleText && !card.text?.toLowerCase().includes(criteria.oracleText.toLowerCase())) return false;
+        if (criteria.keywords) {
+            const searchKeyword = criteria.keywords.toLowerCase();
+            const hasKeyword = card.keywords && card.keywords.some(kw => kw.toLowerCase().includes(searchKeyword));
+            const inText = card.text && card.text.toLowerCase().includes(searchKeyword);
+            if (!hasKeyword && !inText) return false;
+        }
+        if (criteria.type && criteria.type !== 'all' && !card.type?.toLowerCase().includes(criteria.type.toLowerCase())) return false;
+        if (criteria.set && criteria.set !== 'all' && card.setCode !== criteria.set) return false;
+        if (criteria.rarity && criteria.rarity !== 'all' && card.rarity?.toLowerCase() !== criteria.rarity.toLowerCase()) return false;
+        if (criteria.manaValue !== null && criteria.manaValue !== '') {
+            const mv = parseFloat(criteria.manaValue);
+            if (card.manaValue === undefined || card.manaValue !== mv) return false;
+        }
+        if (criteria.colors && criteria.colors.length > 0) {
+            const cardColors = card.colors || [];
+            const searchingColorless = criteria.colors.includes('C');
+            if (searchingColorless && criteria.colors.length === 1) {
+                if (cardColors.length > 0) return false;
+            } else {
+                const activeColors = criteria.colors.filter(c => c !== 'C');
+                if (criteria.colorMode === 'exact') {
+                    if (cardColors.length !== activeColors.length) return false;
+                    const hasAll = activeColors.every(c => cardColors.includes(c));
+                    if (!hasAll) return false;
+                } else {
+                    const hasAll = activeColors.every(c => cardColors.includes(c));
+                    if (!hasAll) return false;
+                }
+            }
+        }
+        return true;
+    });
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => { clearTimeout(timeout); func(...args); };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+export function renderSearchUI(containerElement, allCards, onFilterCallback) {
+    const activeSetCodes = [...new Set(allCards.map(c => c.setCode))].sort();
+    const setOptions = activeSetCodes.map(code => `<option value="${code}">${code}</option>`).join('');
+
+    containerElement.innerHTML = `
+        <div style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem;">
+            <!-- Basic Search -->
+            <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap;">
+                <input type="text" class="search-name" placeholder="Buscar por nombre..." style="flex: 2; padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.5); color: #fff; min-width: 200px; font-size: 1.1rem;">
+                
+                <button class="btn-toggle-advanced save-btn" style="flex: 1; padding: 1rem; font-size: 1.1rem; min-width: 200px; background: var(--accent-color); color: #000; font-weight: bold; border-radius: 8px; cursor: pointer; box-shadow: 0 0 15px rgba(var(--accent-color-rgb), 0.5);">
+                    🔍 BUSCAR / FILTROS AVANZADOS
+                </button>
+            </div>
+
+            <!-- Advanced Filters (Collapsible) -->
+            <div class="advanced-filters" style="display: none; border-top: 1px solid var(--border-color); padding-top: 1.5rem; margin-top: 1rem; flex-wrap: wrap; gap: 2rem;">
+                
+                <div style="flex: 1; min-width: 250px;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Texto de Reglas (Oracle)</label>
+                    <input type="text" class="search-oracle" placeholder="Ej. destruye todas las criaturas..." style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.5); color: #fff; margin-bottom: 1rem;">
+                    
+                    <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Colores de Maná</label>
+                    <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
+                        <button class="mana-btn" data-color="W" style="width: 35px; height: 35px; border-radius: 50%; border: 2px solid transparent; background: #fffddd; color: #000; font-size: 1.2rem; cursor: pointer; transition: 0.2s;">☀</button>
+                        <button class="mana-btn" data-color="U" style="width: 35px; height: 35px; border-radius: 50%; border: 2px solid transparent; background: #c1d8e9; color: #000; font-size: 1.2rem; cursor: pointer; transition: 0.2s;">💧</button>
+                        <button class="mana-btn" data-color="B" style="width: 35px; height: 35px; border-radius: 50%; border: 2px solid transparent; background: #bab1ab; color: #000; font-size: 1.2rem; cursor: pointer; transition: 0.2s;">💀</button>
+                        <button class="mana-btn" data-color="R" style="width: 35px; height: 35px; border-radius: 50%; border: 2px solid transparent; background: #f9aa8f; color: #000; font-size: 1.2rem; cursor: pointer; transition: 0.2s;">🔥</button>
+                        <button class="mana-btn" data-color="G" style="width: 35px; height: 35px; border-radius: 50%; border: 2px solid transparent; background: #9bd3ae; color: #000; font-size: 1.2rem; cursor: pointer; transition: 0.2s;">🌳</button>
+                        <button class="mana-btn" data-color="C" style="width: 35px; height: 35px; border-radius: 50%; border: 2px solid transparent; background: #ccc; color: #000; font-size: 1.2rem; cursor: pointer; transition: 0.2s;" title="Incoloro">C</button>
+                    </div>
+                    <select class="search-colormode" style="padding: 0.5rem; border-radius: 6px; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); color: #fff; width: 100%;">
+                        <option value="includes">Incluye estos colores</option>
+                        <option value="exact">Exactamente estos colores</option>
+                    </select>
+                </div>
+
+                <div style="flex: 1; min-width: 250px; display: flex; flex-direction: column; gap: 1rem;">
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Tipo de Carta</label>
+                        <select class="search-type" style="padding: 0.5rem; border-radius: 6px; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); color: #fff; width: 100%;">
+                            <option value="all">Cualquiera</option>
+                            <option value="Creature">Criatura</option>
+                            <option value="Instant">Instantáneo</option>
+                            <option value="Sorcery">Conjuro</option>
+                            <option value="Artifact">Artefacto</option>
+                            <option value="Enchantment">Encantamiento</option>
+                            <option value="Planeswalker">Planeswalker</option>
+                            <option value="Land">Tierra</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Rareza</label>
+                        <select class="search-rarity" style="padding: 0.5rem; border-radius: 6px; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); color: #fff; width: 100%;">
+                            <option value="all">Cualquiera</option>
+                            <option value="common">Común</option>
+                            <option value="uncommon">Infrecuente</option>
+                            <option value="rare">Rara</option>
+                            <option value="mythic">Mítica</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Set</label>
+                        <select class="search-set" style="padding: 0.5rem; border-radius: 6px; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); color: #fff; width: 100%;">
+                            <option value="all">Todos los sets activos</option>
+                            ${setOptions}
+                        </select>
+                    </div>
+                </div>
+
+                <div style="flex: 1; min-width: 250px; display: flex; flex-direction: column; gap: 1rem;">
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Valor de Maná (MV)</label>
+                        <input type="number" class="search-mv" min="0" placeholder="Ej. 3" style="padding: 0.5rem; border-radius: 6px; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); color: #fff; width: 100%;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Palabras Clave (Keywords)</label>
+                        <input type="text" class="search-keywords" placeholder="Ej. Flying, Trample..." style="padding: 0.5rem; border-radius: 6px; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); color: #fff; width: 100%;">
+                    </div>
+                    <div style="margin-top: auto;">
+                        <button class="btn-reset-filters save-btn" style="width: 100%; background: #666; color: #fff;">Limpiar Filtros</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    const uiState = { name: '', oracleText: '', keywords: '', type: 'all', rarity: 'all', set: 'all', manaValue: '', colors: [], colorMode: 'includes' };
+
+    const elName = containerElement.querySelector('.search-name');
+    const elOracle = containerElement.querySelector('.search-oracle');
+    const elKeywords = containerElement.querySelector('.search-keywords');
+    const elType = containerElement.querySelector('.search-type');
+    const elRarity = containerElement.querySelector('.search-rarity');
+    const elSet = containerElement.querySelector('.search-set');
+    const elMv = containerElement.querySelector('.search-mv');
+    const elColorMode = containerElement.querySelector('.search-colormode');
+    const btnToggle = containerElement.querySelector('.btn-toggle-advanced');
+    const btnReset = containerElement.querySelector('.btn-reset-filters');
+    const advancedPanel = containerElement.querySelector('.advanced-filters');
+    const manaBtns = containerElement.querySelectorAll('.mana-btn');
+
+    const executeFilter = () => { onFilterCallback(filterCards(allCards, uiState)); };
+    const debouncedFilter = debounce(executeFilter, 300);
+
+    btnToggle.addEventListener('click', () => {
+        const isHidden = advancedPanel.style.display === 'none';
+        advancedPanel.style.display = isHidden ? 'flex' : 'none';
+    });
+
+    btnReset.addEventListener('click', () => {
+        uiState.name = ''; uiState.oracleText = ''; uiState.keywords = ''; uiState.type = 'all'; uiState.rarity = 'all'; uiState.set = 'all'; uiState.manaValue = ''; uiState.colors = []; uiState.colorMode = 'includes';
+        elName.value = ''; elOracle.value = ''; elKeywords.value = ''; elType.value = 'all'; elRarity.value = 'all'; elSet.value = 'all'; elMv.value = ''; elColorMode.value = 'includes';
+        manaBtns.forEach(btn => { btn.style.borderColor = 'transparent'; btn.style.boxShadow = 'none'; });
+        executeFilter();
+    });
+
+    elName.addEventListener('input', (e) => { uiState.name = e.target.value; debouncedFilter(); });
+    elOracle.addEventListener('input', (e) => { uiState.oracleText = e.target.value; debouncedFilter(); });
+    elKeywords.addEventListener('input', (e) => { uiState.keywords = e.target.value; debouncedFilter(); });
+    elType.addEventListener('change', (e) => { uiState.type = e.target.value; executeFilter(); });
+    elRarity.addEventListener('change', (e) => { uiState.rarity = e.target.value; executeFilter(); });
+    elSet.addEventListener('change', (e) => { uiState.set = e.target.value; executeFilter(); });
+    elMv.addEventListener('input', (e) => { uiState.manaValue = e.target.value; debouncedFilter(); });
+    elColorMode.addEventListener('change', (e) => { uiState.colorMode = e.target.value; executeFilter(); });
+
+    manaBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const color = e.target.getAttribute('data-color');
+            const idx = uiState.colors.indexOf(color);
+            if (idx > -1) {
+                uiState.colors.splice(idx, 1);
+                e.target.style.borderColor = 'transparent'; e.target.style.boxShadow = 'none';
+            } else {
+                uiState.colors.push(color);
+                e.target.style.borderColor = 'var(--accent-color)'; e.target.style.boxShadow = '0 0 10px var(--accent-color)';
+            }
+            executeFilter();
+        });
+    });
+}

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MTG Journey Builder - Simulador y Editor</title>
+    <link rel="stylesheet" href="css/app.css">
+    <!-- Google Fonts for modern typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Cinzel:wght@700&display=swap" rel="stylesheet">
+    <!-- Keyrune for MTG Set Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/keyrune@latest/css/keyrune.min.css">
+    <!-- FontAwesome for UI Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Navigation Component -->
+        <nav id="navigation" class="glass-nav">
+            <div class="logo">MTG Journey Builder</div>
+            <ul class="nav-links">
+                <li><button data-target="explore" class="nav-btn">Explorar Sets</button></li>
+                <li style="position: relative;"><button data-target="collection" class="nav-btn">Mi Colección</button><div class="notification-dot" id="collection-dot"></div></li>
+                <li><button data-target="boosters" class="nav-btn">Sobres</button></li>
+                <li><button data-target="decks" class="nav-btn">Mis Mazos</button></li>
+                <li><button data-target="settings" class="nav-btn active">Configuración</button></li>
+            </ul>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main id="main-content">
+            <!-- Screens will be dynamically injected/toggled here -->
+            <section id="settings" class="screen active"></section>
+            <section id="explore" class="screen"></section>
+            <section id="collection" class="screen"></section>
+            <section id="boosters" class="screen"></section>
+            <section id="decks" class="screen"></section>
+        </main>
+
+        <!-- Global Footer -->
+        <footer class="app-footer">
+            <div class="footer-content">
+                <img src="assets/marknine-logo.png" alt="" class="footer-logo" onerror="this.style.display='none'">
+                <span>Desarrollado por <a href="#" class="author-link">MarkNineGD</a>. Datos de <strong>Scryfall</strong> y <strong>MTGJSON</strong>. Iconos de sets por <strong>Keyrune</strong>. No oficial / Fan Content.</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- ES Module Entry Point -->
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
