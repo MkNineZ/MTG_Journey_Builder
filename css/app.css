@@ -1044,33 +1044,7 @@ strong {
     --card-hover-zoom: 1.4;
 }
 
-/* ── Shared card grid styles ── */
-.deck-inv-card, .library-card, .de-card-item {
-    display: block !important;
-    position: relative;
-    background: #000;
-    border: 2px solid rgba(255,255,255,0.07);
-    cursor: pointer;
-    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), border-color 0.2s, box-shadow 0.2s;
-    width: 100% !important;
-    /* Forzamos que la carta ocupe su espacio vertical natural */
-    height: auto !important; 
-    aspect-ratio: 5 / 7 !important;
-    margin-bottom: 30px !important; /* Espacio extra para el badge y el zoom */
-    /* CRÍTICO: overflow visible para que el badge y el zoom no se corten */
-    overflow: visible !important;
-    border-radius: 0; 
-    /* Hardware acceleration */
-    will-change: transform;
-    backface-visibility: hidden;
-}
-.deck-inv-card:hover, .library-card:hover, .de-card-item:hover { 
-    /* In-place scale removed to avoid panel clipping — now handled by fixed central preview */
-    border-color: rgba(255, 250, 141, 1) !important; 
-    z-index: 100 !important;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.8), 0 0 15px rgba(255, 250, 141, 0.3) !important;
-}
-.deck-inv-card.over-limit { border-color: #c0392b; box-shadow: 0 0 8px rgba(192,57,43,0.35); }
+/* Card Styles consolidated below */
 
 /* In-Place Zoom System (Reverted for speed) */
 .deck-inv-card, .library-card, .de-card-item {
@@ -1100,8 +1074,7 @@ strong {
 }
 .deck-inv-card.over-limit { border-color: #c0392b; box-shadow: 0 0 8px rgba(192,57,43,0.35); }
 
-/* Removed Center Preview / Focus Mode */
-.card-big-preview-overlay, .card-big-preview-img { display: none !important; }
+/* Center Preview Elements - Completely Removed */
 
 .deck-inv-img {
     width: 100% !important;
@@ -1598,17 +1571,7 @@ strong {
     align-content: start;
 }
 
-.deck-inv-card {
-    position: relative;
-    border-radius: 8px;
-    overflow: hidden;
-    background: #000;
-    border: 2px solid rgba(255,255,255,0.08);
-    cursor: pointer;
-    transition: transform 0.15s ease, border-color 0.15s ease;
-}
-.deck-inv-card:hover { transform: scale(1.04); border-color: var(--accent-secondary); }
-.deck-inv-card.over-limit { border-color: #c0392b; box-shadow: 0 0 8px rgba(192,57,43,0.4); }
+/* Old card styles removed for consistency */
 
 .deck-inv-img {
     width: 100%;
