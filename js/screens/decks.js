@@ -68,10 +68,12 @@ function showBigPreview(card) {
     const lang = state.language || 'en';
     img.src = getCardImageUrl(card, lang);
     overlay.classList.add('visible');
+    document.getElementById('de-body')?.classList.add('focus-blur-library');
     console.log('Zoom actual:', getComputedStyle(document.documentElement).getPropertyValue('--card-hover-zoom'));
 }
 function hideBigPreview() {
     bigPreviewOverlay?.classList.remove('visible');
+    document.getElementById('de-body')?.classList.remove('focus-blur-library');
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

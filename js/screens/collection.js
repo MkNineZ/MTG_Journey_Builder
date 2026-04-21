@@ -25,9 +25,11 @@ function showBigPreview(card) {
     const lang = state.language || 'en';
     img.src = getCardImageUrl(card, lang);
     overlay.classList.add('visible');
+    document.getElementById('collection')?.classList.add('focus-blur-library');
 }
 function hideBigPreview() {
     bigPreviewOverlay?.classList.remove('visible');
+    document.getElementById('collection')?.classList.remove('focus-blur-library');
 }
 
 export function initCollection() {
