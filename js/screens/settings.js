@@ -111,7 +111,7 @@ export async function initSettings() {
 
     try {
         if (availableSets.length === 0) {
-            const response = await fetch('/SetList.json');
+            const response = await fetch('./SetList.json');
             const data = await response.json();
             availableSets = data.data.filter(s => ['core', 'expansion', 'masters'].includes(s.type));
             availableSets.sort((a, b) => new Date(b.releaseDate) - new Date(a.releaseDate));
