@@ -394,3 +394,54 @@ export async function deleteDeck(id) {
         tx.onerror = () => reject(tx.error);
     });
 }
+
+// ── Backup & Restore ─────────────────────────────────────────────────────────
+
+/**
+ * Gathers all user data from IndexedDB for export.
+ */
+export async function exportDatabase() {
+    const db = await initDB();
+    const backup = {
+        version: DB_VERSION,
+        timestamp: Date.now(),
+        inventory: [],
+        decks: [],
+        activity_log: []
+    };
+
+    return new Promise((resolve, reject) => {
+        const stores = ['inventory', 'decks', 'activity_log'];
+        const tx = db.transaction(stores, 'readonly');
+        
+        tx.objectStore('inventory').getAll().onsuccess = (e) => backup.inventory = e.target.result;
+        tx.objectStore('decks').getAll().onsuccess = (e) => backup.decks = e.target.result;
+        tx.objectStore('activity_log').getAll().onsuccess = (e) => backup.activity_log = e.target.result;
+
+        tx.oncomplete = () => resolve(backup);
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+/**
+ * Overwrites IndexedDB stores with provided backup data.
+ * @param {Object} data The backup object containing inventory, decks, and logs.
+ */
+export async function importDatabase(data) {
+    const db = await initDB();
+    
+    return new Promise((resolve, reject) => {
+        const stores = ['inventory', 'decks', 'activity_log'];
+        const tx = db.transaction(stores, 'readwrite');
+        
+        stores.forEach(sName => {
+            const store = tx.objectStore(sName);
+            store.clear();
+            const items = data[sName] || [];
+            items.forEach(item => store.put(item));
+        });
+
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+}

@@ -7,6 +7,7 @@ export const state = {
     currentOpeningPack: [], // Cards in the currently open booster
     language: localStorage.getItem('mtg_language') || 'en',  // Persisted language for Scryfall
     hoverZoom: parseFloat(localStorage.getItem('mtg_hover_zoom')) || 1.4, // Zoom multiplier for hover
+    sessionNewCards: 0,     // Counter for cards added in current session
     
     // Observers to react to state changes
     listeners: [],
@@ -31,6 +32,15 @@ export const state = {
             
             this.notify();
             console.log(`[State] Cargadas ${inv.length} cartas y ${sets.length} sets activos.`);
+
+            // Init session safety warning
+            window.addEventListener('beforeunload', (event) => {
+                if (this.sessionNewCards > 0) {
+                    // Modern browsers ignore the custom message but show the dialog
+                    event.preventDefault();
+                    event.returnValue = ''; 
+                }
+            });
         } catch (e) {
             console.error("[State] Error en inicialización:", e);
         }
@@ -58,6 +68,11 @@ export const state = {
         localStorage.setItem('mtg_hover_zoom', val);
         document.documentElement.style.setProperty('--card-hover-zoom', val);
         this.notify();
+    },
+
+    incrementSessionCards(count = 1) {
+        this.sessionNewCards += count;
+        console.log(`[State] Cartas en sesión: ${this.sessionNewCards}`);
     },
     
     async loadInventory() {

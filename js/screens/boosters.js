@@ -226,6 +226,7 @@ export async function confirmBoosterSave() {
     if (state.currentOpeningPack.length === 0) return;
     try {
         await saveToInventory(state.currentOpeningPack, 'booster');
+        state.incrementSessionCards(state.currentOpeningPack.length);
         await state.loadInventory();
         document.getElementById('booster-result-container').style.display = 'none';
         document.getElementById('booster-stock-warning').style.display = 'none';

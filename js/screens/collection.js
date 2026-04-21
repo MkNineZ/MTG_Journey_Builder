@@ -246,7 +246,9 @@ export function initCollection() {
 
         try {
             console.log('[Bulk] Iniciando proceso de guardado para', cardsToImport.length, 'cartas.');
+            const totalToImport = cardsToImport.reduce((acc, c) => acc + c.count, 0);
             const stats = await saveToInventory(cardsToImport, 'bulk');
+            state.incrementSessionCards(totalToImport);
             await state.loadInventory();
             
             let msg = `¡Importación completada!\n\n- Actualizadas: ${stats.updated}\n- Añadidas: ${stats.added}`;
@@ -407,6 +409,7 @@ function openModal(cardData) {
             currentCount++;
             document.getElementById('modal-count-display').innerText = currentCount;
             await updateInventoryCount(data, 1);
+            state.incrementSessionCards(1);
             const invItem = state.inventory.find(i => i.uuid === data.uuid);
             if (invItem) invItem.count = currentCount;
             else state.inventory.push({ ...data, count: currentCount });

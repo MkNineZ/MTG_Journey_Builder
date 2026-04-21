@@ -1,7 +1,7 @@
 import { state } from '../utils/state.js';
 import { navigateTo } from '../components/navigation.js';
 import { fetchSetData } from '../utils/api.js';
-import { saveSet, clearAllSets } from '../utils/db.js';
+import { saveSet, clearAllSets, exportDatabase, importDatabase } from '../utils/db.js';
 
 let availableSets = [];
 
@@ -38,6 +38,29 @@ export async function initSettings() {
                     <input type="range" id="setting-hover-zoom" min="1.1" max="2.0" step="0.05" value="${state.hoverZoom}" 
                         style="width: 100%; accent-color: var(--accent-color); cursor: pointer;">
                 </div>
+            </div>
+        </div>
+
+        <!-- Progress Backup Section -->
+        <div style="margin: 2rem 0; padding: 2rem; background: rgba(184, 134, 11, 0.05); border: 1px solid rgba(184, 134, 11, 0.3); border-radius: 24px; display: flex; flex-direction: column; gap: 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <i class="fas fa-shield-alt" style="color: #b8860b; font-size: 1.5rem;"></i>
+                <h3 style="margin: 0; font-family: var(--font-heading); color: #b8860b; letter-spacing: 1px;">Cargar / Descargar Progreso</h3>
+            </div>
+            
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0;">Gestiona tus datos locales. La exportación incluye tu inventario, mazos guardados y ajustes de usuario.</p>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+                <button id="export-progress-btn" class="save-btn" style="height: 80px; display: flex; align-items: center; justify-content: center; gap: 1rem; font-size: 1.1rem; background: linear-gradient(135deg, #b8860b, #8b4513);">
+                    <i class="fas fa-download"></i>
+                    Exportar Progreso
+                </button>
+                
+                <label for="import-file-input" class="nav-btn" style="height: 80px; display: flex; align-items: center; justify-content: center; gap: 1rem; font-size: 1.1rem; border: 1px solid var(--accent-color); color: var(--accent-color); cursor: pointer; margin: 0;">
+                    <i class="fas fa-upload"></i>
+                    Importar Archivo
+                    <input type="file" id="import-file-input" accept=".json" style="display: none;">
+                </label>
             </div>
         </div>
 
@@ -224,6 +247,91 @@ export async function initSettings() {
         };
 
         updateUI();
+
+        // ── Backup & Restore Handlers ─────────────────────────────────────────
+        
+        const exportBtn = document.getElementById('export-progress-btn');
+        const importInput = document.getElementById('import-file-input');
+
+        exportBtn.onclick = async () => {
+            try {
+                exportBtn.disabled = true;
+                exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparando...';
+                
+                const dbData = await exportDatabase();
+                const fullBackup = {
+                    ...dbData,
+                    settings: {
+                        language: state.language,
+                        hoverZoom: state.hoverZoom,
+                        selectedSets: state.selectedSets.map(s => s.code)
+                    }
+                };
+
+                const blob = new Blob([JSON.stringify(fullBackup, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const date = new Date().toISOString().split('T')[0].replace(/-/g, '');
+                a.href = url;
+                a.download = `mtg_backup_${date}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                exportBtn.innerHTML = '<i class="fas fa-check"></i> Exportado';
+                setTimeout(() => {
+                    exportBtn.disabled = false;
+                    exportBtn.innerHTML = '<i class="fas fa-download"></i> Exportar Progreso';
+                }, 2000);
+            } catch (err) {
+                console.error('[Backup] Error:', err);
+                alert('Error al exportar el progreso.');
+                exportBtn.disabled = false;
+                exportBtn.innerHTML = '<i class="fas fa-download"></i> Exportar Progreso';
+            }
+        };
+
+        importInput.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const confirmImport = confirm("¿Estás seguro de que quieres importar este archivo?\n\nESTO SOBRESCRIBIRÁ TODA TU BASE DE DATOS ACTUAL (Inventario y Mazos). Esta acción no se puede deshacer.");
+            if (!confirmImport) {
+                importInput.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    
+                    // Basic validation
+                    if (!data.inventory || !data.decks) {
+                        throw new Error("El archivo no parece ser un backup válido de MTG Journey Builder.");
+                    }
+
+                    // Restore settings if present
+                    if (data.settings) {
+                        if (data.settings.language) state.setLanguage(data.settings.language);
+                        if (data.settings.hoverZoom) state.setHoverZoom(data.settings.hoverZoom);
+                    }
+
+                    // Import to IndexedDB
+                    await importDatabase(data);
+                    
+                    alert("Importación completada con éxito. La aplicación se reiniciará para cargar los nuevos datos.");
+                    window.location.reload();
+                } catch (err) {
+                    console.error('[Import] Error:', err);
+                    alert("Error al importar el archivo: " + err.message);
+                } finally {
+                    importInput.value = '';
+                }
+            };
+            reader.readAsText(file);
+        };
 
     } catch (error) {
         loader.style.display = 'none';
