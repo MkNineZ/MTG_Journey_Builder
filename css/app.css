@@ -102,11 +102,29 @@ body {
     width: 100%;
 }
 
-/* Deck screen breaks the default max-width to use the full viewport */
+/* Deck screen breaks out of the default 1200px main-content constraint */
 #decks {
+    width: calc(100vw - 4rem);     /* full viewport minus nav+padding */
     max-width: 1600px;
-    margin: 0 auto;
-    width: 95%;
+    margin-left: calc(50% - min(800px, 48vw)); /* center within viewport */
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+/* Search container inside inventory panel — must not shrink */
+#de-search-container {
+    flex-shrink: 0;
+    overflow: hidden;
+}
+/* Override the searchEngine panel padding to fit the compact editor layout */
+#de-search-container > div {
+    margin-bottom: 0 !important;
+    border-radius: 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-top: none !important;
+    background: rgba(0,0,0,0.25) !important;
 }
 
 .screen {
@@ -955,15 +973,10 @@ strong {
 /* ── EDIT VIEW BODY ── */
 .de-body {
     display: grid;
-    grid-template-columns: 1fr 340px;
+    grid-template-columns: 3fr 340px;
     gap: 1rem;
-    height: calc(100vh - 200px);
-    min-height: 560px;
-    transition: grid-template-columns 0.35s ease;
+    align-items: start;
 }
-/* Stats-full mode: hide inventory, show builder at full width */
-.de-body.stats-full { grid-template-columns: 0 1fr; }
-.de-body.stats-full .de-inventory { overflow: hidden; opacity: 0; pointer-events: none; }
 
 /* LEFT: Inventory */
 .de-inventory {
@@ -973,6 +986,9 @@ strong {
     border: 1px solid var(--border-color);
     border-radius: 12px;
     overflow: hidden;
+    /* Fixed height so cards can scroll naturally */
+    height: calc(100vh - 180px);
+    min-height: 500px;
 }
 .de-inv-header {
     display: flex;
@@ -997,13 +1013,14 @@ strong {
 .deck-inv-search:focus { outline: none; border-color: var(--accent-secondary); }
 
 .de-inv-grid {
+    /* Scroll is the key — never compress the cards */
     flex: 1;
     overflow-y: auto;
     padding: 0.75rem;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
-    gap: 0.75rem;
-    align-content: start;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1rem;
+    align-content: start; /* cards stack from top, no stretching */
 }
 
 /* RIGHT: Builder */
@@ -1014,6 +1031,10 @@ strong {
     border: 1px solid var(--border-color);
     border-radius: 12px;
     overflow: hidden;
+    height: calc(100vh - 180px);
+    min-height: 500px;
+    position: sticky;
+    top: 1rem;
 }
 
 /* ── Shared card grid styles ── */
@@ -1084,8 +1105,8 @@ strong {
 .zone-tab.active { color: var(--accent-secondary); border-bottom-color: var(--accent-secondary); }
 .zone-count { font-size: 0.7rem; opacity: 0.8; }
 
-.deck-zone-wrapper { display: none; flex: 1; overflow-y: auto; padding: 0.4rem; }
-.deck-zone-wrapper.active { display: block; }
+.deck-zone-wrapper { display: none; flex: 1; overflow-y: auto; padding: 0.4rem; flex-direction: column; }
+.deck-zone-wrapper.active { display: flex; flex-direction: column; overflow-y: auto; }
 .deck-zone-list { padding-bottom: 1rem; }
 .deck-zone-empty {
     text-align: center;
@@ -1226,12 +1247,31 @@ strong {
     margin-bottom: 0.5rem;
 }
 
-/* Mana curve */
-.mana-curve { display: flex; align-items: flex-end; gap: 0.3rem; height: 70px; }
-.curve-bar-col { display: flex; flex-direction: column; align-items: center; flex: 1; height: 100%; gap: 2px; }
-.curve-bar-count { font-size: 0.58rem; color: var(--accent-secondary); height: 11px; font-weight: 700; }
-.curve-bar { width: 100%; background: linear-gradient(to top, var(--accent-color), var(--accent-secondary)); border-radius: 3px 3px 0 0; min-height: 2px; transition: height 0.3s ease; }
-.curve-bar-label { font-size: 0.58rem; color: var(--text-secondary); }
+/* Mana curve — bars grow bottom-to-top */
+.mana-curve {
+    display: flex;
+    align-items: flex-end; /* anchor bars to the bottom */
+    gap: 0.3rem;
+    height: 90px; /* 30% taller than before */
+}
+.curve-bar-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end; /* push count+bar to bottom, label below */
+    flex: 1;
+    height: 100%;
+    gap: 0;
+}
+.curve-bar-count { font-size: 0.58rem; color: var(--accent-secondary); font-weight: 700; line-height: 1.2; min-height: 11px; }
+.curve-bar {
+    width: 100%;
+    background: linear-gradient(to top, var(--accent-color), var(--accent-secondary));
+    border-radius: 3px 3px 0 0;
+    min-height: 2px;
+    transition: height 0.35s ease;
+}
+.curve-bar-label { font-size: 0.58rem; color: var(--text-secondary); margin-top: 2px; }
 
 /* Type counts */
 .type-counts { display: flex; flex-direction: column; gap: 0.15rem; }
