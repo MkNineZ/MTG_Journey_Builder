@@ -354,24 +354,43 @@ function renderEditView() {
         renderInventoryGrid();
     });
 
-    // Inventory grid: add or open modal
+    // Inventory grid: add by clicking card or +
     document.getElementById('de-inv-grid').addEventListener('click', e => {
         const addBtn = e.target.closest('.deck-add-btn');
         const card   = e.target.closest('.deck-inv-card');
-        if (addBtn) {
-            const c = state.inventory.find(i => i.uuid === addBtn.dataset.uuid);
-            if (c) addCardToDeck(c, currentZone);
-        } else if (card) {
-            openCardModal(card.dataset.uuid);
+        
+        if (card) {
+            const uuid = card.dataset.uuid;
+            const c = state.inventory.find(i => i.uuid === uuid);
+            if (!c) return;
+            
+            const inDeck      = totalInDeck(c.name);
+            const atLimit     = !isBasicLand(c) && inDeck >= MAX_COPIES;
+            const outOfStock  = inDeck >= c.count;
+            const isDisabled  = atLimit || outOfStock;
+
+            // Only add if not disabled
+            if (!isDisabled && (addBtn || e.target.tagName === 'IMG')) {
+                addCardToDeck(c, currentZone);
+            }
         }
     });
 
-    // Deck list: +/- controls
+    // Deck list: +/- controls and click on name
     document.getElementById('decks').addEventListener('click', e => {
-        const minus = e.target.closest('.deck-entry-minus');
-        const plus  = e.target.closest('.deck-entry-plus');
-        if (minus) removeCardFromDeck(minus.dataset.uuid, minus.dataset.zone);
-        if (plus) {
+        const minus  = e.target.closest('.deck-entry-minus');
+        const plus   = e.target.closest('.deck-entry-plus');
+        const nameEl = e.target.closest('.deck-entry-name');
+
+        if (minus) {
+            removeCardFromDeck(minus.dataset.uuid, minus.dataset.zone);
+        } else if (nameEl) {
+            const row = nameEl.closest('.deck-entry');
+            if (row) {
+                const minusBtn = row.querySelector('.deck-entry-minus');
+                if (minusBtn) removeCardFromDeck(nameEl.dataset.uuid, minusBtn.dataset.zone);
+            }
+        } else if (plus && !plus.disabled) {
             const entry = currentDeck?.[plus.dataset.zone]?.find(en => en.uuid === plus.dataset.uuid);
             if (entry) addCardToDeck(entry, plus.dataset.zone);
         }
@@ -463,13 +482,17 @@ function renderInventoryGrid() {
         const imgUrl      = getCardImageUrl(card, lang);
         const fallbackUrl = getCardImageUrlEn(card);
         const inDeck      = totalInDeck(card.name);
-        const overLimit   = inDeck > card.count;
-        // Disable + when user owns 0 or already has all copies in deck
+        
         const atLimit     = !isBasicLand(card) && inDeck >= MAX_COPIES;
         const noStock     = card.count <= 0;
-        const btnDisabled = (atLimit || noStock) ? 'disabled style="opacity:0.35;cursor:not-allowed"' : '';
+        const outOfStock  = inDeck >= card.count;
+        const isDisabled  = atLimit || noStock || outOfStock;
+        
+        const cardStyle   = isDisabled ? 'opacity: 0.3; cursor: not-allowed;' : '';
+        const btnDisabled = isDisabled ? 'disabled style="opacity:0.3; cursor:not-allowed"' : '';
+        
         return `
-            <div class="deck-inv-card ${overLimit?'over-limit':''}" data-uuid="${card.uuid}"
+            <div class="deck-inv-card" data-uuid="${card.uuid}" style="${cardStyle}"
                  title="${card.name} — Tienes: ${card.count} | En mazo: ${inDeck}">
                 <img src="${imgUrl}" alt="${card.name}" loading="lazy" class="deck-inv-img"
                      onload="this.style.opacity=1"
@@ -505,7 +528,8 @@ function renderZone(zone) {
             const over       = entry.quantity > ownedCount(entry.uuid);
             const atLimit    = !isBasicLand(entry) && totalInDeck(entry.name) >= MAX_COPIES;
             const noStock    = ownedCount(entry.uuid) <= 0;
-            const plusDisabled = (atLimit || noStock) ? 'disabled style="opacity:0.35;cursor:not-allowed"' : '';
+            const outOfStock = totalInDeck(entry.name) >= ownedCount(entry.uuid);
+            const plusDisabled = (atLimit || noStock || outOfStock) ? 'disabled style="opacity:0.35;cursor:not-allowed"' : '';
             const mv         = getManaValue(entry);
             const manaCost   = getManaCost(entry);
             const costHtml   = manaCost ? parseManaSymbols(manaCost)
