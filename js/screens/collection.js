@@ -6,32 +6,6 @@ import { getCardImageUrl, getCardImageUrlEn } from '../utils/api.js';
 let currentFilteredCards = [];
 let currentCollectionModalIndex = -1;
 
-// ── Big Card Preview Overlay (Centered) ───────────────────────────────────────
-let bigPreviewOverlay = null;
-let bigPreviewImg     = null;
-function getBigPreview() {
-    if (!bigPreviewOverlay) {
-        bigPreviewOverlay = document.createElement('div');
-        bigPreviewOverlay.className = 'card-big-preview-overlay';
-        bigPreviewImg = document.createElement('img');
-        bigPreviewImg.className = 'card-big-preview-img';
-        bigPreviewOverlay.appendChild(bigPreviewImg);
-        document.body.appendChild(bigPreviewOverlay);
-    }
-    return { overlay: bigPreviewOverlay, img: bigPreviewImg };
-}
-function showBigPreview(card) {
-    const { overlay, img } = getBigPreview();
-    const lang = state.language || 'en';
-    img.src = getCardImageUrl(card, lang);
-    overlay.classList.add('visible');
-    document.getElementById('collection')?.classList.add('focus-blur-library');
-}
-function hideBigPreview() {
-    bigPreviewOverlay?.classList.remove('visible');
-    document.getElementById('collection')?.classList.remove('focus-blur-library');
-}
-
 export function initCollection() {
     const container = document.getElementById('collection');
     
@@ -99,20 +73,6 @@ export function initCollection() {
     const resultsContainer = document.getElementById('collection-results');
     const infoContainer = document.getElementById('collection-info');
     let lastRenderedHTML = '';
-
-    // Big Preview listeners
-    resultsContainer.addEventListener('mouseover', (e) => {
-        const cardEl = e.target.closest('.deck-inv-card');
-        if (!cardEl) return;
-        const uuid = cardEl.dataset.uuid;
-        const card = state.inventory.find(i => i.uuid === uuid);
-        if (card) showBigPreview(card);
-    });
-    resultsContainer.addEventListener('mouseout', (e) => {
-        if (!e.relatedTarget || !e.relatedTarget.closest?.('.deck-inv-card')) {
-            hideBigPreview();
-        }
-    });
 
     const render = (currentState) => {
         const inventory = currentState.inventory || [];

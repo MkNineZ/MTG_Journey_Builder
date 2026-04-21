@@ -49,33 +49,6 @@ function hideHoverPreview() {
     setTimeout(() => { if (!img.classList.contains('visible')) img.style.display = 'none'; }, 160);
 }
 
-// ── Big Card Preview Overlay (Centered) ───────────────────────────────────────
-let bigPreviewOverlay = null;
-let bigPreviewImg     = null;
-function getBigPreview() {
-    if (!bigPreviewOverlay) {
-        bigPreviewOverlay = document.createElement('div');
-        bigPreviewOverlay.className = 'card-big-preview-overlay';
-        bigPreviewImg = document.createElement('img');
-        bigPreviewImg.className = 'card-big-preview-img';
-        bigPreviewOverlay.appendChild(bigPreviewImg);
-        document.body.appendChild(bigPreviewOverlay);
-    }
-    return { overlay: bigPreviewOverlay, img: bigPreviewImg };
-}
-function showBigPreview(card) {
-    const { overlay, img } = getBigPreview();
-    const lang = state.language || 'en';
-    img.src = getCardImageUrl(card, lang);
-    overlay.classList.add('visible');
-    document.getElementById('de-body')?.classList.add('focus-blur-library');
-    console.log('Zoom actual:', getComputedStyle(document.documentElement).getPropertyValue('--card-hover-zoom'));
-}
-function hideBigPreview() {
-    bigPreviewOverlay?.classList.remove('visible');
-    document.getElementById('de-body')?.classList.remove('focus-blur-library');
-}
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const isBasicLand = c   => BASIC_LANDS.some(b => c.name?.startsWith(b));
 const ownedCount  = uuid => state.inventory.find(i => i.uuid === uuid)?.count ?? 0;
@@ -401,20 +374,6 @@ function renderEditView() {
             if (!isDisabled && (addBtn || e.target.tagName === 'IMG')) {
                 addCardToDeck(c, currentZone);
             }
-        }
-    });
-
-    // Big Preview on Inventory Grid
-    document.getElementById('de-inv-grid').addEventListener('mouseover', e => {
-        const cardEl = e.target.closest('.deck-inv-card');
-        if (!cardEl) return;
-        const uuid = cardEl.dataset.uuid;
-        const card = state.inventory.find(i => i.uuid === uuid);
-        if (card) showBigPreview(card);
-    });
-    document.getElementById('de-inv-grid').addEventListener('mouseout', e => {
-        if (!e.relatedTarget || !e.relatedTarget.closest?.('.deck-inv-card')) {
-            hideBigPreview();
         }
     });
 
