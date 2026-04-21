@@ -3,550 +3,512 @@ import { state } from '../utils/state.js';
 import { getCardImageUrl, getCardImageUrlEn } from '../utils/api.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const BASIC_LAND_TYPES = ['Plains', 'Island', 'Swamp', 'Mountain', 'Forest', 'Wastes'];
+const BASIC_LANDS = ['Plains', 'Island', 'Swamp', 'Mountain', 'Forest', 'Wastes'];
 const MAX_COPIES = 4;
-const MAIN_MIN = 60;
-const SIDE_MAX = 15;
+const MAIN_MIN   = 60;
+const SIDE_MAX   = 15;
+const FORMATS    = ['standard','pioneer','modern','legacy','commander','custom'];
 
 // ── Module State ──────────────────────────────────────────────────────────────
-let currentDeck = null; // { id?, name, format, mainboard:[], sideboard:[], ... }
-let currentZone  = 'mainboard'; // 'mainboard' | 'sideboard'
-let inventoryFilter = '';
+let view         = 'list'; // 'list' | 'edit'
+let currentDeck  = null;
+let currentZone  = 'mainboard';
+let invFilter    = '';
+let statsOpen    = false;
+
+// ── Root container reference ──────────────────────────────────────────────────
+function root() { return document.getElementById('decks'); }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function isBasicLand(card) {
-    return BASIC_LAND_TYPES.some(t => card.name && card.name.startsWith(t));
+const isBasicLand  = c  => BASIC_LANDS.some(b => c.name?.startsWith(b));
+const ownedCount   = uuid => (state.inventory.find(i => i.uuid === uuid)?.count) ?? 0;
+const totalInDeck  = name => !currentDeck ? 0 :
+    [...currentDeck.mainboard, ...currentDeck.sideboard]
+        .filter(e => e.name === name).reduce((s, e) => s + e.quantity, 0);
+
+function getTypeGroup(type = '') {
+    const t = type.toLowerCase();
+    if (t.includes('creature'))     return 'Criatura';
+    if (t.includes('instant'))      return 'Instantáneo';
+    if (t.includes('sorcery'))      return 'Conjuro';
+    if (t.includes('enchantment'))  return 'Encantamiento';
+    if (t.includes('artifact'))     return 'Artefacto';
+    if (t.includes('planeswalker')) return 'Planeswalker';
+    if (t.includes('land'))         return 'Tierra';
+    return 'Otros';
 }
 
-/** Total copies of a name already in the given zone array. */
-function copiesInZone(zone, name) {
-    return zone
-        .filter(e => e.name === name)
-        .reduce((sum, e) => sum + e.quantity, 0);
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function showToast(msg, type = 'ok') {
+    document.getElementById('deck-toast')?.remove();
+    const t = document.createElement('div');
+    t.id = 'deck-toast';
+    t.className = `deck-toast deck-toast-${type}`;
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.classList.add('visible'), 10);
+    setTimeout(() => { t.classList.remove('visible'); setTimeout(() => t.remove(), 400); }, 3000);
 }
 
-/** Total copies of a name across both mainboard + sideboard. */
-function totalCopiesInDeck(name) {
-    if (!currentDeck) return 0;
-    return copiesInZone(currentDeck.mainboard, name) +
-           copiesInZone(currentDeck.sideboard, name);
-}
-
-/** How many copies of this uuid the user owns in inventory. */
-function ownedCount(uuid) {
-    const item = state.inventory.find(i => i.uuid === uuid);
-    return item ? item.count : 0;
-}
-
-/** Total copies of a name assigned to the deck (both zones combined). */
-function usedCountByName(name) {
-    return totalCopiesInDeck(name);
-}
-
-// ── VALIDATION ────────────────────────────────────────────────────────────────
-/**
- * Checks if we can add `delta` more copies of a card to a zone.
- * Returns { ok: boolean, reason?: string }
- */
-function canAdd(card, zone) {
-    const isBasic = isBasicLand(card);
-    const currentTotal = totalCopiesInDeck(card.name);
-    const owned = ownedCount(card.uuid);
-
-    // 4-copy limit (skip for basic lands)
-    if (!isBasic && currentTotal >= MAX_COPIES) {
-        return { ok: false, reason: `Límite de ${MAX_COPIES} copias alcanzado para "${card.name}".` };
-    }
-
-    // Sideboard max size
-    if (zone === 'sideboard') {
-        const sideTotal = currentDeck.sideboard.reduce((s, e) => s + e.quantity, 0);
-        if (sideTotal >= SIDE_MAX) {
-            return { ok: false, reason: `El sideboard ya tiene ${SIDE_MAX} cartas.` };
-        }
-    }
-
-    // Inventory limit — user doesn't own enough
-    if (owned <= 0 && currentTotal >= owned) {
-        // Still allow adding but mark over-limit — don't block
-    }
-
-    return { ok: true };
-}
-
-// ── DECK MUTATIONS ────────────────────────────────────────────────────────────
+// ── Deck mutations ────────────────────────────────────────────────────────────
 function addCardToDeck(card, zone) {
     if (!currentDeck) return;
+    const isBasic   = isBasicLand(card);
+    const total     = totalInDeck(card.name);
+    const sideTotal = currentDeck.sideboard.reduce((s,e) => s+e.quantity, 0);
 
-    const { ok, reason } = canAdd(card, zone);
-    if (!ok) { showToast(reason, 'warn'); return; }
+    if (!isBasic && total >= MAX_COPIES)       { showToast(`Máximo ${MAX_COPIES} copias de "${card.name}".`, 'warn'); return; }
+    if (zone === 'sideboard' && sideTotal >= SIDE_MAX) { showToast(`Sideboard lleno (${SIDE_MAX}).`, 'warn'); return; }
 
-    const zoneArr = currentDeck[zone];
-    const existing = zoneArr.find(e => e.uuid === card.uuid);
+    const arr      = currentDeck[zone];
+    const existing = arr.find(e => e.uuid === card.uuid);
     if (existing) {
         existing.quantity++;
     } else {
-        zoneArr.push({
-            uuid: card.uuid,
-            name: card.name,
-            setCode: card.setCode,
-            number: card.number || '',
-            colors: card.colors || [],
-            type: card.type || '',
-            manaValue: card.manaValue ?? card.convertedManaCost ?? 0,
-            rarity: card.rarity || 'common',
-            quantity: 1
-        });
+        arr.push({ uuid: card.uuid, name: card.name, setCode: card.setCode,
+            number: card.number || '', colors: card.colors || [],
+            type: card.type || '', manaValue: card.manaValue ?? 0,
+            rarity: card.rarity || 'common', quantity: 1 });
     }
-
-    refreshDeckPanel();
-    updateStats();
+    refreshEditor();
 }
 
 function removeCardFromDeck(uuid, zone) {
     if (!currentDeck) return;
-    const zoneArr = currentDeck[zone];
-    const idx = zoneArr.findIndex(e => e.uuid === uuid);
+    const arr = currentDeck[zone];
+    const idx = arr.findIndex(e => e.uuid === uuid);
     if (idx === -1) return;
-    if (zoneArr[idx].quantity > 1) {
-        zoneArr[idx].quantity--;
-    } else {
-        zoneArr.splice(idx, 1);
-    }
-    refreshDeckPanel();
-    updateStats();
+    arr[idx].quantity > 1 ? arr[idx].quantity-- : arr.splice(idx, 1);
+    refreshEditor();
 }
 
-// ── SAVE / LOAD ───────────────────────────────────────────────────────────────
+// ── Save / Load ───────────────────────────────────────────────────────────────
 async function saveCurrentDeck() {
     if (!currentDeck) return;
     const btn = document.getElementById('save-deck-btn');
     if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
 
-    const totalMain = currentDeck.mainboard.reduce((s, e) => s + e.quantity, 0);
-    const totalSide = currentDeck.sideboard.reduce((s, e) => s + e.quantity, 0);
-    const allColors = new Set(currentDeck.mainboard.flatMap(e => e.colors || []));
-
+    const totalMain = currentDeck.mainboard.reduce((s,e) => s+e.quantity, 0);
+    const totalSide = currentDeck.sideboard.reduce((s,e) => s+e.quantity, 0);
     currentDeck.stats = {
-        totalCards: totalMain,
-        sideboardCards: totalSide,
-        colorIdentity: [...allColors]
+        totalCards: totalMain, sideboardCards: totalSide,
+        colorIdentity: [...new Set(currentDeck.mainboard.flatMap(e => e.colors||[]))]
     };
-
     const newId = await saveDeck(currentDeck);
     if (!currentDeck.id) currentDeck.id = newId;
-
-    showToast('✅ Mazo guardado correctamente.', 'ok');
-    renderDeckSelector();
-    if (btn) { btn.disabled = false; btn.textContent = '💾 Guardar Mazo'; }
+    showToast('✅ Mazo guardado.', 'ok');
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Guardar'; }
 }
 
 async function loadDeckForEditing(id) {
     const deck = await getDeck(id);
     if (!deck) return;
     currentDeck = deck;
-    document.getElementById('deck-name-input').value = deck.name;
-    document.getElementById('deck-format').value = deck.format || 'standard';
-    refreshDeckPanel();
-    updateStats();
+    switchView('edit');
 }
 
 function newEmptyDeck() {
-    currentDeck = {
-        name: 'Nuevo Mazo',
-        format: 'standard',
-        mainboard: [],
-        sideboard: [],
-        stats: { totalCards: 0, sideboardCards: 0, colorIdentity: [] }
-    };
-    document.getElementById('deck-name-input').value = currentDeck.name;
-    document.getElementById('deck-format').value = 'standard';
-    refreshDeckPanel();
-    updateStats();
+    currentDeck = { name: 'Nuevo Mazo', format: 'standard',
+        mainboard: [], sideboard: [],
+        stats: { totalCards: 0, sideboardCards: 0, colorIdentity: [] } };
+    switchView('edit');
 }
 
-// ── RENDER: DECK SELECTOR PANEL ───────────────────────────────────────────────
-async function renderDeckSelector() {
-    const list = document.getElementById('saved-decks-list');
-    const decks = await getAllDecks();
-
-    if (decks.length === 0) {
-        list.innerHTML = `<p class="deck-empty-hint">No tienes mazos guardados aún.</p>`;
-        return;
-    }
-
-    list.innerHTML = decks.map(d => {
-        const total = d.stats?.totalCards ?? 0;
-        const colors = (d.stats?.colorIdentity || []).map(c => `<span class="mana-pip mana-${c.toLowerCase()}">${c}</span>`).join('');
-        const isActive = currentDeck && currentDeck.id === d.id;
-        return `
-            <div class="saved-deck-item ${isActive ? 'active' : ''}" data-deck-id="${d.id}">
-                <div class="saved-deck-info">
-                    <span class="saved-deck-name">${d.name}</span>
-                    <span class="saved-deck-meta">${total} cartas ${colors}</span>
-                </div>
-                <button class="deck-delete-btn" data-deck-id="${d.id}" title="Eliminar mazo">🗑️</button>
-            </div>
-        `;
-    }).join('');
-}
-
-// ── RENDER: INVENTORY PANEL ───────────────────────────────────────────────────
-function renderInventoryPanel() {
-    const container = document.getElementById('deck-inventory-results');
-    const inv = state.inventory;
-
-    const filtered = inv.filter(card => {
-        if (!inventoryFilter) return true;
-        return card.name.toLowerCase().includes(inventoryFilter.toLowerCase());
-    });
-
-    if (filtered.length === 0) {
-        container.innerHTML = `<p style="grid-column:1/-1; text-align:center; color:var(--text-secondary); margin-top:2rem;">
-            ${inv.length === 0 ? 'Tu colección está vacía. Abre algunos sobres primero.' : 'No hay cartas que coincidan.'}
-        </p>`;
-        return;
-    }
-
-    container.innerHTML = filtered.map(card => {
-        const lang = state.language || 'en';
-        const imgUrl = getCardImageUrl(card, lang);
-        const fallbackUrl = getCardImageUrlEn(card);
-        const inDeck = totalCopiesInDeck(card.name);
-        const owned = card.count;
-        const overLimit = inDeck > owned;
-
-        return `
-            <div class="deck-inv-card ${overLimit ? 'over-limit' : ''}" 
-                 data-uuid="${card.uuid}"
-                 data-name="${card.name}"
-                 title="${card.name} (${card.setCode}) — Tienes: ${owned} | En mazo: ${inDeck}">
-                <img src="${imgUrl}" 
-                     alt="${card.name}" 
-                     loading="lazy"
-                     class="deck-inv-img"
-                     onload="this.style.opacity=1"
-                     onerror="this.onerror=null;this.src='${fallbackUrl}'">
-                <div class="deck-inv-footer">
-                    <span class="deck-inv-count">x${owned}</span>
-                    <div class="deck-inv-actions">
-                        <button class="deck-add-btn" data-uuid="${card.uuid}" title="Añadir al mazo">+</button>
-                    </div>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-// ── RENDER: DECK LIST PANEL ───────────────────────────────────────────────────
-function refreshDeckPanel() {
-    renderZone('mainboard');
-    renderZone('sideboard');
-    updateDeckCountLabel();
-    renderInventoryPanel(); // refresh over-limit flags
-}
-
-function renderZone(zone) {
-    const container = document.getElementById(`zone-${zone}`);
-    if (!container || !currentDeck) return;
-
-    const entries = currentDeck[zone];
-    const totalCards = entries.reduce((s, e) => s + e.quantity, 0);
-
-    if (entries.length === 0) {
-        container.innerHTML = `<p class="deck-zone-empty">
-            ${zone === 'mainboard' ? '— Mainboard vacío —' : '— Sideboard vacío —'}
-        </p>`;
-        return;
-    }
-
-    // Group by type for mainboard readability
-    const grouped = {};
-    entries.forEach(e => {
-        const typeKey = getTypeGroup(e.type);
-        if (!grouped[typeKey]) grouped[typeKey] = [];
-        grouped[typeKey].push(e);
-    });
-
-    const typeOrder = ['Criatura', 'Instantáneo', 'Conjuro', 'Encantamiento', 'Artefacto', 'Planeswalker', 'Tierra', 'Otros'];
-
-    let html = '';
-    typeOrder.forEach(group => {
-        if (!grouped[group]) return;
-        const groupTotal = grouped[group].reduce((s, e) => s + e.quantity, 0);
-        html += `<div class="deck-type-group">
-            <div class="deck-type-header">
-                <span>${group}</span>
-                <span class="deck-type-count">${groupTotal}</span>
-            </div>`;
-        grouped[group].forEach(entry => {
-            const owned = ownedCount(entry.uuid);
-            const overLimit = entry.quantity > owned;
-            html += `
-                <div class="deck-entry ${overLimit ? 'over-limit' : ''}" data-uuid="${entry.uuid}" data-zone="${zone}">
-                    <div class="deck-entry-qty">${entry.quantity}</div>
-                    <div class="deck-entry-name">${entry.name}</div>
-                    <div class="deck-entry-set">${entry.setCode}</div>
-                    <div class="deck-entry-controls">
-                        <button class="deck-entry-minus" data-uuid="${entry.uuid}" data-zone="${zone}">-</button>
-                        <button class="deck-entry-plus" data-uuid="${entry.uuid}" data-zone="${zone}">+</button>
-                    </div>
-                </div>
-            `;
-        });
-        html += `</div>`;
-    });
-
-    container.innerHTML = html;
-}
-
-function getTypeGroup(type) {
-    if (!type) return 'Otros';
-    const t = type.toLowerCase();
-    if (t.includes('creature')) return 'Criatura';
-    if (t.includes('instant')) return 'Instantáneo';
-    if (t.includes('sorcery')) return 'Conjuro';
-    if (t.includes('enchantment')) return 'Encantamiento';
-    if (t.includes('artifact')) return 'Artefacto';
-    if (t.includes('planeswalker')) return 'Planeswalker';
-    if (t.includes('land')) return 'Tierra';
-    return 'Otros';
-}
-
-function updateDeckCountLabel() {
-    if (!currentDeck) return;
-    const totalMain = currentDeck.mainboard.reduce((s, e) => s + e.quantity, 0);
-    const totalSide = currentDeck.sideboard.reduce((s, e) => s + e.quantity, 0);
-    const label = document.getElementById('deck-count-label');
-    if (label) {
-        const color = totalMain >= MAIN_MIN ? 'var(--accent-secondary)' : 'var(--text-secondary)';
-        label.innerHTML = `<span style="color:${color};font-weight:700;">${totalMain}</span> / ${MAIN_MIN} cartas · Side: ${totalSide}/${SIDE_MAX}`;
-    }
-}
-
-// ── STATS: MANA CURVE ─────────────────────────────────────────────────────────
-function updateStats() {
-    if (!currentDeck) return;
-    const all = currentDeck.mainboard;
-
-    // Mana curve (0–7+)
-    const curve = Array(8).fill(0);
-    all.forEach(e => {
-        const mv = Math.min(Math.floor(e.manaValue ?? 0), 7);
-        curve[mv] += e.quantity;
-    });
-
-    const maxVal = Math.max(...curve, 1);
-    const curveEl = document.getElementById('mana-curve-bars');
-    if (curveEl) {
-        curveEl.innerHTML = curve.map((count, i) => `
-            <div class="curve-bar-col">
-                <div class="curve-bar-count">${count || ''}</div>
-                <div class="curve-bar" style="height: ${(count / maxVal) * 100}%"></div>
-                <div class="curve-bar-label">${i === 7 ? '7+' : i}</div>
-            </div>
-        `).join('');
-    }
-
-    // Type counts
-    const typeCounts = {};
-    all.forEach(e => {
-        const g = getTypeGroup(e.type);
-        typeCounts[g] = (typeCounts[g] || 0) + e.quantity;
-    });
-    const typesEl = document.getElementById('deck-type-counts');
-    if (typesEl) {
-        const entries = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]);
-        typesEl.innerHTML = entries.map(([g, c]) =>
-            `<div class="type-count-row"><span>${g}</span><span>${c}</span></div>`
-        ).join('') || `<p style="color:var(--text-secondary);font-size:0.8rem;">Sin cartas</p>`;
-    }
-
-    updateDeckCountLabel();
-}
-
-// ── EXPORT ────────────────────────────────────────────────────────────────────
+// ── Export ────────────────────────────────────────────────────────────────────
 function exportDeckText() {
     if (!currentDeck) return;
-    const lines = [];
-    currentDeck.mainboard.forEach(e => lines.push(`${e.quantity} ${e.name}`));
-    if (currentDeck.sideboard.length > 0) {
-        lines.push('');
-        lines.push('SIDEBOARD:');
+    const lines = currentDeck.mainboard.map(e => `${e.quantity} ${e.name}`);
+    if (currentDeck.sideboard.length) {
+        lines.push('', 'SIDEBOARD:');
         currentDeck.sideboard.forEach(e => lines.push(`${e.quantity} ${e.name}`));
     }
     const text = lines.join('\n');
-    navigator.clipboard.writeText(text).then(() => {
-        showToast('📋 Mazo copiado al portapapeles (formato Untap.in/MTGO).', 'ok');
-    }).catch(() => {
-        // Fallback: download as .txt
-        const blob = new Blob([text], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${currentDeck.name || 'mazo'}.txt`;
-        a.click();
-        URL.revokeObjectURL(url);
-    });
+    navigator.clipboard.writeText(text)
+        .then(() => showToast('📋 Copiado al portapapeles (Untap.in/MTGO).', 'ok'))
+        .catch(() => {
+            const a = Object.assign(document.createElement('a'), {
+                href: URL.createObjectURL(new Blob([text], {type:'text/plain'})),
+                download: `${currentDeck.name||'mazo'}.txt`
+            });
+            a.click();
+        });
 }
 
-// ── TOAST ─────────────────────────────────────────────────────────────────────
-function showToast(msg, type = 'ok') {
-    const existing = document.getElementById('deck-toast');
-    if (existing) existing.remove();
-    const toast = document.createElement('div');
-    toast.id = 'deck-toast';
-    toast.className = `deck-toast deck-toast-${type}`;
-    toast.textContent = msg;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.classList.add('visible'), 10);
-    setTimeout(() => { toast.classList.remove('visible'); setTimeout(() => toast.remove(), 400); }, 3000);
+// ── View switcher ─────────────────────────────────────────────────────────────
+function switchView(v) {
+    view = v;
+    if (v === 'list') renderListView();
+    else              renderEditView();
 }
 
-// ── INIT ──────────────────────────────────────────────────────────────────────
-export function initDecks() {
-    const container = document.getElementById('decks');
+// ══════════════════════════════════════════════════════════════════════════════
+// LIST VIEW
+// ══════════════════════════════════════════════════════════════════════════════
+async function renderListView() {
+    const decks = await getAllDecks();
+    const colorPips = colors => (colors||[]).map(c =>
+        `<span class="mana-pip mana-${c.toLowerCase()}">${c}</span>`).join('');
+    const formatLabel = { standard:'Standard', pioneer:'Pioneer', modern:'Modern',
+        legacy:'Legacy', commander:'Commander', custom:'Personalizado' };
 
-    container.innerHTML = `
-        <!-- ── Top Bar ─────────────────────────────────────── -->
-        <div class="deck-topbar">
-            <div style="display:flex; align-items:center; gap:1rem; flex:1; min-width:0;">
-                <input id="deck-name-input" class="deck-name-input" type="text" placeholder="Nombre del mazo..." value="Nuevo Mazo">
-                <select id="deck-format" class="deck-format-select">
-                    <option value="standard">Standard</option>
-                    <option value="pioneer">Pioneer</option>
-                    <option value="modern">Modern</option>
-                    <option value="legacy">Legacy</option>
-                    <option value="commander">Commander / EDH</option>
-                    <option value="custom">Personalizado</option>
-                </select>
-            </div>
-            <div style="display:flex; gap:0.75rem; flex-shrink:0;">
-                <button id="new-deck-btn" class="nav-btn" title="Nuevo mazo">✨ Nuevo</button>
-                <button id="export-deck-btn" class="nav-btn" title="Exportar para Untap.in/MTGO">📤 Exportar</button>
-                <button id="save-deck-btn" class="save-btn">💾 Guardar Mazo</button>
+    const cards = decks.length === 0
+        ? `<div class="deck-list-empty">
+                <div style="font-size:3rem; margin-bottom:1rem;">🃏</div>
+                <p>No tienes mazos todavía.</p>
+                <p style="color:var(--text-secondary);font-size:0.85rem;margin-top:0.5rem;">Crea uno con el botón de arriba.</p>
+           </div>`
+        : decks.map(d => {
+            const total = d.stats?.totalCards ?? 0;
+            const side  = d.stats?.sideboardCards ?? 0;
+            return `
+            <div class="deck-card" data-id="${d.id}">
+                <div class="deck-card-body">
+                    <div class="deck-card-name">${d.name}</div>
+                    <div class="deck-card-format">${formatLabel[d.format]||d.format}</div>
+                    <div class="deck-card-colors">${colorPips(d.stats?.colorIdentity)}</div>
+                    <div class="deck-card-count">${total} cartas${side ? ` · SB: ${side}` : ''}</div>
+                </div>
+                <div class="deck-card-actions">
+                    <button class="deck-action-btn deck-action-edit" data-id="${d.id}">✏️ Editar</button>
+                    <button class="deck-action-btn deck-action-rename" data-id="${d.id}" data-name="${d.name}">🏷️ Renombrar</button>
+                    <button class="deck-action-btn deck-action-delete" data-id="${d.id}">🗑️ Eliminar</button>
+                </div>
+            </div>`;
+        }).join('');
+
+    root().innerHTML = `
+        <div class="deck-list-header">
+            <h2 class="deck-list-title">Mis Mazos</h2>
+            <button id="new-deck-btn" class="save-btn">✨ Nuevo Mazo</button>
+        </div>
+        <div class="deck-cards-grid">${cards}</div>
+    `;
+
+    document.getElementById('new-deck-btn').onclick = newEmptyDeck;
+
+    root().addEventListener('click', async e => {
+        const editBtn   = e.target.closest('.deck-action-edit');
+        const renameBtn = e.target.closest('.deck-action-rename');
+        const deleteBtn = e.target.closest('.deck-action-delete');
+
+        if (editBtn) {
+            await loadDeckForEditing(parseInt(editBtn.dataset.id, 10));
+        } else if (renameBtn) {
+            const newName = prompt('Nuevo nombre:', renameBtn.dataset.name);
+            if (!newName?.trim()) return;
+            const deck = await getDeck(parseInt(renameBtn.dataset.id, 10));
+            if (deck) { deck.name = newName.trim(); await saveDeck(deck); renderListView(); }
+        } else if (deleteBtn) {
+            if (!confirm('¿Eliminar este mazo?')) return;
+            await deleteDeck(parseInt(deleteBtn.dataset.id, 10));
+            renderListView();
+            showToast('🗑️ Mazo eliminado.', 'ok');
+        }
+    }, { once: true });
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// EDIT VIEW
+// ══════════════════════════════════════════════════════════════════════════════
+function renderEditView() {
+    const formatOpts = FORMATS.map(f =>
+        `<option value="${f}" ${currentDeck?.format===f?'selected':''}>${
+            {standard:'Standard',pioneer:'Pioneer',modern:'Modern',
+             legacy:'Legacy',commander:'Commander / EDH',custom:'Personalizado'}[f]
+        }</option>`).join('');
+
+    root().innerHTML = `
+        <!-- Top bar -->
+        <div class="de-topbar">
+            <button id="de-back" class="nav-btn">← Mis Mazos</button>
+            <input id="de-name" class="deck-name-input" type="text"
+                   placeholder="Nombre del mazo..."
+                   value="${currentDeck?.name || 'Nuevo Mazo'}">
+            <select id="de-format" class="deck-format-select">${formatOpts}</select>
+            <div class="de-topbar-actions">
+                <button id="de-stats-toggle" class="nav-btn" title="Ver estadísticas">📊 Stats</button>
+                <button id="de-export" class="nav-btn">📤 Exportar</button>
+                <button id="de-save" class="save-btn">💾 Guardar</button>
             </div>
         </div>
 
-        <!-- ── Body: Sidebar + Editor ──────────────────────── -->
-        <div class="deck-body">
-
-            <!-- Saved Decks Sidebar -->
-            <div class="deck-sidebar">
-                <h3 class="deck-panel-title">Mis Mazos</h3>
-                <div id="saved-decks-list" class="saved-decks-list"></div>
+        <!-- Two-column editor -->
+        <div class="de-body">
+            <!-- LEFT: Inventory (75%) -->
+            <div class="de-inventory">
+                <div class="de-inv-header">
+                    <h3 class="deck-panel-title" style="border:none;padding:0;">🎴 Tu Colección</h3>
+                    <input id="de-inv-search" class="deck-inv-search" type="text" placeholder="Buscar carta...">
+                </div>
+                <div id="de-inv-grid" class="de-inv-grid"></div>
             </div>
 
-            <!-- Inventory Panel -->
-            <div class="deck-inventory-panel">
-                <h3 class="deck-panel-title">🎴 Colección Disponible</h3>
-                <input id="inv-search" class="deck-inv-search" type="text" placeholder="Buscar carta...">
-                <div id="deck-inventory-results" class="deck-inv-grid"></div>
-            </div>
-
-            <!-- Deck Construction Panel -->
-            <div class="deck-build-panel">
-                <!-- Zone selector tabs -->
+            <!-- RIGHT: Deck list (25%) -->
+            <div class="de-builder">
                 <div class="zone-tabs">
                     <button class="zone-tab active" data-zone="mainboard">
-                        Mainboard <span id="deck-count-label" class="zone-count">0 / 60</span>
+                        Mainboard <span id="deck-count-label" class="zone-count"></span>
                     </button>
                     <button class="zone-tab" data-zone="sideboard">
-                        Sideboard <span id="side-count-label" class="zone-count">0 / 15</span>
+                        Sideboard <span id="side-count-label" class="zone-count"></span>
                     </button>
                 </div>
-
-                <!-- Mainboard list -->
                 <div class="deck-zone-wrapper active" id="zone-wrapper-mainboard">
                     <div id="zone-mainboard" class="deck-zone-list"></div>
                 </div>
-
-                <!-- Sideboard list -->
                 <div class="deck-zone-wrapper" id="zone-wrapper-sideboard">
                     <div id="zone-sideboard" class="deck-zone-list"></div>
                 </div>
+            </div>
+        </div>
 
-                <!-- Stats -->
-                <div class="deck-stats-panel">
+        <!-- Stats drawer (hidden by default) -->
+        <div id="de-stats-drawer" class="de-stats-drawer">
+            <div class="de-stats-inner">
+                <div>
                     <h4 class="deck-stats-title">⚡ Curva de Maná</h4>
                     <div id="mana-curve-bars" class="mana-curve"></div>
-                    <h4 class="deck-stats-title" style="margin-top:1rem;">📊 Tipos</h4>
+                </div>
+                <div>
+                    <h4 class="deck-stats-title">📊 Tipos</h4>
                     <div id="deck-type-counts" class="type-counts"></div>
                 </div>
             </div>
         </div>
+
+        <!-- Card preview modal -->
+        <div id="deck-card-modal" class="deck-modal-overlay" style="display:none;">
+            <div id="deck-card-modal-content" class="deck-modal-content"></div>
+        </div>
     `;
 
-    // ── Wire up events ────────────────────────────────────────────────────────
+    // Wire events
+    document.getElementById('de-back').onclick   = () => switchView('list');
+    document.getElementById('de-save').onclick   = () => saveCurrentDeck();
+    document.getElementById('de-export').onclick = () => exportDeckText();
+    document.getElementById('de-name').oninput   = e => { if (currentDeck) currentDeck.name = e.target.value; };
+    document.getElementById('de-format').onchange= e => { if (currentDeck) currentDeck.format = e.target.value; };
+    document.getElementById('de-inv-search').oninput = e => { invFilter = e.target.value; renderInventoryGrid(); };
 
-    document.getElementById('new-deck-btn').onclick = () => { newEmptyDeck(); };
-    document.getElementById('save-deck-btn').onclick = () => saveCurrentDeck();
-    document.getElementById('export-deck-btn').onclick = () => exportDeckText();
-
-    document.getElementById('deck-name-input').oninput = (e) => {
-        if (currentDeck) currentDeck.name = e.target.value;
-    };
-    document.getElementById('deck-format').onchange = (e) => {
-        if (currentDeck) currentDeck.format = e.target.value;
-    };
-
-    // Inventory search
-    document.getElementById('inv-search').oninput = (e) => {
-        inventoryFilter = e.target.value;
-        renderInventoryPanel();
+    document.getElementById('de-stats-toggle').onclick = () => {
+        statsOpen = !statsOpen;
+        document.getElementById('de-stats-drawer').classList.toggle('open', statsOpen);
+        updateStats();
     };
 
     // Zone tabs
-    document.querySelectorAll('.zone-tab').forEach(tab => {
+    root().querySelectorAll('.zone-tab').forEach(tab => {
         tab.onclick = () => {
-            document.querySelectorAll('.zone-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.deck-zone-wrapper').forEach(w => w.classList.remove('active'));
+            root().querySelectorAll('.zone-tab').forEach(t => t.classList.remove('active'));
+            root().querySelectorAll('.deck-zone-wrapper').forEach(w => w.classList.remove('active'));
             tab.classList.add('active');
             currentZone = tab.dataset.zone;
             document.getElementById(`zone-wrapper-${currentZone}`).classList.add('active');
         };
     });
 
-    // Inventory: add card on click
-    document.getElementById('deck-inventory-results').addEventListener('click', (e) => {
+    // Inventory click: open modal on image, add on button
+    document.getElementById('de-inv-grid').addEventListener('click', e => {
         const addBtn = e.target.closest('.deck-add-btn');
-        if (!addBtn) return;
-        if (!currentDeck) { showToast('Crea o selecciona un mazo primero.', 'warn'); return; }
-        const uuid = addBtn.dataset.uuid;
-        const card = state.inventory.find(i => i.uuid === uuid);
-        if (card) addCardToDeck(card, currentZone);
-    });
-
-    // Deck list: +/- controls (delegated)
-    document.getElementById('decks').addEventListener('click', async (e) => {
-        const minusBtn = e.target.closest('.deck-entry-minus');
-        const plusBtn  = e.target.closest('.deck-entry-plus');
-        const deleteBtn = e.target.closest('.deck-delete-btn');
-        const deckItem  = e.target.closest('.saved-deck-item');
-
-        if (minusBtn) {
-            removeCardFromDeck(minusBtn.dataset.uuid, minusBtn.dataset.zone);
-        } else if (plusBtn) {
-            const zone = plusBtn.dataset.zone;
-            const entry = currentDeck[zone].find(e => e.uuid === plusBtn.dataset.uuid);
-            if (entry) addCardToDeck(entry, zone);
-        } else if (deleteBtn) {
-            const id = parseInt(deleteBtn.dataset.deckId, 10);
-            if (!confirm('¿Seguro que quieres eliminar este mazo?')) return;
-            await deleteDeck(id);
-            if (currentDeck && currentDeck.id === id) newEmptyDeck();
-            renderDeckSelector();
-            showToast('🗑️ Mazo eliminado.', 'ok');
-        } else if (deckItem && !e.target.closest('.deck-delete-btn')) {
-            const id = parseInt(deckItem.dataset.deckId, 10);
-            await loadDeckForEditing(id);
-            renderDeckSelector();
+        const card   = e.target.closest('.deck-inv-card');
+        if (addBtn) {
+            const uuid = addBtn.dataset.uuid;
+            const c    = state.inventory.find(i => i.uuid === uuid);
+            if (c) addCardToDeck(c, currentZone);
+        } else if (card && !addBtn) {
+            openCardModal(card.dataset.uuid);
         }
     });
 
-    // Init
-    newEmptyDeck();
-    renderDeckSelector();
-    renderInventoryPanel();
+    // Deck list controls
+    root().addEventListener('click', e => {
+        const minus = e.target.closest('.deck-entry-minus');
+        const plus  = e.target.closest('.deck-entry-plus');
+        if (minus) removeCardFromDeck(minus.dataset.uuid, minus.dataset.zone);
+        if (plus) {
+            const entry = currentDeck[plus.dataset.zone]?.find(en => en.uuid === plus.dataset.uuid);
+            if (entry) addCardToDeck(entry, plus.dataset.zone);
+        }
+    });
+
+    // Modal: close on overlay click
+    document.getElementById('deck-card-modal').onclick = e => {
+        if (e.target === e.currentTarget) closeCardModal();
+    };
+
+    refreshEditor();
+}
+
+// ── Card preview modal ────────────────────────────────────────────────────────
+function openCardModal(uuid) {
+    const card = state.inventory.find(i => i.uuid === uuid);
+    if (!card) return;
+
+    const lang        = state.language || 'en';
+    const imgUrl      = getCardImageUrl(card, lang);
+    const fallbackUrl = getCardImageUrlEn(card);
+    const inDeck      = totalInDeck(card.name);
+    const owned       = card.count;
+
+    document.getElementById('deck-card-modal-content').innerHTML = `
+        <button id="deck-modal-close" class="deck-modal-close">✕</button>
+        <div class="deck-modal-img-col">
+            <img src="${imgUrl}" alt="${card.name}"
+                 style="width:100%;max-width:320px;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.8);"
+                 onerror="this.src='${fallbackUrl}'">
+        </div>
+        <div class="deck-modal-info-col">
+            <h2 style="font-family:var(--font-heading);font-size:1.8rem;margin-bottom:0.5rem;">${card.name}</h2>
+            <p style="color:var(--text-secondary);margin-bottom:2rem;">${card.setCode?.toUpperCase()} · ${card.rarity}</p>
+            <p style="font-size:0.9rem;margin-bottom:2rem;">
+                Tienes: <strong style="color:var(--accent-secondary)">${owned}</strong> · 
+                En mazo: <strong style="color:${inDeck>owned?'#e74c3c':'var(--text-primary)'}">${inDeck}</strong>
+            </p>
+            <div style="display:flex;flex-direction:column;gap:0.75rem;">
+                <button class="save-btn deck-modal-add" data-uuid="${card.uuid}" data-zone="mainboard">
+                    + Añadir al Mainboard
+                </button>
+                <button class="nav-btn deck-modal-add" data-uuid="${card.uuid}" data-zone="sideboard"
+                        style="border:1px solid var(--border-color);">
+                    + Añadir al Sideboard
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('deck-modal-close').onclick = closeCardModal;
+    document.querySelectorAll('.deck-modal-add').forEach(btn => {
+        btn.onclick = () => {
+            const c = state.inventory.find(i => i.uuid === btn.dataset.uuid);
+            if (c) addCardToDeck(c, btn.dataset.zone);
+            // Update in-deck count in modal
+            const newInDeck = totalInDeck(c.name);
+            const inDeckEl = document.querySelector('.deck-modal-info-col strong:nth-child(2)');
+            if (inDeckEl) inDeckEl.textContent = newInDeck;
+        };
+    });
+
+    document.getElementById('deck-card-modal').style.display = 'flex';
+}
+
+function closeCardModal() {
+    const modal = document.getElementById('deck-card-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+// ── Render: inventory grid ────────────────────────────────────────────────────
+function renderInventoryGrid() {
+    const container = document.getElementById('de-inv-grid');
+    if (!container) return;
+
+    const filtered = state.inventory.filter(c =>
+        !invFilter || c.name.toLowerCase().includes(invFilter.toLowerCase()));
+
+    if (filtered.length === 0) {
+        container.innerHTML = `<p style="grid-column:1/-1;text-align:center;color:var(--text-secondary);margin-top:2rem;">
+            ${state.inventory.length === 0 ? 'Colección vacía. Abre sobres primero.' : 'Sin resultados.'}
+        </p>`;
+        return;
+    }
+
+    const lang = state.language || 'en';
+    container.innerHTML = filtered.map(card => {
+        const imgUrl      = getCardImageUrl(card, lang);
+        const fallbackUrl = getCardImageUrlEn(card);
+        const inDeck      = totalInDeck(card.name);
+        const overLimit   = inDeck > card.count;
+        return `
+            <div class="deck-inv-card ${overLimit ? 'over-limit' : ''}"
+                 data-uuid="${card.uuid}"
+                 title="${card.name} — Tienes: ${card.count} | En mazo: ${inDeck}">
+                <img src="${imgUrl}" alt="${card.name}" loading="lazy" class="deck-inv-img"
+                     onload="this.style.opacity=1"
+                     onerror="this.onerror=null;this.src='${fallbackUrl}'">
+                <div class="deck-inv-footer">
+                    <span class="deck-inv-count">x${card.count}</span>
+                    <button class="deck-add-btn" data-uuid="${card.uuid}">+</button>
+                </div>
+            </div>`;
+    }).join('');
+}
+
+// ── Render: deck zone ─────────────────────────────────────────────────────────
+function renderZone(zone) {
+    const el = document.getElementById(`zone-${zone}`);
+    if (!el || !currentDeck) return;
+    const entries = currentDeck[zone];
+    if (entries.length === 0) {
+        el.innerHTML = `<p class="deck-zone-empty">— ${zone === 'mainboard' ? 'Mainboard' : 'Sideboard'} vacío —</p>`;
+        return;
+    }
+    const TYPE_ORDER = ['Criatura','Instantáneo','Conjuro','Encantamiento','Artefacto','Planeswalker','Tierra','Otros'];
+    const grouped = {};
+    entries.forEach(e => { const g = getTypeGroup(e.type); (grouped[g]??=[]).push(e); });
+    let html = '';
+    TYPE_ORDER.forEach(g => {
+        if (!grouped[g]) return;
+        const tot = grouped[g].reduce((s,e)=>s+e.quantity,0);
+        html += `<div class="deck-type-group">
+            <div class="deck-type-header"><span>${g}</span><span class="deck-type-count">${tot}</span></div>`;
+        grouped[g].forEach(entry => {
+            const over = entry.quantity > ownedCount(entry.uuid);
+            html += `<div class="deck-entry ${over?'over-limit':''}" data-uuid="${entry.uuid}" data-zone="${zone}">
+                <div class="deck-entry-qty">${entry.quantity}</div>
+                <div class="deck-entry-name">${entry.name}</div>
+                <div class="deck-entry-set">${entry.setCode}</div>
+                <div class="deck-entry-controls">
+                    <button class="deck-entry-minus" data-uuid="${entry.uuid}" data-zone="${zone}">-</button>
+                    <button class="deck-entry-plus"  data-uuid="${entry.uuid}" data-zone="${zone}">+</button>
+                </div>
+            </div>`;
+        });
+        html += `</div>`;
+    });
+    el.innerHTML = html;
+}
+
+function updateDeckCountLabel() {
+    if (!currentDeck) return;
+    const main = currentDeck.mainboard.reduce((s,e)=>s+e.quantity,0);
+    const side = currentDeck.sideboard.reduce((s,e)=>s+e.quantity,0);
+    const color = main >= MAIN_MIN ? 'var(--accent-secondary)' : 'var(--text-secondary)';
+    const lbl = document.getElementById('deck-count-label');
+    const slbl = document.getElementById('side-count-label');
+    if (lbl) lbl.innerHTML = `<span style="color:${color};font-weight:700">${main}</span>/${MAIN_MIN}`;
+    if (slbl) slbl.innerHTML = `${side}/${SIDE_MAX}`;
+}
+
+function updateStats() {
+    if (!currentDeck || !statsOpen) return;
+    const all    = currentDeck.mainboard;
+    const curve  = Array(8).fill(0);
+    all.forEach(e => { curve[Math.min(Math.floor(e.manaValue??0),7)] += e.quantity; });
+    const maxVal = Math.max(...curve, 1);
+    const curveEl = document.getElementById('mana-curve-bars');
+    if (curveEl) curveEl.innerHTML = curve.map((c,i) => `
+        <div class="curve-bar-col">
+            <div class="curve-bar-count">${c||''}</div>
+            <div class="curve-bar" style="height:${(c/maxVal)*100}%"></div>
+            <div class="curve-bar-label">${i===7?'7+':i}</div>
+        </div>`).join('');
+    const typeCounts = {};
+    all.forEach(e => { const g = getTypeGroup(e.type); typeCounts[g] = (typeCounts[g]||0)+e.quantity; });
+    const typesEl = document.getElementById('deck-type-counts');
+    if (typesEl) typesEl.innerHTML = Object.entries(typeCounts)
+        .sort((a,b)=>b[1]-a[1])
+        .map(([g,c])=>`<div class="type-count-row"><span>${g}</span><span>${c}</span></div>`)
+        .join('') || '<p style="color:var(--text-secondary);font-size:0.8rem;">Sin cartas</p>';
+}
+
+function refreshEditor() {
+    renderZone('mainboard');
+    renderZone('sideboard');
+    updateDeckCountLabel();
     updateStats();
+    renderInventoryGrid();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+export function initDecks() {
+    switchView('list');
 }
