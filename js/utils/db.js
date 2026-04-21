@@ -337,3 +337,60 @@ export async function undoActivity(logId) {
         tx.onerror = () => reject(tx.error);
     });
 }
+
+// ── Deck CRUD ────────────────────────────────────────────────────────────────
+
+export async function getAllDecks() {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction('decks', 'readonly');
+        const store = tx.objectStore('decks');
+        const request = store.getAll();
+        request.onsuccess = () => {
+            const decks = request.result || [];
+            decks.sort((a, b) => b.updatedAt - a.updatedAt);
+            resolve(decks);
+        };
+        request.onerror = () => reject(request.error);
+    });
+}
+
+export async function getDeck(id) {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction('decks', 'readonly');
+        const store = tx.objectStore('decks');
+        const request = store.get(id);
+        request.onsuccess = () => resolve(request.result || null);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+/**
+ * Saves (creates or updates) a deck.
+ * If deckObj has an `id`, it updates. Otherwise, it creates a new one.
+ * Returns the id of the saved deck.
+ */
+export async function saveDeck(deckObj) {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction('decks', 'readwrite');
+        const store = tx.objectStore('decks');
+        const toSave = { ...deckObj, updatedAt: Date.now() };
+        if (!toSave.createdAt) toSave.createdAt = Date.now();
+        const request = store.put(toSave);
+        request.onsuccess = () => resolve(request.result); // returns the key (id)
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+export async function deleteDeck(id) {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction('decks', 'readwrite');
+        const store = tx.objectStore('decks');
+        store.delete(id);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+}
