@@ -56,13 +56,34 @@ const totalInDeck = name => !currentDeck ? 0 :
     [...currentDeck.mainboard, ...currentDeck.sideboard]
         .filter(e => e.name === name).reduce((s, e) => s + e.quantity, 0);
 
-/** Look up real manaValue from the full set data, not the stripped inventory record. */
-function getManaValue(entry) {
+/** Render mana cost string like "{1}{W}{R}" as Scryfall SVG images. */
+function parseManaSymbols(manaCost) {
+    if (!manaCost) return '';
+    return manaCost.replace(/\{([^}]+)\}/g, (_, sym) => {
+        const encoded = sym.replace('/', '-'); // e.g. {W/U} -> W-U
+        return `<img src="https://svgs.scryfall.io/card-symbols/${encoded}.svg"
+                     class="mana-sym" alt="{${sym}}" title="{${sym}}">`;
+    });
+}
+
+/** Look up full card data (manaCost, manaValue) from activeSetsData by uuid. */
+function getFullCardData(uuid) {
     for (const set of state.activeSetsData) {
-        const card = (set.cards || []).find(c => c.uuid === entry.uuid);
-        if (card) return card.manaValue ?? card.convertedManaCost ?? 0;
+        const card = (set.cards || []).find(c => c.uuid === uuid);
+        if (card) return card;
     }
+    return null;
+}
+
+function getManaValue(entry) {
+    const full = getFullCardData(entry.uuid);
+    if (full) return full.manaValue ?? full.convertedManaCost ?? 0;
     return entry.manaValue ?? 0;
+}
+
+function getManaCost(entry) {
+    const full = getFullCardData(entry.uuid);
+    return full?.manaCost || '';
 }
 
 function getTypeGroup(type = '') {
@@ -76,6 +97,7 @@ function getTypeGroup(type = '') {
     if (t.includes('land'))         return 'Tierra';
     return 'Otros';
 }
+
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
 function showToast(msg, type = 'ok') {
@@ -256,7 +278,6 @@ function renderEditView() {
                    placeholder="Nombre del mazo..." value="${currentDeck?.name||'Nuevo Mazo'}">
             <select id="de-format" class="deck-format-select">${formatOpts}</select>
             <div class="de-topbar-actions">
-                <button id="de-stats-toggle" class="nav-btn" title="Ver análisis completo">📊 Análisis</button>
                 <button id="de-export" class="nav-btn">📤 Exportar</button>
                 <button id="de-save" class="save-btn">💾 Guardar</button>
             </div>
@@ -272,6 +293,20 @@ function renderEditView() {
 
             <!-- RIGHT: Builder 25% -->
             <div class="de-builder">
+                <!-- Integrated compact stats -->
+                <div class="de-stats-compact" id="de-stats-compact">
+                    <div class="de-stats-row">
+                        <div class="de-stats-block">
+                            <div class="deck-stats-title">Curva de Maná</div>
+                            <div id="mana-curve-bars" class="mana-curve"></div>
+                        </div>
+                        <div class="de-stats-block">
+                            <div class="deck-stats-title">Colores</div>
+                            <div id="deck-color-dist" class="color-dist"></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Zone tabs + list -->
                 <div class="zone-tabs">
                     <button class="zone-tab active" data-zone="mainboard">
                         Mainboard <span id="deck-count-label" class="zone-count"></span>
@@ -289,24 +324,11 @@ function renderEditView() {
             </div>
         </div>
 
-        <!-- Stats drawer (expands below body when open) -->
-        <div id="de-stats-drawer" class="de-stats-drawer">
-            <div class="de-stats-inner">
-                <div>
-                    <h4 class="deck-stats-title">⚡ Curva de Maná</h4>
-                    <div id="mana-curve-bars" class="mana-curve"></div>
-                </div>
-                <div>
-                    <h4 class="deck-stats-title">📊 Tipos de Carta</h4>
-                    <div id="deck-type-counts" class="type-counts"></div>
-                </div>
-            </div>
-        </div>
-
         <!-- Card preview modal -->
         <div id="deck-card-modal" class="deck-modal-overlay" style="display:none;">
             <div id="deck-card-modal-content" class="deck-modal-content"></div>
         </div>`;
+
 
     // Wire events
     document.getElementById('de-back').onclick    = () => switchView('list');
@@ -314,18 +336,6 @@ function renderEditView() {
     document.getElementById('de-export').onclick  = () => exportDeckText();
     document.getElementById('de-name').oninput    = e => { if (currentDeck) currentDeck.name = e.target.value; };
     document.getElementById('de-format').onchange = e => { if (currentDeck) currentDeck.format = e.target.value; };
-
-    // Stats toggle: switches between split view and full analysis view
-    document.getElementById('de-stats-toggle').onclick = () => {
-        statsOpen = !statsOpen;
-        const body   = document.getElementById('de-body');
-        const drawer = document.getElementById('de-stats-drawer');
-        const btn    = document.getElementById('de-stats-toggle');
-        body.classList.toggle('stats-full', statsOpen);
-        drawer.classList.toggle('open', statsOpen);
-        btn.textContent = statsOpen ? '⬅ Colección' : '📊 Análisis';
-        if (statsOpen) updateStats();
-    };
 
     // Zone tabs
     document.querySelectorAll('.zone-tab').forEach(tab => {
@@ -454,6 +464,10 @@ function renderInventoryGrid() {
         const fallbackUrl = getCardImageUrlEn(card);
         const inDeck      = totalInDeck(card.name);
         const overLimit   = inDeck > card.count;
+        // Disable + when user owns 0 or already has all copies in deck
+        const atLimit     = !isBasicLand(card) && inDeck >= MAX_COPIES;
+        const noStock     = card.count <= 0;
+        const btnDisabled = (atLimit || noStock) ? 'disabled style="opacity:0.35;cursor:not-allowed"' : '';
         return `
             <div class="deck-inv-card ${overLimit?'over-limit':''}" data-uuid="${card.uuid}"
                  title="${card.name} — Tienes: ${card.count} | En mazo: ${inDeck}">
@@ -462,7 +476,7 @@ function renderInventoryGrid() {
                      onerror="this.onerror=null;this.src='${fallbackUrl}'">
                 <div class="deck-inv-footer">
                     <span class="deck-inv-count">x${card.count}</span>
-                    <button class="deck-add-btn" data-uuid="${card.uuid}">+</button>
+                    <button class="deck-add-btn" data-uuid="${card.uuid}" ${btnDisabled}>+</button>
                 </div>
             </div>`;
     }).join('');
@@ -488,14 +502,21 @@ function renderZone(zone) {
         html += `<div class="deck-type-group">
             <div class="deck-type-header"><span>${g}</span><span class="deck-type-count">${tot}</span></div>`;
         grouped[g].forEach(entry => {
-            const over = entry.quantity > ownedCount(entry.uuid);
+            const over       = entry.quantity > ownedCount(entry.uuid);
+            const atLimit    = !isBasicLand(entry) && totalInDeck(entry.name) >= MAX_COPIES;
+            const noStock    = ownedCount(entry.uuid) <= 0;
+            const plusDisabled = (atLimit || noStock) ? 'disabled style="opacity:0.35;cursor:not-allowed"' : '';
+            const mv         = getManaValue(entry);
+            const manaCost   = getManaCost(entry);
+            const costHtml   = manaCost ? parseManaSymbols(manaCost)
+                             : `<span class="entry-mv">${mv > 0 ? mv : ''}</span>`;
             html += `<div class="deck-entry ${over?'over-limit':''}">
                 <div class="deck-entry-qty">${entry.quantity}</div>
                 <div class="deck-entry-name" data-uuid="${entry.uuid}">${entry.name}</div>
-                <div class="deck-entry-set">${entry.setCode}</div>
+                <div class="deck-entry-cost">${costHtml}</div>
                 <div class="deck-entry-controls">
                     <button class="deck-entry-minus" data-uuid="${entry.uuid}" data-zone="${zone}">-</button>
-                    <button class="deck-entry-plus"  data-uuid="${entry.uuid}" data-zone="${zone}">+</button>
+                    <button class="deck-entry-plus"  data-uuid="${entry.uuid}" data-zone="${zone}" ${plusDisabled}>+</button>
                 </div>
             </div>`;
         });
@@ -517,36 +538,47 @@ function updateDeckCountLabel() {
 
 function updateStats() {
     if (!currentDeck) return;
-    const all   = currentDeck.mainboard;
-    const curve = Array(8).fill(0);
-    // Fix: look up real manaValue from active set data
-    all.forEach(e => {
-        const mv = Math.min(Math.floor(getManaValue(e)), 7);
-        curve[mv] += e.quantity;
-    });
+    const all = currentDeck.mainboard;
+
+    // Mana curve with Scryfall SVG labels
+    const curve  = Array(8).fill(0);
+    all.forEach(e => { curve[Math.min(Math.floor(getManaValue(e)),7)] += e.quantity; });
     const maxVal  = Math.max(...curve, 1);
     const curveEl = document.getElementById('mana-curve-bars');
-    if (curveEl) curveEl.innerHTML = curve.map((c,i) => `
-        <div class="curve-bar-col">
+    if (curveEl) curveEl.innerHTML = curve.map((c,i) => {
+        const sym = i === 7 ? '∞' : String(i);
+        const label = `<img src="https://svgs.scryfall.io/card-symbols/${i}.svg"
+            class="mana-sym" style="width:13px;height:13px" onerror="this.outerHTML='${i===7?'7+':i}'">`;
+        return `<div class="curve-bar-col">
             <div class="curve-bar-count">${c||''}</div>
             <div class="curve-bar" style="height:${(c/maxVal)*100}%"></div>
-            <div class="curve-bar-label">${i===7?'7+':i}</div>
-        </div>`).join('');
+            <div class="curve-bar-label">${label}</div>
+        </div>`;
+    }).join('');
 
-    const typeCounts = {};
-    all.forEach(e => { const g = getTypeGroup(e.type); typeCounts[g] = (typeCounts[g]||0)+e.quantity; });
-    const typesEl = document.getElementById('deck-type-counts');
-    if (typesEl) typesEl.innerHTML = Object.entries(typeCounts)
-        .sort((a,b) => b[1]-a[1])
-        .map(([g,c]) => `<div class="type-count-row"><span>${g}</span><span>${c}</span></div>`)
-        .join('') || '<p style="color:var(--text-secondary);font-size:0.8rem">Sin cartas</p>';
+    // Color distribution with Scryfall SVG icons
+    const colorMap = {};
+    all.forEach(e => { (e.colors||[]).forEach(c => { colorMap[c] = (colorMap[c]||0)+e.quantity; }); });
+    const total = Object.values(colorMap).reduce((s,v)=>s+v, 0) || 1;
+    const distEl = document.getElementById('deck-color-dist');
+    const COLOR_SYMBOLS = ['W','U','B','R','G','C'];
+    if (distEl) distEl.innerHTML = COLOR_SYMBOLS
+        .filter(c => colorMap[c])
+        .map(c => {
+            const pct = Math.round((colorMap[c]/total)*100);
+            return `<div class="color-dist-row">
+                <img src="https://svgs.scryfall.io/card-symbols/${c}.svg" class="mana-sym" style="width:16px;height:16px">
+                <div class="color-dist-bar-wrap"><div class="color-dist-bar" style="width:${pct}%"></div></div>
+                <span class="color-dist-pct">${pct}%</span>
+            </div>`;
+        }).join('') || '<p style="color:var(--text-secondary);font-size:0.75rem">Sin colores</p>';
 }
 
 function refreshEditor() {
     renderZone('mainboard');
     renderZone('sideboard');
     updateDeckCountLabel();
-    if (statsOpen) updateStats();
+    updateStats(); // always update — stats are now always visible
     renderInventoryGrid();
 }
 

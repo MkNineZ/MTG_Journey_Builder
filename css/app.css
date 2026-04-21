@@ -1127,7 +1127,40 @@ strong {
 .deck-entry.over-limit { background: rgba(192,57,43,0.08); border-left: 2px solid #c0392b; }
 .deck-entry-qty { width: 18px; text-align: center; font-weight: 900; color: var(--accent-secondary); flex-shrink: 0; }
 .deck-entry-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; position: relative; cursor: default; }
-.deck-entry-set { font-size: 0.65rem; color: var(--text-secondary); flex-shrink: 0; width: 28px; text-align: center; }
+/* Mana cost column (replaces set code) */
+.deck-entry-cost { display: flex; align-items: center; gap: 1px; flex-shrink: 0; max-width: 72px; overflow: hidden; }
+.entry-mv { font-size: 0.65rem; color: var(--text-secondary); font-weight: 600; }
+/* Scryfall mana symbol images */
+.mana-sym { width: 14px; height: 14px; vertical-align: middle; display: inline-block; }
+
+/* ── Integrated compact stats panel ── */
+.de-stats-compact {
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.75rem 0.75rem 0.5rem;
+    flex-shrink: 0;
+    background: rgba(0,0,0,0.1);
+}
+.de-stats-row { display: flex; gap: 1rem; }
+.de-stats-block { flex: 1; min-width: 0; }
+
+/* ── Color distribution ── */
+.color-dist { display: flex; flex-direction: column; gap: 0.3rem; }
+.color-dist-row { display: flex; align-items: center; gap: 0.4rem; }
+.color-dist-bar-wrap {
+    flex: 1;
+    height: 6px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 3px;
+    overflow: hidden;
+}
+.color-dist-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-color), var(--accent-secondary));
+    border-radius: 3px;
+    transition: width 0.4s ease;
+}
+.color-dist-pct { font-size: 0.62rem; color: var(--text-secondary); width: 28px; text-align: right; flex-shrink: 0; }
+
 
 /* Hover preview image */
 .card-hover-preview {
