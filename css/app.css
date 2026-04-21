@@ -1041,7 +1041,7 @@ strong {
 }
 
 :root {
-    --card-hover-zoom: 1.75;
+    --card-hover-zoom: 1.4;
 }
 
 /* ── Shared card grid styles ── */
@@ -1072,25 +1072,38 @@ strong {
 }
 .deck-inv-card.over-limit { border-color: #c0392b; box-shadow: 0 0 8px rgba(192,57,43,0.35); }
 
-/* Fixed Big Preview Overlay (Step 1) */
-.card-big-preview {
+/* Fixed Big Preview Overlay (Step 1) - Focus Mode Refined */
+.card-big-preview-overlay {
     position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) scale(var(--card-hover-zoom));
-    z-index: 20000;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 19999;
+    opacity: 0;
     pointer-events: none;
+    transition: opacity 0.3s ease-out;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.card-big-preview-overlay.visible {
+    opacity: 1;
+}
+
+.card-big-preview-img {
+    max-height: 85vh;
     border-radius: 14px;
     box-shadow: 0 30px 90px rgba(0,0,0,0.9);
     border: 2px solid rgba(255, 250, 141, 0.8);
-    opacity: 0;
-    transition: opacity 0.2s ease-out, transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    display: none;
-    max-height: 80vh;
+    transform: scale(0.8); /* Start smaller for 'fly' effect */
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
-.card-big-preview.visible {
-    display: block;
-    opacity: 1;
+.card-big-preview-overlay.visible .card-big-preview-img {
+    transform: scale(var(--card-hover-zoom));
 }
 
 .deck-inv-img {

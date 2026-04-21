@@ -7,23 +7,27 @@ let currentFilteredCards = [];
 let currentCollectionModalIndex = -1;
 
 // ── Big Card Preview Overlay (Centered) ───────────────────────────────────────
-let bigPreview = null;
+let bigPreviewOverlay = null;
+let bigPreviewImg     = null;
 function getBigPreview() {
-    if (!bigPreview) {
-        bigPreview = document.createElement('img');
-        bigPreview.className = 'card-big-preview';
-        document.body.appendChild(bigPreview);
+    if (!bigPreviewOverlay) {
+        bigPreviewOverlay = document.createElement('div');
+        bigPreviewOverlay.className = 'card-big-preview-overlay';
+        bigPreviewImg = document.createElement('img');
+        bigPreviewImg.className = 'card-big-preview-img';
+        bigPreviewOverlay.appendChild(bigPreviewImg);
+        document.body.appendChild(bigPreviewOverlay);
     }
-    return bigPreview;
+    return { overlay: bigPreviewOverlay, img: bigPreviewImg };
 }
 function showBigPreview(card) {
-    const img = getBigPreview();
+    const { overlay, img } = getBigPreview();
     const lang = state.language || 'en';
     img.src = getCardImageUrl(card, lang);
-    img.classList.add('visible');
+    overlay.classList.add('visible');
 }
 function hideBigPreview() {
-    bigPreview?.classList.remove('visible');
+    bigPreviewOverlay?.classList.remove('visible');
 }
 
 export function initCollection() {

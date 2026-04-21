@@ -6,7 +6,7 @@ export const state = {
     inventory: [],          // Array of cards owned
     currentOpeningPack: [], // Cards in the currently open booster
     language: localStorage.getItem('mtg_language') || 'en',  // Persisted language for Scryfall
-    hoverZoom: parseFloat(localStorage.getItem('mtg_hover_zoom')) || 1.75, // Zoom multiplier for hover
+    hoverZoom: parseFloat(localStorage.getItem('mtg_hover_zoom')) || 1.4, // Zoom multiplier for hover
     
     // Observers to react to state changes
     listeners: [],
