@@ -275,12 +275,12 @@ function renderCard(c) {
     const glowClass   = c.isNew ? `glow-active glow-${rarity}` : '';
 
     return `
-        <div class="library-card card-skeleton ${glowClass}" data-uuid="${c.uuid}" style="position: relative; cursor: pointer; border: 2px solid ${color}; border-radius: 12px; overflow: hidden; background: #000; transition: transform 0.2s ease;">
-            <div style="position: absolute; top: 10px; right: 10px; background: var(--accent-color); color: #000; padding: 0.3rem 0.7rem; border-radius: 8px; font-weight: 900; font-size: 0.9rem; z-index: 10; box-shadow: 0 5px 15px rgba(0,0,0,0.5);">x${c.count}</div>
-            <img src="${imgUrl}" alt="${c.name}" loading="lazy" style="width: 100%; display: block; opacity: 0; transition: opacity 0.3s ease;" onload="this.style.opacity=1; this.parentElement.classList.remove('card-skeleton');" onerror="this.onerror=null; this.src='${fallbackUrl}';">
-            <div style="padding: 0.7rem; background: rgba(0,0,0,0.85); display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); position: relative; z-index: 2;">
-                <i class="ss ss-${c.setCode.toLowerCase()} ss-mtg" style="font-size: 1.2rem; color: ${color};"></i>
-                <span style="color: ${color}; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;">${rarity}</span>
+        <div class="library-card deck-inv-card ${glowClass}" data-uuid="${c.uuid}" style="position: relative; cursor: pointer; border: 2px solid ${color}; border-radius: 12px; background: #000;">
+            <img src="${imgUrl}" alt="${c.name}" loading="lazy" class="deck-inv-img" style="opacity: 0;" onload="this.style.opacity=1;" onerror="this.onerror=null; this.src='${fallbackUrl}';">
+            <div class="deck-inv-badge">x${c.count}</div>
+            <div style="padding: 0.5rem 0.7rem; background: rgba(0,0,0,0.85); display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); position: relative; z-index: 2;">
+                <i class="ss ss-${c.setCode.toLowerCase()} ss-mtg" style="font-size: 1.1rem; color: ${color};"></i>
+                <span style="color: ${color}; font-size: 0.7rem; font-weight: 600; text-transform: uppercase;">${rarity}</span>
             </div>
         </div>
     `;

@@ -138,6 +138,7 @@ function removeCardFromDeck(uuid, zone) {
     const idx = arr.findIndex(e => e.uuid === uuid);
     if (idx === -1) return;
     arr[idx].quantity > 1 ? arr[idx].quantity-- : arr.splice(idx, 1);
+    hideHoverPreview(); // Fix ghost preview bug
     refreshEditor();
 }
 
@@ -409,7 +410,9 @@ function renderEditView() {
         if (e.target.closest('.deck-entry-name[data-uuid]')) positionHoverPreview(e);
     });
     document.getElementById('decks').addEventListener('mouseout', e => {
-        if (e.target.closest('.deck-entry-name[data-uuid]')) hideHoverPreview();
+        if (!e.relatedTarget || !e.relatedTarget.closest?.('.deck-entry-name')) {
+            hideHoverPreview();
+        }
     });
 
     // Modal close

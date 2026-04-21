@@ -1019,6 +1019,7 @@ strong {
     grid-auto-rows: min-content !important; 
     gap: 15px !important;
     padding: 15px !important;
+    padding-bottom: 40px !important; /* Space for badges on bottom row */
     height: calc(100vh - 250px) !important;
     overflow-y: auto !important;
     /* Alineamos al principio para que el scroll funcione correctamente */
@@ -1048,13 +1049,19 @@ strong {
     background: #000;
     border: 2px solid rgba(255,255,255,0.07);
     cursor: pointer;
-    transition: transform 0.15s, border-color 0.15s;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), border-color 0.15s;
     width: 100% !important;
     /* Forzamos que la carta ocupe su espacio vertical natural */
     height: auto !important; 
     aspect-ratio: 5 / 7 !important;
+    margin-bottom: 25px; /* Espacio para el badge que pisa el borde */
 }
-.deck-inv-card:hover { transform: scale(1.04); border-color: var(--accent-secondary); }
+.deck-inv-card:hover { 
+    transform: scale(1.25); 
+    border-color: var(--accent-secondary); 
+    z-index: 100;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+}
 .deck-inv-card.over-limit { border-color: #c0392b; box-shadow: 0 0 8px rgba(192,57,43,0.35); }
 
 .deck-inv-img {
@@ -1067,20 +1074,23 @@ strong {
     transition: opacity 0.3s;
 }
 /* Deck Inventory Badge (replaces footer) */
+/* Mythic Bronze Card Badge */
 .deck-inv-badge {
     position: absolute;
-    bottom: 8px;
-    right: 8px;
-    background: rgba(0, 0, 0, 0.8);
+    bottom: -8px; /* Pisando el borde inferior */
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(20, 15, 12, 0.95);
     color: var(--accent-secondary);
-    padding: 3px 10px;
-    border-radius: 12px;
-    font-size: 0.9rem;
-    font-weight: 700;
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-size: 0.95rem;
+    font-weight: 800;
     pointer-events: none;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.6);
-    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+    border: 1.5px solid var(--accent-secondary); /* Bronze sutil */
     z-index: 10;
+    white-space: nowrap;
 }
 
 /* ── Zone tabs ── */
