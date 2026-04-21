@@ -1014,7 +1014,7 @@ strong {
 
 .de-inv-grid {
     display: grid !important;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
     /* CRÍTICO: grid-auto-rows: min-content evita que las filas se compriman para caber */
     grid-auto-rows: min-content !important; 
     gap: 15px !important;
@@ -1066,31 +1066,22 @@ strong {
     opacity: 0;
     transition: opacity 0.3s;
 }
-.deck-inv-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.3rem 0.5rem;
-    background: rgba(0,0,0,0.85);
-    border-top: 1px solid rgba(255,255,255,0.06);
+/* Deck Inventory Badge (replaces footer) */
+.deck-inv-badge {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.8);
+    color: var(--accent-secondary);
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    pointer-events: none;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.6);
+    border: 1px solid rgba(255,255,255,0.15);
+    z-index: 10;
 }
-.deck-inv-count { font-size: 0.72rem; font-weight: 700; color: var(--accent-secondary); }
-.deck-add-btn {
-    background: var(--accent-color);
-    border: none;
-    color: #fff;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    font-size: 1.1rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.15s;
-    line-height: 1;
-}
-.deck-add-btn:hover { background: var(--accent-hover); }
 
 /* ── Zone tabs ── */
 .zone-tabs { display: flex; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }

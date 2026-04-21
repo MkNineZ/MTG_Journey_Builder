@@ -488,8 +488,8 @@ function renderInventoryGrid() {
         const outOfStock  = inDeck >= card.count;
         const isDisabled  = atLimit || noStock || outOfStock;
         
-        const cardStyle   = isDisabled ? 'opacity: 0.3; cursor: not-allowed;' : '';
-        const btnDisabled = isDisabled ? 'disabled style="opacity:0.3; cursor:not-allowed"' : '';
+        const cardStyle   = isDisabled ? 'opacity: 0.3; cursor: not-allowed;' 
+                          : (inDeck > 0) ? 'border-color: rgba(255, 255, 255, 0.4); box-shadow: inset 0 0 20px rgba(255,255,255,0.1);' : '';
         
         return `
             <div class="deck-inv-card" data-uuid="${card.uuid}" style="${cardStyle}"
@@ -497,10 +497,7 @@ function renderInventoryGrid() {
                 <img src="${imgUrl}" alt="${card.name}" loading="lazy" class="deck-inv-img"
                      onload="this.style.opacity=1"
                      onerror="this.onerror=null;this.src='${fallbackUrl}'">
-                <div class="deck-inv-footer">
-                    <span class="deck-inv-count">x${card.count}</span>
-                    <button class="deck-add-btn" data-uuid="${card.uuid}" ${btnDisabled}>+</button>
-                </div>
+                <div class="deck-inv-badge">x${card.count}</div>
             </div>`;
     }).join('');
 }
