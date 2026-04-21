@@ -20,17 +20,30 @@ export function filterCards(cards, criteria) {
         if (criteria.colors && criteria.colors.length > 0) {
             const cardColors = card.colors || [];
             const searchingColorless = criteria.colors.includes('C');
-            if (searchingColorless && criteria.colors.length === 1) {
-                if (cardColors.length > 0) return false;
-            } else {
-                const activeColors = criteria.colors.filter(c => c !== 'C');
-                if (criteria.colorMode === 'exact') {
+            const activeColors = criteria.colors.filter(c => c !== 'C');
+
+            if (criteria.colorMode === 'exact') {
+                // Exact Mode: Must match exactly the selected set of colors
+                if (searchingColorless && activeColors.length === 0) {
+                    // Only Colorless selected
+                    if (cardColors.length > 0) return false;
+                } else {
+                    // Specific colors selected (with or without 'C' which is redundant here)
                     if (cardColors.length !== activeColors.length) return false;
                     const hasAll = activeColors.every(c => cardColors.includes(c));
                     if (!hasAll) return false;
-                } else {
-                    const hasAll = activeColors.every(c => cardColors.includes(c));
-                    if (!hasAll) return false;
+                }
+            } else {
+                // Inclusive Mode (Color Identity style): 
+                // Card colors must be a subset of the selected colors.
+                if (activeColors.length > 0) {
+                    // If colors are selected, card cannot have colors OUTSIDE that selection.
+                    // Colorless cards ([]) always pass this check.
+                    const hasForbiddenColor = cardColors.some(c => !activeColors.includes(c));
+                    if (hasForbiddenColor) return false;
+                } else if (searchingColorless) {
+                    // ONLY 'C' was selected: show only colorless cards
+                    if (cardColors.length > 0) return false;
                 }
             }
         }
