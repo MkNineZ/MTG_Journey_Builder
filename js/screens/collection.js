@@ -6,6 +6,40 @@ import { getCardImageUrl, getCardImageUrlEn } from '../utils/api.js';
 let currentFilteredCards = [];
 let currentCollectionModalIndex = -1;
 
+// ── Ghost Portal Zoom (Escape Overflow) ───────────────────────────────────────
+let ghostPortal = null;
+function getGhostPortal() {
+    if (!ghostPortal) {
+        ghostPortal = document.createElement('img');
+        ghostPortal.className = 'ghost-zoom-portal';
+        document.body.appendChild(ghostPortal);
+    }
+    return ghostPortal;
+}
+function showGhostPortal(cardEl) {
+    const portal = getGhostPortal();
+    const imgEl  = cardEl.querySelector('img');
+    if (!imgEl) return;
+    const rect = cardEl.getBoundingClientRect();
+    const zoom = getComputedStyle(document.documentElement).getPropertyValue('--card-hover-zoom') || '1.4';
+    portal.src = imgEl.src;
+    portal.style.width  = rect.width + 'px';
+    portal.style.height = rect.height + 'px';
+    portal.style.top    = rect.top + 'px';
+    portal.style.left   = rect.left + 'px';
+    portal.style.display = 'block';
+    requestAnimationFrame(() => {
+        portal.classList.add('visible');
+        portal.style.transform = `scale(${zoom})`;
+    });
+}
+function hideGhostPortal() {
+    if (!ghostPortal) return;
+    ghostPortal.classList.remove('visible');
+    ghostPortal.style.transform = 'scale(1)';
+    setTimeout(() => { if (!ghostPortal.classList.contains('visible')) ghostPortal.style.display = 'none'; }, 200);
+}
+
 export function initCollection() {
     const container = document.getElementById('collection');
     
@@ -73,6 +107,17 @@ export function initCollection() {
     const resultsContainer = document.getElementById('collection-results');
     const infoContainer = document.getElementById('collection-info');
     let lastRenderedHTML = '';
+
+    // Ghost Portal Zoom
+    resultsContainer.addEventListener('mouseover', e => {
+        const cardEl = e.target.closest('.deck-inv-card');
+        if (cardEl) showGhostPortal(cardEl);
+    });
+    resultsContainer.addEventListener('mouseout', e => {
+        if (!e.relatedTarget || !e.relatedTarget.closest?.('.deck-inv-card')) {
+            hideGhostPortal();
+        }
+    });
 
     const render = (currentState) => {
         const inventory = currentState.inventory || [];

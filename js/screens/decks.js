@@ -49,6 +49,43 @@ function hideHoverPreview() {
     setTimeout(() => { if (!img.classList.contains('visible')) img.style.display = 'none'; }, 160);
 }
 
+// ── Ghost Portal Zoom (Escape Overflow) ───────────────────────────────────────
+let ghostPortal = null;
+function getGhostPortal() {
+    if (!ghostPortal) {
+        ghostPortal = document.createElement('img');
+        ghostPortal.className = 'ghost-zoom-portal';
+        document.body.appendChild(ghostPortal);
+    }
+    return ghostPortal;
+}
+function showGhostPortal(cardEl) {
+    const portal = getGhostPortal();
+    const imgEl  = cardEl.querySelector('img');
+    if (!imgEl) return;
+
+    const rect = cardEl.getBoundingClientRect();
+    const zoom = getComputedStyle(document.documentElement).getPropertyValue('--card-hover-zoom') || '1.4';
+
+    portal.src = imgEl.src;
+    portal.style.width  = rect.width + 'px';
+    portal.style.height = rect.height + 'px';
+    portal.style.top    = rect.top + 'px';
+    portal.style.left   = rect.left + 'px';
+    
+    portal.style.display = 'block';
+    requestAnimationFrame(() => {
+        portal.classList.add('visible');
+        portal.style.transform = `scale(${zoom})`;
+    });
+}
+function hideGhostPortal() {
+    if (!ghostPortal) return;
+    ghostPortal.classList.remove('visible');
+    ghostPortal.style.transform = 'scale(1)';
+    setTimeout(() => { if (!ghostPortal.classList.contains('visible')) ghostPortal.style.display = 'none'; }, 200);
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const isBasicLand = c   => BASIC_LANDS.some(b => c.name?.startsWith(b));
 const ownedCount  = uuid => state.inventory.find(i => i.uuid === uuid)?.count ?? 0;
@@ -374,6 +411,18 @@ function renderEditView() {
             if (!isDisabled && (addBtn || e.target.tagName === 'IMG')) {
                 addCardToDeck(c, currentZone);
             }
+        }
+    });
+
+    // Ghost Portal Zoom for Inventory Grid
+    const invGrid = document.getElementById('de-inv-grid');
+    invGrid.addEventListener('mouseover', e => {
+        const cardEl = e.target.closest('.deck-inv-card');
+        if (cardEl) showGhostPortal(cardEl);
+    });
+    invGrid.addEventListener('mouseout', e => {
+        if (!e.relatedTarget || !e.relatedTarget.closest?.('.deck-inv-card')) {
+            hideGhostPortal();
         }
     });
 

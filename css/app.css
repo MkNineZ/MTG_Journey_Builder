@@ -1067,12 +1067,28 @@ strong {
 }
 
 .deck-inv-card:hover, .library-card:hover, .de-card-item:hover { 
-    transform: scale(var(--card-hover-zoom)) !important;
     border-color: rgba(255, 250, 141, 1) !important; 
-    z-index: 9999 !important; /* Pop above everything */
+    /* Visual scale handled by Ghost Portal to escape overflow clipping */
     box-shadow: 0 10px 30px rgba(0,0,0,0.8), 0 0 15px rgba(255, 250, 141, 0.3) !important;
 }
 .deck-inv-card.over-limit { border-color: #c0392b; box-shadow: 0 0 8px rgba(192,57,43,0.35); }
+
+/* Ghost Portal Zoom (The 'Escape' Technique) */
+.ghost-zoom-portal {
+    position: fixed;
+    pointer-events: none;
+    z-index: 20000;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.9);
+    border: 2px solid rgba(255, 250, 141, 0.9);
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s;
+    opacity: 0;
+    display: none;
+}
+.ghost-zoom-portal.visible {
+    display: block;
+    opacity: 1;
+}
 
 /* Center Preview Elements - Completely Removed */
 
