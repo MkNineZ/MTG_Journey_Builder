@@ -139,7 +139,7 @@ function renderCard(c, owned) {
     const imgUrl      = getCardImageUrl(c, lang);
     const fallbackUrl = getCardImageUrlEn(c);
     const isOwned     = !!owned;
-    const styleOwned = isOwned ? '' : 'filter: grayscale(100%) brightness(0.5); opacity: 0.6;';
+    const styleOwned = isOwned ? '' : 'filter: grayscale(60%) brightness(0.7); opacity: 0.8;';
 
     return `
         <div class="library-card card-skeleton" data-uuid="${c.uuid}" style="position: relative; cursor: pointer; border: 2px solid ${isOwned ? color : '#333'}; border-radius: 12px; overflow: hidden; background: #000; transition: all 0.3s ease; ${styleOwned}">
@@ -189,7 +189,7 @@ function openModal(cardData) {
                     <p style="margin-bottom: 2rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 3px; font-size: 0.9rem;">Ejemplares en Colección</p>
                     <div style="display: flex; justify-content: center; align-items: center; gap: 3rem;">
                         <button id="exp-dec" class="nav-btn" style="width: 60px; height: 60px; border-radius: 50%; font-size: 2rem; background: rgba(255,255,255,0.05); display: flex; justify-content: center; align-items: center;">-</button>
-                        <span style="font-size: 4.5rem; font-weight: 900; min-width: 80px;">${currentCount}</span>
+                        <span id="modal-count-display" style="font-size: 4.5rem; font-weight: 900; min-width: 80px;">${currentCount}</span>
                         <button id="exp-inc" class="nav-btn" style="width: 60px; height: 60px; border-radius: 50%; font-size: 2rem; background: var(--accent-color); color: #000; display: flex; justify-content: center; align-items: center;">+</button>
                     </div>
                 </div>
@@ -197,10 +197,10 @@ function openModal(cardData) {
             <button id="exp-close" style="position: absolute; top: 2rem; right: 2rem; background: transparent; border: none; color: #fff; font-size: 2.5rem; cursor: pointer; opacity: 0.3;">✕</button>
         `;
 
-        document.getElementById('exp-close').onclick = () => {
+        document.getElementById('exp-close').onclick = async () => {
             modal.style.display = 'none';
-            document.removeEventListener('keydown', handleKeyNav);
-            state.loadInventory();
+            window.removeEventListener('keydown', handleKeyNav);
+            await state.loadInventory();
         };
 
         const navigate = (dir) => {
@@ -215,16 +215,23 @@ function openModal(cardData) {
 
         document.getElementById('exp-dec').onclick = async () => {
             if (currentCount > 0) {
-                await updateInventoryCount(data, -1);
                 currentCount--;
-                updateView(data);
+                document.getElementById('modal-count-display').innerText = currentCount;
+                await updateInventoryCount(data, -1);
+                // Update in-memory state for immediate sync without full reload
+                const invItem = state.inventory.find(i => i.uuid === data.uuid);
+                if (invItem) invItem.count = currentCount;
             }
         };
 
         document.getElementById('exp-inc').onclick = async () => {
-            await updateInventoryCount(data, 1);
             currentCount++;
-            updateView(data);
+            document.getElementById('modal-count-display').innerText = currentCount;
+            await updateInventoryCount(data, 1);
+            // Update in-memory state
+            const invItem = state.inventory.find(i => i.uuid === data.uuid);
+            if (invItem) invItem.count = currentCount;
+            else state.inventory.push({ ...data, count: currentCount });
         };
     };
 
@@ -234,7 +241,7 @@ function openModal(cardData) {
         if (e.key === 'Escape') document.getElementById('exp-close').click();
     };
 
-    document.addEventListener('keydown', handleKeyNav);
+    window.addEventListener('keydown', handleKeyNav);
     updateView(cardData);
     modal.style.display = 'flex';
 }

@@ -289,7 +289,7 @@ export function openBoosterModal(uuid) {
 
         document.getElementById('booster-modal-close').onclick = () => {
             modal.style.display = 'none';
-            document.removeEventListener('keydown', handleKeyNav);
+            window.removeEventListener('keydown', handleKeyNav);
         };
 
         const navigate = (dir) => {
@@ -316,7 +316,7 @@ export function openBoosterModal(uuid) {
         updateView(state.currentOpeningPack[currentBoosterModalIndex]);
     };
 
-    document.addEventListener('keydown', handleKeyNav);
+    window.addEventListener('keydown', handleKeyNav);
     updateView(cardData);
     modal.style.display = 'flex';
 }

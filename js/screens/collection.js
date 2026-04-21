@@ -323,7 +323,7 @@ function openModal(cardData) {
                     <p style="margin-bottom: 2rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 3px; font-size: 0.9rem;">Ejemplares en Colección</p>
                     <div style="display: flex; justify-content: center; align-items: center; gap: 3rem;">
                         <button id="modal-dec" class="nav-btn" style="width: 60px; height: 60px; border-radius: 50%; font-size: 2rem; background: rgba(255,255,255,0.05); display: flex; justify-content: center; align-items: center;">-</button>
-                        <span style="font-size: 4.5rem; font-weight: 900; min-width: 80px; font-family: 'Inter';">${currentCount}</span>
+                        <span id="modal-count-display" style="font-size: 4.5rem; font-weight: 900; min-width: 80px; font-family: 'Inter';">${currentCount}</span>
                         <button id="modal-inc" class="nav-btn" style="width: 60px; height: 60px; border-radius: 50%; font-size: 2rem; background: var(--accent-color); color: #000; display: flex; justify-content: center; align-items: center;">+</button>
                     </div>
                 </div>
@@ -331,9 +331,10 @@ function openModal(cardData) {
             <button id="modal-close" style="position: absolute; top: 2rem; right: 2rem; background: transparent; border: none; color: #fff; font-size: 2.5rem; cursor: pointer; opacity: 0.3; transition: opacity 0.2s;">✕</button>
         `;
 
-        document.getElementById('modal-close').onclick = () => {
+        document.getElementById('modal-close').onclick = async () => {
             modal.style.display = 'none';
-            document.removeEventListener('keydown', handleKeyNav);
+            window.removeEventListener('keydown', handleKeyNav);
+            await state.loadInventory();
             clearNewStatus(); 
         };
 
@@ -349,16 +350,21 @@ function openModal(cardData) {
 
         document.getElementById('modal-dec').onclick = async () => {
             if (currentCount > 0) {
-                await updateInventoryCount(data, -1);
                 currentCount--;
-                updateView(data);
+                document.getElementById('modal-count-display').innerText = currentCount;
+                await updateInventoryCount(data, -1);
+                const invItem = state.inventory.find(i => i.uuid === data.uuid);
+                if (invItem) invItem.count = currentCount;
             }
         };
 
         document.getElementById('modal-inc').onclick = async () => {
-            await updateInventoryCount(data, 1);
             currentCount++;
-            updateView(data);
+            document.getElementById('modal-count-display').innerText = currentCount;
+            await updateInventoryCount(data, 1);
+            const invItem = state.inventory.find(i => i.uuid === data.uuid);
+            if (invItem) invItem.count = currentCount;
+            else state.inventory.push({ ...data, count: currentCount });
         };
     };
 
@@ -368,7 +374,7 @@ function openModal(cardData) {
         if (e.key === 'Escape') document.getElementById('modal-close').click();
     };
 
-    document.addEventListener('keydown', handleKeyNav);
+    window.addEventListener('keydown', handleKeyNav);
     updateView(cardData);
     modal.style.display = 'flex';
 }
