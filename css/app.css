@@ -1095,7 +1095,8 @@ strong {
 }
 
 .card-big-preview-img {
-    max-height: 85vh;
+    width: 220px; /* Base size matching the grid card */
+    aspect-ratio: 5 / 7;
     border-radius: 14px;
     box-shadow: 0 30px 90px rgba(0,0,0,0.9);
     border: 2px solid rgba(255, 250, 141, 0.8);
