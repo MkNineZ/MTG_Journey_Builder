@@ -97,7 +97,7 @@ body {
 #main-content {
     flex: 1;
     padding: 2rem;
-    max-width: 1400px;
+    max-width: 1500px;
     margin: 0 auto;
     width: 100%;
 }
@@ -105,7 +105,7 @@ body {
 /* Deck screen aligns with the main layout */
 #decks {
     width: 100%;
-    max-width: 1400px;
+    max-width: 1500px;
     margin: 0 auto;
 }
 
@@ -1009,11 +1009,11 @@ strong {
 
 .de-inv-grid {
     display: grid !important;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)) !important;
     /* CRÍTICO: grid-auto-rows: min-content evita que las filas se compriman para caber */
     grid-auto-rows: min-content !important; 
-    gap: 15px !important;
-    padding: 15px !important;
+    gap: 10px !important;
+    padding: 10px !important;
     padding-bottom: 40px !important; /* Space for badges on bottom row */
     height: calc(100vh - 250px) !important;
     overflow-y: auto !important;
