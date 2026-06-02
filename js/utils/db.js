@@ -226,6 +226,96 @@ export async function getAllSets() {
     });
 }
 
+export async function removeFromInventory(cards) {
+    const db = await initDB();
+    const stats = { removed: 0, subtracted: 0, failed: 0 };
+
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(['inventory', 'activity_log'], 'readwrite');
+        const store = tx.objectStore('inventory');
+        const logStore = tx.objectStore('activity_log');
+        
+        let completed = 0;
+        if (cards.length === 0) {
+            resolve(stats);
+            return;
+        }
+
+        cards.forEach(card => {
+            if (!card.uuid) {
+                stats.failed++;
+                checkFinish();
+                return;
+            }
+
+            const getReq = store.get(card.uuid);
+            getReq.onsuccess = () => {
+                try {
+                    let item = getReq.result;
+                    const removeCount = card.count || 1;
+                    if (item) {
+                        item.count -= removeCount;
+                        if (item.count <= 0) {
+                            store.delete(card.uuid);
+                            stats.removed++;
+                        } else {
+                            store.put(item);
+                            stats.subtracted++;
+                        }
+                    } else {
+                        stats.failed++;
+                    }
+                } catch (e) {
+                    stats.failed++;
+                } finally {
+                    checkFinish();
+                }
+            };
+            getReq.onerror = () => {
+                stats.failed++;
+                checkFinish();
+            };
+        });
+
+        function checkFinish() {
+            completed++;
+            if (completed === cards.length) {
+                const totalRemoved = stats.removed + stats.subtracted;
+                if (totalRemoved > 0) {
+                    logStore.add({
+                        desc: `Eliminación masiva de ${totalRemoved} cartas de la colección`,
+                        date: Date.now(),
+                        type: 'bulk_remove'
+                    });
+                }
+            }
+        }
+
+        tx.oncomplete = () => resolve(stats);
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+export async function clearInventory() {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(['inventory', 'activity_log'], 'readwrite');
+        const store = tx.objectStore('inventory');
+        const logStore = tx.objectStore('activity_log');
+        
+        const req = store.clear();
+        req.onsuccess = () => {
+            logStore.add({
+                desc: `Toda la colección fue eliminada`,
+                date: Date.now(),
+                type: 'clear_inventory'
+            });
+            resolve();
+        };
+        req.onerror = () => reject(tx.error);
+    });
+}
+
 export async function updateInventoryCount(cardData, delta) {
     const db = await initDB();
     return new Promise((resolve, reject) => {

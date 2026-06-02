@@ -1,6 +1,6 @@
 import { state } from '../utils/state.js';
 import { renderSearchUI, filterCards } from '../components/searchEngine.js';
-import { updateInventoryCount, clearNewStatus, saveToInventory } from '../utils/db.js';
+import { updateInventoryCount, clearNewStatus, saveToInventory, removeFromInventory, clearInventory } from '../utils/db.js';
 import { getCardImageUrl, getCardImageUrlEn } from '../utils/api.js';
 
 let currentFilteredCards = [];
@@ -80,6 +80,7 @@ export function initCollection() {
                 <div class="bulk-tabs" style="display: flex; border-bottom: 1px solid var(--border-color);">
                     <button class="bulk-tab active" data-tab="import">Importar</button>
                     <button class="bulk-tab" data-tab="export">Exportar</button>
+                    <button class="bulk-tab" data-tab="delete">Eliminar</button>
                 </div>
                 
                 <div class="bulk-content" style="flex: 1; padding: 2rem; overflow-y: auto;">
@@ -105,6 +106,25 @@ export function initCollection() {
                         <textarea id="export-textarea" readonly style="width: 100%; height: 250px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 12px; color: #aaa; padding: 1rem; font-family: monospace; resize: none; margin-bottom: 1.5rem; outline: none;"></textarea>
                         <div style="display: flex; gap: 1rem; justify-content: flex-end;">
                             <button id="copy-export-btn" class="save-btn">Copiar al Portapapeles</button>
+                        </div>
+                    </div>
+
+                    <!-- Delete View -->
+                    <div id="bulk-delete-view" style="display: none;">
+                        <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.9rem;">Pega tu lista de cartas a eliminar (ejemplo: 4 Lightning Bolt):</p>
+                        <textarea id="delete-textarea" placeholder="1 Black Lotus&#10;4 Lightning Bolt..." style="width: 100%; height: 200px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 12px; color: #fff; padding: 1rem; font-family: monospace; resize: none; margin-bottom: 1.5rem; outline: none;"></textarea>
+                        
+                        <div id="delete-preview" style="display: none; background: rgba(231, 76, 60, 0.1); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; border: 1px solid rgba(231, 76, 60, 0.3);">
+                            <h4 id="delete-summary" style="margin-bottom: 1rem; color: #e74c3c;"></h4>
+                            <div id="delete-list" style="max-height: 200px; overflow-y: auto; font-size: 0.85rem; line-height: 1.6;"></div>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <button id="delete-all-btn" class="save-btn" style="background: rgba(192, 57, 43, 0.2); border: 1px solid #c0392b; color: #e74c3c;"><i class="fas fa-trash-alt"></i> Eliminar Toda la Colección</button>
+                            <div style="display: flex; gap: 1rem;">
+                                <button id="analyze-delete-btn" class="nav-btn" style="border: 1px solid var(--border-color);">Analizar Lista</button>
+                                <button id="confirm-delete-btn" class="save-btn" style="display: none; background: #c0392b; color: #fff;"><i class="fas fa-trash-alt"></i> Eliminar de la Colección</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -203,6 +223,7 @@ export function initCollection() {
             const target = tab.dataset.tab;
             document.getElementById('bulk-import-view').style.display = target === 'import' ? 'block' : 'none';
             document.getElementById('bulk-export-view').style.display = target === 'export' ? 'block' : 'none';
+            document.getElementById('bulk-delete-view').style.display = target === 'delete' ? 'block' : 'none';
             if (target === 'export') updateExportText();
         };
     });
@@ -302,8 +323,109 @@ export function initCollection() {
         exportText.select();
         document.execCommand('copy');
         copyBtn.innerText = '¡Copiado!';
-        setTimeout(() => { copyBtn.innerText = 'Copiar al Portapapeles'; }, 2000);
+        setTimeout(() => copyBtn.innerText = 'Copiar al Portapapeles', 2000);
     };
+
+    // Delete Logic
+    const analyzeDeleteBtn = document.getElementById('analyze-delete-btn');
+    const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+    const deleteText = document.getElementById('delete-textarea');
+    const deletePreviewArea = document.getElementById('delete-preview');
+    const deleteSummaryText = document.getElementById('delete-summary');
+    const deleteList = document.getElementById('delete-list');
+    const deleteAllBtn = document.getElementById('delete-all-btn');
+
+    let cardsToDelete = [];
+
+    analyzeDeleteBtn.onclick = () => {
+        const lines = deleteText.value.split('\n').filter(l => l.trim() !== '');
+        if (lines.length === 0) return;
+
+        cardsToDelete = [];
+        let errors = 0;
+        let html = '';
+
+        // Flatten all available cards from active sets for lookup
+        const allAvailableCards = (state.activeSetsData || []).flatMap(s => (s.cards || []).map(c => ({...c, setCode: s.code})));
+
+        lines.forEach(line => {
+            // Regex to match "4 Lightning Bolt" or just "Lightning Bolt"
+            const match = line.match(/^(\d+)?\s*(.+)$/);
+            if (match) {
+                const count = parseInt(match[1]) || 1;
+                const name = match[2].trim();
+                
+                // Find card by name (case insensitive) in active inventory/sets
+                const found = allAvailableCards.find(c => c.name.toLowerCase() === name.toLowerCase());
+                if (found) {
+                    cardsToDelete.push({ ...found, count });
+                    html += `<div><span style="color: #e74c3c; font-weight: bold;">-${count}x</span> ${found.name} <span style="color: var(--text-secondary); font-size: 0.7rem;">(${found.setCode})</span></div>`;
+                } else {
+                    errors++;
+                    html += `<div style="color: #e74c3c;"><i class="fas fa-exclamation-circle"></i> Error: "${name}" no encontrada en la base de datos.</div>`;
+                }
+            }
+        });
+
+        deleteSummaryText.innerHTML = `Se han preparado <strong>${cardsToDelete.length}</strong> cartas para eliminar. <strong>${errors}</strong> líneas fallaron.`;
+        deleteList.innerHTML = html;
+        deletePreviewArea.style.display = 'block';
+        confirmDeleteBtn.style.display = cardsToDelete.length > 0 ? 'block' : 'none';
+    };
+
+    confirmDeleteBtn.onclick = async () => {
+        if (cardsToDelete.length === 0) return;
+        confirmDeleteBtn.innerText = 'Eliminando...';
+        confirmDeleteBtn.disabled = true;
+
+        try {
+            console.log('[Bulk] Iniciando proceso de eliminación para', cardsToDelete.length, 'cartas.');
+            const totalToRemove = cardsToDelete.reduce((acc, c) => acc + c.count, 0);
+            const stats = await removeFromInventory(cardsToDelete);
+            await state.loadInventory();
+            
+            let msg = `¡Eliminación completada!\n\n- Restadas: ${stats.subtracted}\n- Borradas: ${stats.removed}`;
+            if (stats.failed > 0) {
+                msg += `\n- Fallidas: ${stats.failed} (Ver consola para detalles)`;
+            }
+            alert(msg);
+            
+            bulkModal.style.display = 'none';
+            resetImportUI();
+        } catch (err) {
+            console.error('[Bulk] Error crítico durante la eliminación:', err);
+            alert('Error crítico durante la eliminación. Consulta la consola.');
+        } finally {
+            confirmDeleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i> Eliminar de la Colección';
+            confirmDeleteBtn.disabled = false;
+        }
+    };
+
+    deleteAllBtn.onclick = async () => {
+        const sure = confirm("⚠️ ¿ESTÁS SEGURO?\n\nEsta acción eliminará TODAS las cartas de tu colección. Esto no se puede deshacer.\n\n¿Quieres continuar y vaciar tu inventario?");
+        if (!sure) return;
+        
+        try {
+            deleteAllBtn.disabled = true;
+            deleteAllBtn.innerText = "Eliminando...";
+            
+            await clearInventory();
+            await state.loadInventory();
+            
+            alert("Colección vaciada por completo.");
+            bulkModal.style.display = 'none';
+            resetImportUI();
+        } catch (err) {
+            console.error('[Bulk] Error vaciando colección:', err);
+            alert("Hubo un error al intentar vaciar la colección.");
+        } finally {
+            deleteAllBtn.disabled = false;
+            deleteAllBtn.innerHTML = '<i class="fas fa-trash-alt"></i> Eliminar Toda la Colección';
+        }
+    };
+
+    // Render the initial UI
+    render(state);
 
     // Persistent Glow Logic: Remove on Mouse Enter
     resultsContainer.addEventListener('mouseenter', async (e) => {

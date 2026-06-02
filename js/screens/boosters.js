@@ -32,7 +32,12 @@ export function initBoosters() {
             <div id="booster-stock-warning" style="display: none; color: #f1c40f; font-size: 0.85rem; margin-bottom: 1rem; padding: 0.5rem 1rem; border: 1px solid #f1c40f44; border-radius: 6px; background: rgba(241,196,15,0.08);">
                 ⚠️ Colección completada para estos criterios. Se muestran todas las cartas disponibles.
             </div>
-            <div id="booster-result" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem;"></div>
+            <div id="booster-result" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 2rem;"></div>
+            
+            <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem;">
+                <h4 style="color: var(--text-secondary); margin-bottom: 0.5rem; font-size: 0.9rem;">Lista de Texto:</h4>
+                <textarea id="booster-export-text" readonly style="width: 100%; height: 120px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; color: #aaa; padding: 0.8rem; font-family: monospace; resize: vertical; outline: none;"></textarea>
+            </div>
         </div>
 
         <div id="boosters-grid" class="set-grid"></div>
@@ -410,10 +415,34 @@ function getRandom(arr, count) {
 
 // ─── Display ──────────────────────────────────────────────────────────────────
 
+function getLocalizedName(card, lang) {
+    if (!lang || lang === 'en') return card.name;
+    const LANG_MAP = {
+        'es': 'Spanish', 'fr': 'French', 'it': 'Italian', 'de': 'German',
+        'pt': 'Portuguese (Brazil)', 'ja': 'Japanese', 'ko': 'Korean',
+        'ru': 'Russian', 'zhs': 'Chinese Simplified', 'zht': 'Chinese Traditional'
+    };
+    const targetLang = LANG_MAP[lang];
+    
+    // Look up the full dbCard from active sets to get foreignData
+    let dbCard = null;
+    for (const set of state.activeSetsData) {
+        dbCard = (set.cards || []).find(c => c.uuid === card.uuid);
+        if (dbCard) break;
+    }
+    
+    if (dbCard && dbCard.foreignData) {
+        const foreign = dbCard.foreignData.find(f => f.language === targetLang);
+        if (foreign && foreign.name) return foreign.name;
+    }
+    return card.name;
+}
+
 function displayBooster(cards, stockWarning = false) {
     const resultContainer = document.getElementById('booster-result-container');
     const grid            = document.getElementById('booster-result');
     const warning         = document.getElementById('booster-stock-warning');
+    const exportText      = document.getElementById('booster-export-text');
     const lang            = state.language || 'en';
 
     console.log('[Boosters] Renderizando', cards.length, 'cartas en idioma:', lang);
@@ -443,6 +472,19 @@ function displayBooster(cards, stockWarning = false) {
                 </div>
             </div>`;
     }).join('');
+
+    // Generate plain text export
+    const counts = {};
+    cards.forEach(c => {
+        const localizedName = getLocalizedName(c, lang);
+        counts[localizedName] = (counts[localizedName] || 0) + 1;
+    });
+    
+    if (exportText) {
+        exportText.value = Object.entries(counts)
+            .map(([name, qty]) => `${qty} ${name}`)
+            .join('\n');
+    }
 
     resultContainer.scrollIntoView({ behavior: 'smooth' });
 }
