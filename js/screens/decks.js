@@ -114,8 +114,9 @@ function getFullCardData(uuid) {
 
 function getManaValue(entry) {
     const full = getFullCardData(entry.uuid);
-    if (full) return full.manaValue ?? full.convertedManaCost ?? 0;
-    return entry.manaValue ?? 0;
+    const card = full || entry;
+    const cmc = card.cmc !== undefined ? card.cmc : (card.manaValue !== undefined ? card.manaValue : 0);
+    return cmc;
 }
 
 function getManaCost(entry) {
@@ -615,7 +616,11 @@ function updateStats() {
 
     // Mana curve with Scryfall SVG labels
     const curve  = Array(8).fill(0);
-    all.forEach(e => { curve[Math.min(Math.floor(getManaValue(e)),7)] += e.quantity; });
+    all.forEach(e => { 
+        const cmc = getManaValue(e);
+        const index = Math.min(parseInt(cmc) || 0, 7);
+        curve[index] += e.quantity; 
+    });
     const maxVal  = Math.max(...curve, 1);
     const curveEl = document.getElementById('mana-curve-bars');
     if (curveEl) curveEl.innerHTML = curve.map((c,i) => {
