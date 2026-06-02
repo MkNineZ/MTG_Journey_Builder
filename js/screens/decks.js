@@ -246,6 +246,12 @@ function exportDeckText() {
 function switchView(v) {
     view = v;
     hideHoverPreview();
+    
+    const clock = document.getElementById('btn-activity-clock');
+    if (clock) {
+        clock.style.display = v === 'edit' ? 'none' : 'flex';
+    }
+    
     v === 'list' ? renderListView() : renderEditView();
 }
 
