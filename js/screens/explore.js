@@ -5,6 +5,8 @@ import { getCardImageUrl, getCardImageUrlEn } from '../utils/api.js';
 
 let currentFilteredCards = [];
 let currentExploreModalIndex = -1;
+const openAccordions = new Set();
+let lastSetsSignature = '';
 
 export function initExplore() {
     const container = document.getElementById('explore');
@@ -27,6 +29,17 @@ export function initExplore() {
     const infoContainer = document.getElementById('explore-info');
     const searchContainer = document.getElementById('explore-search');
     let lastRenderedHTML = '';
+
+    // Ghost Portal Zoom
+    resultsContainer.addEventListener('mouseover', e => {
+        const cardEl = e.target.closest('.deck-inv-card');
+        if (cardEl) showGhostPortal(cardEl);
+    });
+    resultsContainer.addEventListener('mouseout', e => {
+        if (!e.relatedTarget || !e.relatedTarget.closest?.('.deck-inv-card')) {
+            hideGhostPortal();
+        }
+    });
 
     const render = ({ inventory, activeSetsData }) => {
         if (!activeSetsData || activeSetsData.length === 0) {
@@ -75,8 +88,9 @@ export function initExplore() {
                     return renderCard(c, owned);
                 }).join('');
                 
+                const isOpen = openAccordions.has(setCode);
                 return `
-                    <div class="set-accordion">
+                    <div class="set-accordion ${isOpen ? 'open' : ''}" data-set-code="${setCode}">
                         <div class="set-accordion-header">
                             <div style="display: flex; align-items: center; gap: 1rem;">
                                 <i class="ss ss-${setCode.toLowerCase()} ss-mtg ss-2x" style="color: var(--accent-color);"></i>
@@ -103,8 +117,14 @@ export function initExplore() {
             }
         };
 
-        renderSearchUI(searchContainer, uniqueCards, onFilter);
-        onFilter(uniqueCards);
+        const currentSetsSignature = (activeSetsData || []).map(s => s.code).join(',');
+        if (currentSetsSignature !== lastSetsSignature) {
+            lastSetsSignature = currentSetsSignature;
+            renderSearchUI(searchContainer, uniqueCards, onFilter);
+            onFilter(uniqueCards);
+        } else {
+            onFilter(currentFilteredCards);
+        }
     };
 
     // Modal Interaction and Accordion Event Delegation
@@ -113,7 +133,13 @@ export function initExplore() {
         const header = e.target.closest('.set-accordion-header');
         if (header) {
             const accordion = header.parentElement;
+            const setCode = accordion.dataset.setCode;
             accordion.classList.toggle('open');
+            if (accordion.classList.contains('open')) {
+                openAccordions.add(setCode);
+            } else {
+                openAccordions.delete(setCode);
+            }
             return;
         }
 
@@ -142,8 +168,8 @@ function renderCard(c, owned) {
     const styleOwned = isOwned ? '' : 'filter: grayscale(60%) brightness(0.7); opacity: 0.8;';
 
     return `
-        <div class="library-card card-skeleton" data-uuid="${c.uuid}" style="position: relative; cursor: pointer; border: 2px solid ${isOwned ? color : '#333'}; border-radius: 12px; overflow: hidden; background: #000; transition: all 0.3s ease; ${styleOwned}">
-            ${isOwned ? `<div style="position: absolute; top: 10px; right: 10px; background: var(--accent-color); color: #000; padding: 0.3rem 0.7rem; border-radius: 8px; font-weight: 900; font-size: 0.9rem; z-index: 10; box-shadow: 0 5px 15px rgba(0,0,0,0.5);">x${owned.count}</div>` : ''}
+        <div class="library-card card-skeleton" data-uuid="${c.uuid}" data-rarity="${rarity}" style="position: relative; cursor: pointer; border: 2px solid ${isOwned ? color : '#333'}; border-radius: 12px; overflow: hidden; background: #000; transition: all 0.3s ease; ${styleOwned}">
+            ${isOwned ? `<div class="card-badge-count" style="position: absolute; top: 10px; right: 10px; background: var(--accent-color); color: #000; padding: 0.3rem 0.7rem; border-radius: 8px; font-weight: 900; font-size: 0.9rem; z-index: 10; box-shadow: 0 5px 15px rgba(0,0,0,0.5);">x${owned.count}</div>` : ''}
             <img src="${imgUrl}" alt="${c.name}" loading="lazy" style="width: 100%; display: block; opacity: 0; transition: opacity 0.3s ease;" onload="this.style.opacity=1; this.parentElement.classList.remove('card-skeleton');" onerror="this.onerror=null; this.src='${fallbackUrl}';">
             <div style="padding: 0.7rem; background: rgba(0,0,0,0.85); display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); position: relative; z-index: 2;">
                 <i class="ss ss-${c.setCode.toLowerCase()} ss-mtg" style="font-size: 1.2rem; color: ${isOwned ? color : '#555'};"></i>
@@ -151,6 +177,43 @@ function renderCard(c, owned) {
             </div>
         </div>
     `;
+}
+
+function updateCardDOMState(uuid, count, rarity) {
+    const cards = document.querySelectorAll(`.library-card[data-uuid="${uuid}"]`);
+    cards.forEach(cardEl => {
+        const rarityColors = { common: '#fff', uncommon: '#3498db', rare: '#f1c40f', mythic: '#e74c3c' };
+        const color = rarityColors[rarity.toLowerCase()] || '#fff';
+        let badge = cardEl.querySelector('.card-badge-count');
+        const icon = cardEl.querySelector('.ss-mtg');
+        const text = cardEl.querySelector('span');
+
+        if (count > 0) {
+            cardEl.style.border = `2px solid ${color}`;
+            cardEl.style.filter = '';
+            cardEl.style.opacity = '';
+            if (icon) icon.style.color = color;
+            if (text) text.style.color = color;
+
+            if (!badge) {
+                badge = document.createElement('div');
+                badge.className = 'card-badge-count';
+                badge.style.cssText = `position: absolute; top: 10px; right: 10px; background: var(--accent-color); color: #000; padding: 0.3rem 0.7rem; border-radius: 8px; font-weight: 900; font-size: 0.9rem; z-index: 10; box-shadow: 0 5px 15px rgba(0,0,0,0.5);`;
+                cardEl.insertBefore(badge, cardEl.firstChild);
+            }
+            badge.innerText = `x${count}`;
+            badge.style.display = 'block';
+        } else {
+            cardEl.style.border = `2px solid #333`;
+            cardEl.style.filter = 'grayscale(60%) brightness(0.7)';
+            cardEl.style.opacity = '0.8';
+            if (icon) icon.style.color = '#555';
+            if (text) text.style.color = '#555';
+            if (badge) {
+                badge.style.display = 'none';
+            }
+        }
+    });
 }
 
 function openModal(cardData) {
@@ -218,9 +281,9 @@ function openModal(cardData) {
                 currentCount--;
                 document.getElementById('modal-count-display').innerText = currentCount;
                 await updateInventoryCount(data, -1);
-                // Update in-memory state for immediate sync without full reload
                 const invItem = state.inventory.find(i => i.uuid === data.uuid);
                 if (invItem) invItem.count = currentCount;
+                updateCardDOMState(data.uuid, currentCount, data.rarity);
             }
         };
 
@@ -228,10 +291,10 @@ function openModal(cardData) {
             currentCount++;
             document.getElementById('modal-count-display').innerText = currentCount;
             await updateInventoryCount(data, 1);
-            // Update in-memory state
             const invItem = state.inventory.find(i => i.uuid === data.uuid);
             if (invItem) invItem.count = currentCount;
             else state.inventory.push({ ...data, count: currentCount });
+            updateCardDOMState(data.uuid, currentCount, data.rarity);
         };
     };
 
@@ -244,4 +307,38 @@ function openModal(cardData) {
     window.addEventListener('keydown', handleKeyNav);
     updateView(cardData);
     modal.style.display = 'flex';
+}
+
+// Ghost Portal Zoom (Escape Overflow)
+let ghostPortal = null;
+function getGhostPortal() {
+    if (!ghostPortal) {
+        ghostPortal = document.createElement('img');
+        ghostPortal.className = 'ghost-zoom-portal';
+        document.body.appendChild(ghostPortal);
+    }
+    return ghostPortal;
+}
+function showGhostPortal(cardEl) {
+    const portal = getGhostPortal();
+    const imgEl  = cardEl.querySelector('img');
+    if (!imgEl) return;
+    const rect = cardEl.getBoundingClientRect();
+    const zoom = getComputedStyle(document.documentElement).getPropertyValue('--card-hover-zoom') || '1.4';
+    portal.src = imgEl.src;
+    portal.style.width  = rect.width + 'px';
+    portal.style.height = rect.height + 'px';
+    portal.style.top    = rect.top + 'px';
+    portal.style.left   = rect.left + 'px';
+    portal.style.display = 'block';
+    requestAnimationFrame(() => {
+        portal.classList.add('visible');
+        portal.style.transform = `scale(${zoom})`;
+    });
+}
+function hideGhostPortal() {
+    if (!ghostPortal) return;
+    ghostPortal.classList.remove('visible');
+    ghostPortal.style.transform = 'scale(1)';
+    setTimeout(() => { if (!ghostPortal.classList.contains('visible')) ghostPortal.style.display = 'none'; }, 200);
 }
