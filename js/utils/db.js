@@ -395,6 +395,17 @@ export async function deleteDeck(id) {
     });
 }
 
+export async function clearActivityLog() {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction('activity_log', 'readwrite');
+        const store = tx.objectStore('activity_log');
+        const request = store.clear();
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(tx.error);
+    });
+}
+
 // ── Backup & Restore ─────────────────────────────────────────────────────────
 
 /**

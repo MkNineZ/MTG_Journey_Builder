@@ -100,6 +100,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // ── Global Event Delegation ───────────────────────────────────────────────
+    
+    // ── Scroll to Top Logic ───────────────────────────────────────────────────
+    const scrollTopBtn = document.getElementById('scroll-top-btn');
+    if (scrollTopBtn) {
+        // Listen to scroll events on document (with capture phase to catch overflow: auto containers)
+        document.addEventListener('scroll', (e) => {
+            const target = e.target;
+            if (target && target.classList && target.classList.contains('app-main-content')) {
+                if (target.scrollTop > 300) {
+                    scrollTopBtn.classList.add('visible');
+                    // Store the current active scroll container so the button knows where to scroll
+                    scrollTopBtn.dataset.activeScrollContainer = target.id || '';
+                    scrollTopBtn.activeScrollElement = target;
+                } else {
+                    scrollTopBtn.classList.remove('visible');
+                }
+            }
+        }, true);
+
+        scrollTopBtn.addEventListener('click', () => {
+            if (scrollTopBtn.activeScrollElement) {
+                scrollTopBtn.activeScrollElement.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        });
+    }
+
     // All booster interactions are handled here to survive tab switches and
     // innerHTML re-renders without duplicate listener leaks.
     document.body.addEventListener('click', async (e) => {

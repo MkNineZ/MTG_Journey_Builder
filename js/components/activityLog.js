@@ -1,4 +1,4 @@
-import { getActivityLog, undoActivity } from '../utils/db.js';
+import { getActivityLog, undoActivity, clearActivityLog } from '../utils/db.js';
 import { state } from '../utils/state.js';
 
 export function initActivityLog() {
@@ -9,7 +9,10 @@ export function initActivityLog() {
         <div id="activity-drawer" class="activity-drawer">
             <div class="drawer-header">
                 <h3>Historial</h3>
-                <button id="btn-close-drawer" class="nav-btn" style="font-size:1.5rem; padding:0 0.5rem;">✕</button>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button id="btn-clear-drawer" class="nav-btn" style="font-size:0.9rem; padding: 0.2rem 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;">🧹 Limpiar</button>
+                    <button id="btn-close-drawer" class="nav-btn" style="font-size:1.5rem; padding:0 0.5rem;">✕</button>
+                </div>
             </div>
             <div id="activity-content" class="drawer-content">
                 <!-- Logs will be rendered here -->
@@ -20,6 +23,7 @@ export function initActivityLog() {
 
     const btnClock = document.getElementById('btn-activity-clock');
     const btnClose = document.getElementById('btn-close-drawer');
+    const btnClear = document.getElementById('btn-clear-drawer');
     const drawer = document.getElementById('activity-drawer');
     const content = document.getElementById('activity-content');
 
@@ -62,5 +66,11 @@ export function initActivityLog() {
 
     btnClose.onclick = () => {
         drawer.classList.remove('open');
+    };
+
+    btnClear.onclick = async () => {
+        await clearActivityLog();
+        drawer.classList.remove('open');
+        renderLogs();
     };
 }
