@@ -188,14 +188,16 @@ export function renderSearchUI(containerElement, allCards, onFilterCallback) {
 
     manaBtns.forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const color = e.target.getAttribute('data-color');
+            const targetButton = e.target.closest('button');
+            if (!targetButton) return;
+            const color = targetButton.getAttribute('data-color');
             const idx = uiState.colors.indexOf(color);
             if (idx > -1) {
                 uiState.colors.splice(idx, 1);
-                e.target.style.borderColor = 'transparent'; e.target.style.boxShadow = 'none';
+                targetButton.style.borderColor = 'transparent'; targetButton.style.boxShadow = 'none';
             } else {
                 uiState.colors.push(color);
-                e.target.style.borderColor = 'var(--accent-color)'; e.target.style.boxShadow = '0 0 10px var(--accent-color)';
+                targetButton.style.borderColor = 'var(--accent-color)'; targetButton.style.boxShadow = '0 0 10px var(--accent-color)';
             }
             executeFilter();
         });
