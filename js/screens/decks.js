@@ -100,7 +100,7 @@ function hideGhostPortal() {
 const isBasicLand = c   => BASIC_LANDS.some(b => c.name?.startsWith(b));
 const ownedCount  = uuid => state.inventory.find(i => i.uuid === uuid)?.count ?? 0;
 const totalInDeck = name => !currentDeck ? 0 :
-    [...currentDeck.mainboard, ...currentDeck.sideboard]
+    [...currentDeck.mainboard, ...currentDeck.sideboard, ...(currentDeck.commander || [])]
         .filter(e => e.name === name).reduce((s, e) => s + e.quantity, 0);
 
 /** Render mana cost string like "{1}{W}{R}" as Scryfall SVG images. */
@@ -163,8 +163,9 @@ function addCardToDeck(card, zone) {
     const isBasic   = isBasicLand(card);
     const total     = totalInDeck(card.name);
     const sideTotal = currentDeck.sideboard.reduce((s,e) => s+e.quantity, 0);
+    const formatMax = currentDeck.format === 'commander' ? 1 : MAX_COPIES;
 
-    if (!isBasic && total >= MAX_COPIES)         { showToast(`Máximo ${MAX_COPIES} copias de "${card.name}".`, 'warn'); return; }
+    if (!isBasic && total >= formatMax)         { showToast(`Máximo ${formatMax} copias de "${card.name}".`, 'warn'); return; }
     if (zone === 'sideboard' && sideTotal >= SIDE_MAX) { showToast(`Sideboard lleno (${SIDE_MAX}).`, 'warn'); return; }
 
     const arr      = currentDeck[zone];
@@ -217,7 +218,7 @@ async function loadDeckForEditing(id) {
 
 function newEmptyDeck() {
     currentDeck = { name: 'Nuevo Mazo', format: 'standard',
-        mainboard: [], sideboard: [],
+        commander: [], mainboard: [], sideboard: [],
         stats: { totalCards:0, sideboardCards:0, colorIdentity:[] } };
     switchView('edit');
 }
@@ -270,7 +271,7 @@ async function renderListView() {
                 <div class="deck-card-body">
                     <div class="deck-card-name">${d.name}</div>
                     <div style="margin-bottom: 0.5rem;">${setBadges}</div>
-                    <div class="deck-card-format">${FORMAT_LABELS[d.format]||d.format}</div>
+                    <div class="deck-card-format format-badge ${d.format}">${FORMAT_LABELS[d.format]||d.format}</div>
                     <div class="deck-card-colors">${colorPips(d.stats?.colorIdentity)}</div>
                     <div class="deck-card-count">${total} cartas${side ? ` · SB: ${side}` : ''}</div>
                 </div>
@@ -362,12 +363,18 @@ function renderEditView() {
                 </div>
                 <!-- Zone tabs + list -->
                 <div class="zone-tabs">
+                    <button class="zone-tab" data-zone="commander" id="tab-commander" style="display: ${currentDeck?.format === 'commander' ? 'flex' : 'none'};">
+                        Commander <span id="commander-count-label" class="zone-count"></span>
+                    </button>
                     <button class="zone-tab active" data-zone="mainboard">
                         Mainboard <span id="deck-count-label" class="zone-count"></span>
                     </button>
                     <button class="zone-tab" data-zone="sideboard">
                         Sideboard <span id="side-count-label" class="zone-count"></span>
                     </button>
+                </div>
+                <div class="deck-zone-wrapper" id="zone-wrapper-commander">
+                    <div id="zone-commander" class="deck-zone-list"></div>
                 </div>
                 <div class="deck-zone-wrapper active" id="zone-wrapper-mainboard">
                     <div id="zone-mainboard" class="deck-zone-list"></div>
@@ -389,7 +396,21 @@ function renderEditView() {
     document.getElementById('de-save').onclick    = () => saveCurrentDeck();
     document.getElementById('de-export').onclick  = () => exportDeckText();
     document.getElementById('de-name').oninput    = e => { if (currentDeck) currentDeck.name = e.target.value; };
-    document.getElementById('de-format').onchange = e => { if (currentDeck) currentDeck.format = e.target.value; };
+    document.getElementById('de-format').onchange = e => { 
+        if (currentDeck) {
+            currentDeck.format = e.target.value;
+            const isCmd = currentDeck.format === 'commander';
+            const tabCmd = document.getElementById('tab-commander');
+            if (tabCmd) {
+                tabCmd.style.display = isCmd ? 'flex' : 'none';
+                if (!isCmd && currentZone === 'commander') {
+                    // Si cambiamos a formato no-commander y estábamos en esa pestaña, movemos a mainboard
+                    document.querySelector('.zone-tab[data-zone="mainboard"]').click();
+                }
+            }
+            updateStats();
+        }
+    };
 
     // Zone tabs
     document.querySelectorAll('.zone-tab').forEach(tab => {
@@ -447,8 +468,30 @@ function renderEditView() {
         const minus  = e.target.closest('.deck-entry-minus');
         const plus   = e.target.closest('.deck-entry-plus');
         const nameEl = e.target.closest('.deck-entry-name');
+        const cmdBtn = e.target.closest('.btn-commander');
 
-        if (minus) {
+        if (cmdBtn) {
+            const uuid = cmdBtn.dataset.uuid;
+            const zone = cmdBtn.dataset.zone;
+            const targetZone = zone === 'commander' ? 'mainboard' : 'commander';
+            const entry = currentDeck[zone].find(en => en.uuid === uuid);
+            
+            if (entry) {
+                // Remove one from origin zone
+                removeCardFromDeck(uuid, zone);
+                
+                // Add to target zone (as if it was added from inventory, but we clone it)
+                const targetEntry = currentDeck[targetZone].find(en => en.uuid === uuid);
+                if (targetEntry) {
+                    targetEntry.quantity++;
+                } else {
+                    currentDeck[targetZone].push({ ...entry, quantity: 1 });
+                }
+                
+                // Force UI update
+                refreshEditor();
+            }
+        } else if (minus) {
             removeCardFromDeck(minus.dataset.uuid, minus.dataset.zone);
         } else if (nameEl) {
             const row = nameEl.closest('.deck-entry');
@@ -607,7 +650,10 @@ function renderZone(zone) {
             }
 
             const over       = entry.quantity > ownedCount(entry.uuid);
-            const atLimit    = !isBasicLand(entry) && totalInDeck(entry.name) >= MAX_COPIES;
+            
+            const formatMax  = currentDeck.format === 'commander' ? 1 : MAX_COPIES;
+            const atLimit    = !isBasicLand(entry) && totalInDeck(entry.name) >= formatMax;
+            
             const noStock    = ownedCount(entry.uuid) <= 0;
             const outOfStock = totalInDeck(entry.name) >= ownedCount(entry.uuid);
             const plusDisabled = (atLimit || noStock || outOfStock) ? 'disabled style="opacity:0.35;cursor:not-allowed"' : '';
@@ -621,6 +667,8 @@ function renderZone(zone) {
                 <div class="deck-entry-name" data-uuid="${entry.uuid}">${displayName}</div>
                 <div class="deck-entry-cost">${costHtml}</div>
                 <div class="deck-entry-controls">
+                    ${currentDeck.format === 'commander' && (zone === 'mainboard' || zone === 'commander') ? 
+                        `<button class="btn-commander" data-uuid="${entry.uuid}" data-zone="${zone}" title="${zone === 'commander' ? 'Quitar de Comandante' : 'Hacer Comandante'}">👑</button>` : ''}
                     <button class="deck-entry-minus" data-uuid="${entry.uuid}" data-zone="${zone}">-</button>
                     <button class="deck-entry-plus"  data-uuid="${entry.uuid}" data-zone="${zone}" ${plusDisabled}>+</button>
                 </div>
@@ -635,16 +683,49 @@ function updateDeckCountLabel() {
     if (!currentDeck) return;
     const main = currentDeck.mainboard.reduce((s,e) => s+e.quantity, 0);
     const side = currentDeck.sideboard.reduce((s,e) => s+e.quantity, 0);
-    const color = main >= MAIN_MIN ? 'var(--accent-secondary)' : 'var(--text-secondary)';
-    const lbl  = document.getElementById('deck-count-label');
+    const cmd  = currentDeck.commander ? currentDeck.commander.reduce((s,e) => s+e.quantity, 0) : 0;
+    
+    let isMainValid = false;
+    let isSideValid = false;
+    let targetMain = MAIN_MIN;
+    let targetSide = SIDE_MAX;
+
+    if (currentDeck.format === 'commander') {
+        const total = main + cmd;
+        targetMain = 100;
+        isMainValid = (total === 100);
+        isSideValid = (side === 0);
+        
+        const lbl = document.getElementById('deck-count-label');
+        if (lbl) {
+            const color = isMainValid ? 'var(--accent-secondary)' : '#e74c3c';
+            lbl.innerHTML = `<span style="color:${color};font-weight:700">${total}</span>/100`;
+        }
+        const cmdLbl = document.getElementById('commander-count-label');
+        if (cmdLbl) {
+            cmdLbl.innerHTML = `(${cmd})`;
+        }
+    } else {
+        isMainValid = (main >= MAIN_MIN);
+        isSideValid = (side <= SIDE_MAX);
+        
+        const lbl = document.getElementById('deck-count-label');
+        if (lbl) {
+            const color = isMainValid ? 'var(--accent-secondary)' : '#e74c3c';
+            lbl.innerHTML = `<span style="color:${color};font-weight:700">${main}</span>/${MAIN_MIN}`;
+        }
+    }
+
     const slbl = document.getElementById('side-count-label');
-    if (lbl)  lbl.innerHTML  = `<span style="color:${color};font-weight:700">${main}</span>/${MAIN_MIN}`;
-    if (slbl) slbl.innerHTML = `${side}/${SIDE_MAX}`;
+    if (slbl) {
+        const scolor = isSideValid ? 'var(--text-secondary)' : '#e74c3c';
+        slbl.innerHTML = `<span style="color:${scolor}">${side}</span>/${currentDeck.format === 'commander' ? 0 : SIDE_MAX}`;
+    }
 }
 
 function updateStats() {
     if (!currentDeck) return;
-    const all = currentDeck.mainboard;
+    const all = [...currentDeck.mainboard, ...(currentDeck.commander || [])];
 
     // Mana curve with Scryfall SVG labels
     const curve  = Array(8).fill(0);
