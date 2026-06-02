@@ -27,6 +27,7 @@ export async function initSettings() {
                         <option value="it" ${state.language === 'it' ? 'selected' : ''}>Italiano</option>
                         <option value="de" ${state.language === 'de' ? 'selected' : ''}>Deutsch</option>
                     </select>
+                    <button id="apply-lang-btn" class="save-btn" style="margin-top: 0.5rem; width: 100%;">Aplicar cambios</button>
                 </div>
 
                 <!-- Visual Preferences (Zoom Slider) -->
@@ -115,6 +116,7 @@ export async function initSettings() {
     accordionToggle.onclick = () => accordion.classList.toggle('open');
 
     langSelect.onchange = (e) => state.setLanguage(e.target.value);
+    document.getElementById('apply-lang-btn').onclick = () => window.location.reload();
 
     // Zoom slider logic
     const zoomSlider = document.getElementById('setting-hover-zoom');

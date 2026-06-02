@@ -590,6 +590,22 @@ function renderZone(zone) {
         html += `<div class="deck-type-group">
             <div class="deck-type-header"><span>${g}</span><span class="deck-type-count">${tot}</span></div>`;
         grouped[g].forEach(entry => {
+            const dbCard = typeof entry.uuid !== 'undefined' ? getFullCardData(entry.uuid) : null;
+            let displayName = entry.name;
+            if (dbCard) {
+                const lang = state.language || 'en';
+                const LANG_MAP = {
+                    'es': 'Spanish', 'fr': 'French', 'it': 'Italian', 'de': 'German',
+                    'pt': 'Portuguese (Brazil)', 'ja': 'Japanese', 'ko': 'Korean',
+                    'ru': 'Russian', 'zhs': 'Chinese Simplified', 'zht': 'Chinese Traditional'
+                };
+                if (lang !== 'en' && dbCard.foreignData) {
+                    const targetLang = LANG_MAP[lang];
+                    const foreign = dbCard.foreignData.find(f => f.language === targetLang);
+                    if (foreign && foreign.name) displayName = foreign.name;
+                }
+            }
+
             const over       = entry.quantity > ownedCount(entry.uuid);
             const atLimit    = !isBasicLand(entry) && totalInDeck(entry.name) >= MAX_COPIES;
             const noStock    = ownedCount(entry.uuid) <= 0;
@@ -602,7 +618,7 @@ function renderZone(zone) {
                              : `<span class="entry-mv">${mv > 0 ? mv : ''}</span>`;
             html += `<div class="deck-entry ${over?'over-limit':''} ${isSetInactive ? 'set-inactive' : ''}">
                 <div class="deck-entry-qty">${entry.quantity}</div>
-                <div class="deck-entry-name" data-uuid="${entry.uuid}">${entry.name}</div>
+                <div class="deck-entry-name" data-uuid="${entry.uuid}">${displayName}</div>
                 <div class="deck-entry-cost">${costHtml}</div>
                 <div class="deck-entry-controls">
                     <button class="deck-entry-minus" data-uuid="${entry.uuid}" data-zone="${zone}">-</button>
