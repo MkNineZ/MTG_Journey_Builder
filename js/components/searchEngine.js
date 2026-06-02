@@ -12,26 +12,30 @@ function getFullCardData(uuid) {
 }
 
 export function filterCards(cards, criteria) {
-    return cards.filter(cardEntry => {
-        const fullCard = getFullCardData(cardEntry.uuid);
-        const card = fullCard || cardEntry;
-        if (criteria.name && !card.name?.toLowerCase().includes(criteria.name.toLowerCase())) return false;
-        if (criteria.oracleText && !card.text?.toLowerCase().includes(criteria.oracleText.toLowerCase())) return false;
+    return cards.filter(card => {
+        // Forzamos a obtener la carta limpia directamente de la base de datos de los sets
+        const dbCard = typeof card.uuid !== 'undefined' ? getFullCardData(card.uuid) : getFullCardData(card.id);
+        if (!dbCard) {
+            console.warn("UUID no encontrado en la base de datos de sets:", card.uuid || card.id);
+            return false;
+        }
+
+        if (criteria.name && !dbCard.name?.toLowerCase().includes(criteria.name.toLowerCase())) return false;
+        if (criteria.oracleText && !dbCard.text?.toLowerCase().includes(criteria.oracleText.toLowerCase())) return false;
         if (criteria.keywords) {
             const searchKeyword = criteria.keywords.toLowerCase();
-            const hasKeyword = card.keywords && card.keywords.some(kw => kw.toLowerCase().includes(searchKeyword));
-            const inText = card.text && card.text.toLowerCase().includes(searchKeyword);
+            const hasKeyword = dbCard.keywords && dbCard.keywords.some(kw => kw.toLowerCase().includes(searchKeyword));
+            const inText = dbCard.text && dbCard.text.toLowerCase().includes(searchKeyword);
             if (!hasKeyword && !inText) return false;
         }
-        if (criteria.type && criteria.type !== 'all' && !card.type?.toLowerCase().includes(criteria.type.toLowerCase())) return false;
-        if (criteria.set && criteria.set !== 'all' && card.setCode !== criteria.set) return false;
-        if (criteria.rarity && criteria.rarity !== 'all' && card.rarity?.toLowerCase() !== criteria.rarity.toLowerCase()) return false;
+        if (criteria.type && criteria.type !== 'all' && !dbCard.type?.toLowerCase().includes(criteria.type.toLowerCase())) return false;
+        if (criteria.set && criteria.set !== 'all' && dbCard.setCode !== criteria.set) return false;
+        if (criteria.rarity && criteria.rarity !== 'all' && dbCard.rarity?.toLowerCase() !== criteria.rarity.toLowerCase()) return false;
         if (criteria.manaValue !== null && criteria.manaValue !== '') {
-            const exactCmc = card.convertedManaCost !== undefined ? card.convertedManaCost : (card.manaValue !== undefined ? card.manaValue : (card.cmc !== undefined ? card.cmc : 0));
-            if (parseInt(exactCmc) !== parseInt(criteria.manaValue)) return false;
+            if (dbCard.convertedManaCost === undefined || parseInt(dbCard.convertedManaCost) !== parseInt(criteria.manaValue)) return false;
         }
         if (criteria.colors && criteria.colors.length > 0) {
-            const cardColors = card.colors || [];
+            const cardColors = dbCard.colors || [];
             const searchingColorless = criteria.colors.includes('C');
             const activeColors = criteria.colors.filter(c => c !== 'C');
 

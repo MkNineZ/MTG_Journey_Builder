@@ -617,19 +617,21 @@ function updateStats() {
 
     // Mana curve with Scryfall SVG labels
     const curve  = Array(8).fill(0);
-    all.forEach(e => { 
-        const full = getFullCardData(e.uuid);
-        const type = full?.type || e.type || '';
+    all.forEach(card => { 
+        // Forzamos a obtener la carta limpia directamente de la base de datos de los sets
+        const dbCard = typeof card.uuid !== 'undefined' ? getFullCardData(card.uuid) : getFullCardData(card.id);
+        if (!dbCard) {
+            console.warn("UUID no encontrado en la base de datos de sets:", card.uuid || card.id);
+            return;
+        }
+
+        const type = dbCard.type || '';
         if (type.toLowerCase().includes('land')) return; // Skip lands from the curve
 
-        const cardObj = full || e;
-        const cmc = cardObj.convertedManaCost !== undefined ? cardObj.convertedManaCost : 
-                    (cardObj.manaValue !== undefined ? cardObj.manaValue : 
-                    (cardObj.cmc !== undefined ? cardObj.cmc : 0));
-
+        const cmc = dbCard.convertedManaCost !== undefined ? dbCard.convertedManaCost : 0;
         const index = Math.min(parseInt(cmc) || 0, 7);
-        console.log("Carta en la curva:", e, "CMC resolved:", cmc, "Index in curve:", index);
-        curve[index] += e.quantity; 
+        console.log("Carta en la curva:", card, "dbCard:", dbCard, "CMC resolved:", cmc, "Index in curve:", index);
+        curve[index] += card.quantity; 
     });
     const maxVal  = Math.max(...curve, 1);
     const curveEl = document.getElementById('mana-curve-bars');
