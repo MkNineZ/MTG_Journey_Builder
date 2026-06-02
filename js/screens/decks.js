@@ -115,7 +115,9 @@ function getFullCardData(uuid) {
 function getManaValue(entry) {
     const full = getFullCardData(entry.uuid);
     const card = full || entry;
-    const cmc = card.cmc !== undefined ? card.cmc : (card.manaValue !== undefined ? card.manaValue : 0);
+    const cmc = card.cmc !== undefined ? card.cmc : 
+                (card.manaValue !== undefined ? card.manaValue : 
+                (card.convertedManaCost !== undefined ? card.convertedManaCost : 0));
     return cmc;
 }
 
@@ -619,6 +621,7 @@ function updateStats() {
     all.forEach(e => { 
         const cmc = getManaValue(e);
         const index = Math.min(parseInt(cmc) || 0, 7);
+        console.log("Carta en la curva:", e, "CMC resolved:", cmc, "Index in curve:", index);
         curve[index] += e.quantity; 
     });
     const maxVal  = Math.max(...curve, 1);
