@@ -1971,26 +1971,26 @@ strong {
 .tabletop-toggle-btn {
     position: absolute;
     top: 50%;
-    left: -20px;
-    width: 20px;
-    height: 60px;
-    background: rgba(20, 20, 20, 0.95);
+    left: -24px;
+    width: 24px;
+    height: 50px;
+    background: #2a2a2a;
     border: 1px solid var(--border-color);
     border-right: none;
-    border-radius: 8px 0 0 8px;
-    color: var(--accent-color);
+    border-radius: 4px 0 0 4px;
+    color: #fff;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1rem;
+    font-size: 1.1rem;
     font-weight: bold;
     transform: translateY(-50%);
-    z-index: 50;
+    z-index: 999;
     transition: background 0.2s, color 0.2s;
 }
 .tabletop-toggle-btn:hover {
-    background: var(--accent-secondary);
+    background: var(--accent-color);
     color: #fff;
 }
 
@@ -2128,7 +2128,7 @@ strong {
     width: 350px;
     min-width: 350px;
     height: 100%;
-    overflow-y: auto;
+    overflow: visible;
     padding: 15px;
     border-left: 1px solid var(--border-color);
     background-color: rgba(20, 20, 20, 0.95);
