@@ -461,6 +461,11 @@ function renderEditView() {
                 currentDeck.sideboard = [];
             }
             
+
+            refreshEditor();
+        }
+    };
+
     // Tabletop Toggle
     const layoutContainer = document.getElementById('de-body');
     const toggleBtn = document.getElementById('btn-toggle-tabletop');
