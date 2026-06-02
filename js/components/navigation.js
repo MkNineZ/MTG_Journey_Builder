@@ -4,14 +4,21 @@ export function initNavigation() {
 
     buttons.forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const targetId = e.target.getAttribute('data-target');
+            const currentBtn = e.target.closest('.nav-btn');
+            if (!currentBtn) return;
+            const targetId = currentBtn.getAttribute('data-target');
+            if (!targetId) return; // Ignore buttons without data-target
             
             // Save to localStorage for persistence
             localStorage.setItem('mtg_last_tab', targetId);
 
             // Update buttons
-            buttons.forEach(b => b.classList.remove('active'));
-            e.target.classList.add('active');
+            buttons.forEach(b => {
+                if (b.hasAttribute('data-target')) {
+                    b.classList.remove('active');
+                }
+            });
+            currentBtn.classList.add('active');
 
             // Update screens
             screens.forEach(screen => {
