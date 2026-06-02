@@ -1957,6 +1957,152 @@ strong {
     width: 100%;
 }
 
+/* ── Tabletop Expansion ── */
+.app-columns-layout.is-expanded .app-sidebar-filters,
+.app-columns-layout.is-expanded .app-main-content {
+    display: none !important;
+}
+.app-columns-layout.is-expanded .app-sidebar-deckboard {
+    width: 100% !important;
+    min-width: 100% !important;
+    flex: 1 !important;
+}
+
+.tabletop-toggle-btn {
+    position: absolute;
+    top: 50%;
+    left: -20px;
+    width: 20px;
+    height: 60px;
+    background: rgba(20, 20, 20, 0.95);
+    border: 1px solid var(--border-color);
+    border-right: none;
+    border-radius: 8px 0 0 8px;
+    color: var(--accent-color);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    font-weight: bold;
+    transform: translateY(-50%);
+    z-index: 50;
+    transition: background 0.2s, color 0.2s;
+}
+.tabletop-toggle-btn:hover {
+    background: var(--accent-secondary);
+    color: #fff;
+}
+
+/* ── Tabletop View Classes ── */
+#deck-visual-tabletop {
+    display: none; /* hidden by default */
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+    margin-top: 1rem;
+}
+.app-columns-layout.is-expanded #deck-visual-tabletop {
+    display: flex;
+}
+.app-columns-layout.is-expanded .deck-zone-stacked-layout,
+.app-columns-layout.is-expanded .de-stats-compact {
+    display: none !important;
+}
+
+.tabletop-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 1rem;
+}
+
+.tabletop-scroll-area {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: auto;
+    padding-bottom: 3rem;
+}
+
+.tabletop-board {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.tabletop-column {
+    display: flex;
+    flex-direction: column;
+    min-width: 180px;
+    width: 180px;
+}
+
+.tabletop-column-header {
+    font-weight: 700;
+    color: var(--accent-secondary);
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    margin-bottom: 0.5rem;
+    text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding-bottom: 0.25rem;
+}
+
+.tabletop-card {
+    width: 180px;
+    height: 250px;
+    border-radius: 10px;
+    background-size: cover;
+    background-position: center;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+    position: relative;
+    transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+    margin-top: -200px;
+}
+.tabletop-card:first-child {
+    margin-top: 0;
+}
+.tabletop-card:hover {
+    transform: translateY(-20px) scale(1.05);
+    z-index: 100 !important;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.8);
+}
+.tabletop-card-count {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    background: rgba(0,0,0,0.8);
+    color: #fff;
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+.tabletop-sideboard-divider {
+    border-top: 2px dashed rgba(255,255,255,0.1);
+    margin: 1rem 0;
+    position: relative;
+}
+.tabletop-sideboard-divider::after {
+    content: "Sideboard";
+    position: absolute;
+    top: -12px;
+    left: 1rem;
+    background: var(--background-color);
+    padding: 0 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
 /* Columna izquierda fija para los filtros avanzados (Común para todas las secciones) */
 .app-sidebar-filters {
     width: 280px;

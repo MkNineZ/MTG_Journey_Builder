@@ -352,7 +352,8 @@ function renderEditView() {
             </div>
 
             <!-- RIGHT: Builder -->
-            <div class="app-sidebar-deckboard">
+            <div class="app-sidebar-deckboard" style="position: relative;">
+                <button id="btn-toggle-tabletop" class="tabletop-toggle-btn">←</button>
                 <!-- Integrated compact stats -->
                 <div class="de-stats-compact" id="de-stats-compact">
                     <div class="de-stats-row">
@@ -390,6 +391,23 @@ function renderEditView() {
                             Sideboard <span id="side-count-label" class="zone-count" style="margin-left: 0.5rem; font-size: 0.9em; opacity: 0.8;"></span>
                         </div>
                         <div id="zone-sideboard" class="deck-zone-list"></div>
+                    </div>
+                </div>
+                
+                <!-- Tabletop Visual Container -->
+                <div id="deck-visual-tabletop">
+                    <div class="tabletop-header">
+                        <span style="font-weight:bold; font-size: 1.1rem;">Vista de Mesa</span>
+                        <select id="tabletop-sort-criteria" class="deck-format-select" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">
+                            <option value="mv">Por Valor de Maná (Curva)</option>
+                            <option value="type">Por Tipo de Carta</option>
+                            <option value="color">Por Color</option>
+                        </select>
+                    </div>
+                    <div class="tabletop-scroll-area">
+                        <div id="tabletop-board-main" class="tabletop-board"></div>
+                        <div class="tabletop-sideboard-divider" id="tabletop-side-divider" style="display: none;"></div>
+                        <div id="tabletop-board-side" class="tabletop-board" style="display: none;"></div>
                     </div>
                 </div>
             </div>
@@ -443,9 +461,27 @@ function renderEditView() {
                 currentDeck.sideboard = [];
             }
             
-            refreshEditor();
-        }
-    };
+    // Tabletop Toggle
+    const layoutContainer = document.getElementById('de-body');
+    const toggleBtn = document.getElementById('btn-toggle-tabletop');
+    const sortCriteria = document.getElementById('tabletop-sort-criteria');
+    
+    if (toggleBtn && layoutContainer) {
+        toggleBtn.onclick = () => {
+            layoutContainer.classList.toggle('is-expanded');
+            const isExp = layoutContainer.classList.contains('is-expanded');
+            toggleBtn.textContent = isExp ? '→' : '←';
+            if (isExp) renderTabletop();
+        };
+    }
+    
+    if (sortCriteria) {
+        sortCriteria.onchange = () => {
+            if (layoutContainer.classList.contains('is-expanded')) {
+                renderTabletop();
+            }
+        };
+    }
 
     // Advanced search component
     renderSearchUI(document.getElementById('de-search-container'), state.inventory, filtered => {
@@ -842,6 +878,96 @@ function updateStats() {
         }).join('') || '<p style="color:var(--text-secondary);font-size:0.75rem">Sin colores</p>';
 }
 
+// ── Tabletop Mode Logic ───────────────────────────────────────────────────────
+function renderTabletop() {
+    if (!currentDeck) return;
+    
+    const criteria = document.getElementById('tabletop-sort-criteria')?.value || 'mv';
+    const mainCards = [...currentDeck.mainboard, ...(currentDeck.commander || [])];
+    const sideCards = currentDeck.sideboard || [];
+    
+    const renderBoard = (cards, containerId) => {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        
+        if (cards.length === 0) {
+            container.innerHTML = '<div style="color: var(--text-secondary); opacity: 0.5;">Vacío</div>';
+            return;
+        }
+
+        const groups = {};
+        
+        cards.forEach(entry => {
+            const dbCard = typeof entry.uuid !== 'undefined' ? getFullCardData(entry.uuid) : null;
+            let groupKey = 'Otro';
+            let sortOrder = 0;
+            
+            if (criteria === 'mv') {
+                const cmc = dbCard && dbCard.convertedManaCost !== undefined ? dbCard.convertedManaCost : 0;
+                const index = Math.min(parseInt(cmc) || 0, 7);
+                groupKey = index === 7 ? '7+' : String(index);
+                sortOrder = index;
+            } else if (criteria === 'type') {
+                groupKey = getTypeGroup(entry.type);
+                const TYPE_ORDER = ['Criatura','Instantáneo','Conjuro','Encantamiento','Artefacto','Planeswalker','Tierra','Otros'];
+                sortOrder = TYPE_ORDER.indexOf(groupKey);
+                if(sortOrder === -1) sortOrder = 99;
+            } else if (criteria === 'color') {
+                const colors = entry.colors || [];
+                if (colors.length === 0) { groupKey = 'Incoloro'; sortOrder = 7; }
+                else if (colors.length > 1) { groupKey = 'Multicolor'; sortOrder = 6; }
+                else {
+                    const c = colors[0];
+                    if (c === 'W') { groupKey = 'Blanco'; sortOrder = 1; }
+                    else if (c === 'U') { groupKey = 'Azul'; sortOrder = 2; }
+                    else if (c === 'B') { groupKey = 'Negro'; sortOrder = 3; }
+                    else if (c === 'R') { groupKey = 'Rojo'; sortOrder = 4; }
+                    else if (c === 'G') { groupKey = 'Verde'; sortOrder = 5; }
+                }
+            }
+            
+            if (!groups[groupKey]) groups[groupKey] = { label: groupKey, order: sortOrder, items: [] };
+            
+            // Expand quantities into individual cards for tabletop view
+            for (let i = 0; i < entry.quantity; i++) {
+                groups[groupKey].items.push(entry);
+            }
+        });
+        
+        const sortedKeys = Object.keys(groups).sort((a,b) => groups[a].order - groups[b].order);
+        
+        container.innerHTML = sortedKeys.map(k => {
+            const g = groups[k];
+            const cardsHtml = g.items.map(entry => {
+                const lang = state.language || 'en';
+                const imgUrl = getCardImageUrl(entry, lang);
+                const fallbackUrl = getCardImageUrlEn(entry);
+                return `<div class="tabletop-card" style="background-image: url('${imgUrl}'), url('${fallbackUrl}')" title="${entry.name}"></div>`;
+            }).join('');
+            
+            return `<div class="tabletop-column">
+                <div class="tabletop-column-header">${g.label} <span style="opacity: 0.6; font-size: 0.7rem;">(${g.items.length})</span></div>
+                ${cardsHtml}
+            </div>`;
+        }).join('');
+    };
+    
+    renderBoard(mainCards, 'tabletop-board-main');
+    
+    const sideDivider = document.getElementById('tabletop-side-divider');
+    const sideBoard = document.getElementById('tabletop-board-side');
+    if (currentDeck.format === 'clasico' && sideCards.length > 0) {
+        if (sideDivider) sideDivider.style.display = 'block';
+        if (sideBoard) {
+            sideBoard.style.display = 'flex';
+            renderBoard(sideCards, 'tabletop-board-side');
+        }
+    } else {
+        if (sideDivider) sideDivider.style.display = 'none';
+        if (sideBoard) sideBoard.style.display = 'none';
+    }
+}
+
 function refreshEditor() {
     renderZone('commander');
     renderZone('mainboard');
@@ -849,6 +975,11 @@ function refreshEditor() {
     updateDeckCountLabel();
     updateStats(); // always update - stats are now always visible
     renderInventoryGrid();
+    
+    const layoutContainer = document.getElementById('de-body');
+    if (layoutContainer && layoutContainer.classList.contains('is-expanded')) {
+        renderTabletop();
+    }
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
