@@ -24,19 +24,24 @@ export function initBoosters() {
         <div id="booster-result-container" style="display: none; margin-bottom: 2rem; padding: 2rem; background: rgba(0,0,0,0.6); border-radius: 12px; border: 1px solid var(--accent-color); backdrop-filter: blur(10px);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                 <h3 style="color: var(--accent-hover);">Contenido del Sobre</h3>
-                <div style="display: flex; gap: 1rem;">
-                    <button id="discard-booster" class="nav-btn" style="padding: 0.6rem 1.2rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); cursor: pointer;">Descartar</button>
-                    <button id="add-booster-to-inv" class="save-btn" style="padding: 0.6rem 1.2rem; cursor: pointer;">Añadir a Colección</button>
+                <div style="display: flex; gap: 1rem; width: 320px; justify-content: flex-end;">
+                    <button id="discard-booster" class="nav-btn" style="flex: 1; padding: 0.6rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); cursor: pointer;">Descartar</button>
+                    <button id="add-booster-to-inv" class="save-btn" style="flex: 1; padding: 0.6rem; cursor: pointer;">Añadir a Colección</button>
                 </div>
             </div>
-            <div id="booster-stock-warning" style="display: none; color: #f1c40f; font-size: 0.85rem; margin-bottom: 1rem; padding: 0.5rem 1rem; border: 1px solid #f1c40f44; border-radius: 6px; background: rgba(241,196,15,0.08);">
-                ⚠️ Colección completada para estos criterios. Se muestran todas las cartas disponibles.
-            </div>
-            <div id="booster-result" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 2rem;"></div>
             
-            <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem;">
-                <h4 style="color: var(--text-secondary); margin-bottom: 0.5rem; font-size: 0.9rem;">Lista de Texto:</h4>
-                <textarea id="booster-export-text" readonly style="width: 100%; height: 120px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; color: #aaa; padding: 0.8rem; font-family: monospace; resize: vertical; outline: none;"></textarea>
+            <div style="display: flex; gap: 2rem; align-items: flex-start; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 300px;">
+                    <div id="booster-stock-warning" style="display: none; color: #f1c40f; font-size: 0.85rem; margin-bottom: 1rem; padding: 0.5rem 1rem; border: 1px solid #f1c40f44; border-radius: 6px; background: rgba(241,196,15,0.08);">
+                        ⚠️ Colección completada para estos criterios. Se muestran todas las cartas disponibles.
+                    </div>
+                    <div id="booster-result" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem;"></div>
+                </div>
+                
+                <div style="width: 320px; flex-shrink: 0; display: flex; flex-direction: column;">
+                    <h4 style="color: var(--text-secondary); margin-bottom: 0.5rem; font-size: 0.9rem;">Lista de Texto:</h4>
+                    <textarea id="booster-export-text" readonly style="width: 100%; height: 500px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; color: #aaa; padding: 0.8rem; font-family: monospace; resize: none; outline: none;"></textarea>
+                </div>
             </div>
         </div>
 
