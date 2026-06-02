@@ -97,19 +97,16 @@ body {
 #main-content {
     flex: 1;
     padding: 2rem;
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 0 auto;
     width: 100%;
 }
 
-/* Deck screen breaks out of the default 1200px main-content constraint */
+/* Deck screen aligns with the main layout */
 #decks {
-    width: calc(100vw - 4rem);     /* full viewport minus nav+padding */
-    max-width: 1600px;
-    margin-left: calc(50% - min(800px, 48vw)); /* center within viewport */
-    position: relative;
-    left: 50%;
-    transform: translateX(-50%);
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
 }
 
 /* Search container inside inventory panel — must not shrink */
@@ -585,11 +582,9 @@ strong {
     height: calc(100vh - 160px);
     transition: grid-template-columns 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     margin-top: 1rem;
-    width: 98vw;
-    max-width: none;
-    position: relative;
-    left: 50%;
-    transform: translateX(-50%);
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
 }
 
 .deck-editor-container.expanded-view {
