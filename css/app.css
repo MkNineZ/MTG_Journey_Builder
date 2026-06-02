@@ -1217,7 +1217,7 @@ strong {
 .zone-tab.active { color: var(--accent-secondary); border-bottom-color: var(--accent-secondary); }
 .zone-count { font-size: 0.7rem; opacity: 0.8; }
 
-.deck-zone-wrapper { display: none; padding: 0.4rem; flex-direction: column; height: auto; min-height: 0; }
+.deck-zone-wrapper { display: none; padding: 0.4rem; flex-direction: column; height: auto; min-height: 0; position: relative; flex-shrink: 0; }
 .deck-zone-wrapper.active { display: flex; flex-direction: column; }
 .deck-zone-list { padding-bottom: 0.5rem; }
 .deck-zone-empty {
@@ -1754,7 +1754,7 @@ strong {
 }
 
 /* Zone wrappers */
-.deck-zone-wrapper { display: none; padding: 0.4rem; height: auto; min-height: 0; }
+.deck-zone-wrapper { display: none; padding: 0.4rem; height: auto; min-height: 0; position: relative; flex-shrink: 0; }
 .deck-zone-wrapper.active { display: block; }
 
 .deck-zone-list { padding-bottom: 0.5rem; }
