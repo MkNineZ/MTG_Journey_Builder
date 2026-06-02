@@ -333,11 +333,18 @@ function showGhostPortal(cardEl) {
     if (!imgEl) return;
     const rect = cardEl.getBoundingClientRect();
     const zoom = getComputedStyle(document.documentElement).getPropertyValue('--card-hover-zoom') || '1.4';
+    
+    // Boundary check for left edge
+    const z = parseFloat(zoom) || 1.4;
+    const offset = (rect.width * (z - 1)) / 2;
+    let finalLeft = rect.left;
+    if (finalLeft - offset < 20) finalLeft = 20 + offset;
+
     portal.src = imgEl.src;
     portal.style.width  = rect.width + 'px';
     portal.style.height = rect.height + 'px';
     portal.style.top    = rect.top + 'px';
-    portal.style.left   = rect.left + 'px';
+    portal.style.left   = finalLeft + 'px';
     portal.style.display = 'block';
     requestAnimationFrame(() => {
         portal.classList.add('visible');

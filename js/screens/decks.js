@@ -40,7 +40,11 @@ function positionHoverPreview(evt) {
     const img = getHoverImg();
     const x = evt.clientX + 16;
     const y = evt.clientY - 60;
-    img.style.left = (x + 210 > window.innerWidth ? x - 230 : x) + 'px';
+    
+    let calcLeft = (x + 210 > window.innerWidth ? x - 230 : x);
+    if (calcLeft < 20) calcLeft = 20;
+
+    img.style.left = calcLeft + 'px';
     img.style.top  = Math.max(8, Math.min(y, window.innerHeight - 310)) + 'px';
 }
 function hideHoverPreview() {
@@ -67,11 +71,17 @@ function showGhostPortal(cardEl) {
     const rect = cardEl.getBoundingClientRect();
     const zoom = getComputedStyle(document.documentElement).getPropertyValue('--card-hover-zoom') || '1.4';
 
+    // Boundary check for left edge
+    const z = parseFloat(zoom) || 1.4;
+    const offset = (rect.width * (z - 1)) / 2;
+    let finalLeft = rect.left;
+    if (finalLeft - offset < 20) finalLeft = 20 + offset;
+
     portal.src = imgEl.src;
     portal.style.width  = rect.width + 'px';
     portal.style.height = rect.height + 'px';
     portal.style.top    = rect.top + 'px';
-    portal.style.left   = rect.left + 'px';
+    portal.style.left   = finalLeft + 'px';
     
     portal.style.display = 'block';
     requestAnimationFrame(() => {

@@ -22,11 +22,18 @@ function showGhostPortal(cardEl) {
     if (!imgEl) return;
     const rect = cardEl.getBoundingClientRect();
     const zoom = getComputedStyle(document.documentElement).getPropertyValue('--card-hover-zoom') || '1.4';
+    
+    // Boundary check for left edge
+    const z = parseFloat(zoom) || 1.4;
+    const offset = (rect.width * (z - 1)) / 2;
+    let finalLeft = rect.left;
+    if (finalLeft - offset < 20) finalLeft = 20 + offset;
+
     portal.src = imgEl.src;
     portal.style.width  = rect.width + 'px';
     portal.style.height = rect.height + 'px';
     portal.style.top    = rect.top + 'px';
-    portal.style.left   = rect.left + 'px';
+    portal.style.left   = finalLeft + 'px';
     portal.style.display = 'block';
     requestAnimationFrame(() => {
         portal.classList.add('visible');
@@ -58,7 +65,7 @@ export function initCollection() {
                         <i class="fas fa-boxes" style="margin-right: 0.5rem;"></i> Gestión Masiva
                     </button>
                 </div>
-                <div id="collection-results" style="margin-top: 1rem;"></div>
+                <div id="collection-results" class="card-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem; margin-top: 1rem;"></div>
             </div>
         </div>
         
