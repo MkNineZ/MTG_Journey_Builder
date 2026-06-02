@@ -13,12 +13,17 @@ export function initExplore() {
     
     // Base layout
     container.innerHTML = `
-        <div class="explore-header">
-            <h2>Explorar Sets</h2>
-            <div id="explore-info" style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.9rem;"></div>
+        <div class="app-columns-layout">
+            <div id="explore-search" class="app-sidebar-filters"></div>
+            
+            <div class="app-main-content">
+                <div class="explore-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h2 style="margin: 0; font-size: 1.5rem;">Explorar Sets</h2>
+                    <div id="explore-info" style="color: var(--text-secondary); font-size: 0.9rem;"></div>
+                </div>
+                <div id="explore-results" style="margin-top: 1rem;"></div>
+            </div>
         </div>
-        <div id="explore-search"></div>
-        <div id="explore-results" class="card-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem; margin-top: 2rem;"></div>
         
         <div id="explore-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.9); backdrop-filter: blur(15px); z-index: 10000; justify-content: center; align-items: center;">
             <div id="explore-modal-content" style="background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 24px; padding: 3rem; display: flex; flex-wrap: wrap; gap: 3rem; max-width: 1000px; width: 95%; max-height: 90vh; overflow-y: auto; position: relative; box-shadow: 0 25px 60px rgba(0,0,0,0.8);"></div>

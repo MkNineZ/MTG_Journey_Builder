@@ -45,17 +45,22 @@ export function initCollection() {
     
     // Base layout
     container.innerHTML = `
-        <div class="collection-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-            <div>
-                <h2 style="margin: 0;">Mi Colección</h2>
-                <div id="collection-info" style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem;"></div>
+        <div class="app-columns-layout">
+            <div id="collection-search" class="app-sidebar-filters"></div>
+            
+            <div class="app-main-content">
+                <div class="collection-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <div>
+                        <h2 style="margin: 0;">Mi Colección</h2>
+                        <div id="collection-info" style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem;"></div>
+                    </div>
+                    <button id="bulk-mgmt-btn" class="nav-btn" style="border: 1px solid var(--accent-color); color: var(--accent-color); padding: 0.8rem 1.5rem;">
+                        <i class="fas fa-boxes" style="margin-right: 0.5rem;"></i> Gestión Masiva
+                    </button>
+                </div>
+                <div id="collection-results" style="margin-top: 1rem;"></div>
             </div>
-            <button id="bulk-mgmt-btn" class="nav-btn" style="border: 1px solid var(--accent-color); color: var(--accent-color); padding: 0.8rem 1.5rem;">
-                <i class="fas fa-boxes" style="margin-right: 0.5rem;"></i> Gestión Masiva
-            </button>
         </div>
-        <div id="collection-search"></div>
-        <div id="collection-results" class="card-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem; margin-top: 2rem;"></div>
         
         <!-- Collection Detail Modal -->
         <div id="collection-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.9); backdrop-filter: blur(15px); z-index: 10000; justify-content: center; align-items: center;">

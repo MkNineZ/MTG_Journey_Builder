@@ -78,89 +78,84 @@ function debounce(func, wait) {
 }
 
 export function renderSearchUI(containerElement, allCards, onFilterCallback) {
-    const activeSetCodes = [...new Set(allCards.map(c => c.setCode))].sort();
+    // Filtrar para mostrar solo los sets activos en el desplegable
+    const activeSetCodes = state.selectedSets ? state.selectedSets.map(s => s.code).sort() : [];
     const setOptions = activeSetCodes.map(code => `<option value="${code}">${code}</option>`).join('');
 
     containerElement.innerHTML = `
-        <div style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem;">
-            <!-- Basic Search -->
-            <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap;">
-                <input type="text" class="search-name" placeholder="Buscar por nombre..." style="flex: 2; padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.5); color: #fff; min-width: 200px; font-size: 1.1rem;">
-                
-                <button class="btn-toggle-advanced save-btn" style="flex: 1; padding: 1rem; font-size: 1.1rem; min-width: 200px; background: var(--accent-color); color: #000; font-weight: bold; border-radius: 8px; cursor: pointer; box-shadow: 0 0 15px rgba(var(--accent-color-rgb), 0.5);">
-                    🔍 BUSCAR / FILTROS AVANZADOS
-                </button>
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <h3 style="color: var(--text-secondary); margin-bottom: 0.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">Filtros</h3>
+            
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Nombre</label>
+                <input type="text" class="search-name" placeholder="Ej. Black Lotus" style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.5); color: #fff;">
+            </div>
+            
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Texto (Oracle)</label>
+                <input type="text" class="search-oracle" placeholder="Ej. destruye..." style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.5); color: #fff;">
             </div>
 
-            <!-- Advanced Filters (Collapsible) -->
-            <div class="advanced-filters" style="display: none; border-top: 1px solid var(--border-color); padding-top: 1.5rem; margin-top: 1rem; flex-wrap: wrap; gap: 2rem;">
-                
-                <div style="flex: 1; min-width: 250px;">
-                    <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Texto de Reglas (Oracle)</label>
-                    <input type="text" class="search-oracle" placeholder="Ej. destruye todas las criaturas..." style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.5); color: #fff; margin-bottom: 1rem;">
-                    
-                    <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Colores de Maná</label>
-                    <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
-                        <button class="mana-btn" data-color="W" style="width: 35px; height: 35px; border-radius: 50%; border: 2px solid transparent; background: #fffddd; padding:3px; cursor: pointer; transition: 0.2s;" title="Blanco"><img src="https://svgs.scryfall.io/card-symbols/W.svg" style="width:100%;height:100%;"></button>
-                        <button class="mana-btn" data-color="U" style="width: 35px; height: 35px; border-radius: 50%; border: 2px solid transparent; background: #c1d8e9; padding:3px; cursor: pointer; transition: 0.2s;" title="Azul"><img src="https://svgs.scryfall.io/card-symbols/U.svg" style="width:100%;height:100%;"></button>
-                        <button class="mana-btn" data-color="B" style="width: 35px; height: 35px; border-radius: 50%; border: 2px solid transparent; background: #bab1ab; padding:3px; cursor: pointer; transition: 0.2s;" title="Negro"><img src="https://svgs.scryfall.io/card-symbols/B.svg" style="width:100%;height:100%;"></button>
-                        <button class="mana-btn" data-color="R" style="width: 35px; height: 35px; border-radius: 50%; border: 2px solid transparent; background: #f9aa8f; padding:3px; cursor: pointer; transition: 0.2s;" title="Rojo"><img src="https://svgs.scryfall.io/card-symbols/R.svg" style="width:100%;height:100%;"></button>
-                        <button class="mana-btn" data-color="G" style="width: 35px; height: 35px; border-radius: 50%; border: 2px solid transparent; background: #9bd3ae; padding:3px; cursor: pointer; transition: 0.2s;" title="Verde"><img src="https://svgs.scryfall.io/card-symbols/G.svg" style="width:100%;height:100%;"></button>
-                        <button class="mana-btn" data-color="C" style="width: 35px; height: 35px; border-radius: 50%; border: 2px solid transparent; background: #ccc; padding:3px; cursor: pointer; transition: 0.2s;" title="Incoloro"><img src="https://svgs.scryfall.io/card-symbols/C.svg" style="width:100%;height:100%;"></button>
-                    </div>
-                    <select class="search-colormode" style="padding: 0.5rem; border-radius: 6px; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); color: #fff; width: 100%;">
-                        <option value="includes">Incluye estos colores</option>
-                        <option value="exact">Exactamente estos colores</option>
-                    </select>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Colores</label>
+                <div style="display: flex; gap: 0.2rem; align-items: center; margin-bottom: 0.5rem; justify-content: space-between;">
+                    <button class="mana-btn" data-color="W" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; background: #fffddd; padding: 3px; cursor: pointer; transition: 0.2s;" title="Blanco"><img src="https://svgs.scryfall.io/card-symbols/W.svg" style="width:100%;height:100%;"></button>
+                    <button class="mana-btn" data-color="U" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; background: #c1d8e9; padding: 3px; cursor: pointer; transition: 0.2s;" title="Azul"><img src="https://svgs.scryfall.io/card-symbols/U.svg" style="width:100%;height:100%;"></button>
+                    <button class="mana-btn" data-color="B" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; background: #bab1ab; padding: 3px; cursor: pointer; transition: 0.2s;" title="Negro"><img src="https://svgs.scryfall.io/card-symbols/B.svg" style="width:100%;height:100%;"></button>
+                    <button class="mana-btn" data-color="R" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; background: #f9aa8f; padding: 3px; cursor: pointer; transition: 0.2s;" title="Rojo"><img src="https://svgs.scryfall.io/card-symbols/R.svg" style="width:100%;height:100%;"></button>
+                    <button class="mana-btn" data-color="G" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; background: #9bd3ae; padding: 3px; cursor: pointer; transition: 0.2s;" title="Verde"><img src="https://svgs.scryfall.io/card-symbols/G.svg" style="width:100%;height:100%;"></button>
+                    <button class="mana-btn" data-color="C" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; background: #ccc; padding: 3px; cursor: pointer; transition: 0.2s;" title="Incoloro"><img src="https://svgs.scryfall.io/card-symbols/C.svg" style="width:100%;height:100%;"></button>
                 </div>
-
-                <div style="flex: 1; min-width: 250px; display: flex; flex-direction: column; gap: 1rem;">
-                    <div>
-                        <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Tipo de Carta</label>
-                        <select class="search-type" style="padding: 0.5rem; border-radius: 6px; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); color: #fff; width: 100%;">
-                            <option value="all">Cualquiera</option>
-                            <option value="Creature">Criatura</option>
-                            <option value="Instant">Instantáneo</option>
-                            <option value="Sorcery">Conjuro</option>
-                            <option value="Artifact">Artefacto</option>
-                            <option value="Enchantment">Encantamiento</option>
-                            <option value="Planeswalker">Planeswalker</option>
-                            <option value="Land">Tierra</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Rareza</label>
-                        <select class="search-rarity" style="padding: 0.5rem; border-radius: 6px; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); color: #fff; width: 100%;">
-                            <option value="all">Cualquiera</option>
-                            <option value="common">Común</option>
-                            <option value="uncommon">Infrecuente</option>
-                            <option value="rare">Rara</option>
-                            <option value="mythic">Mítica</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Set</label>
-                        <select class="search-set" style="padding: 0.5rem; border-radius: 6px; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); color: #fff; width: 100%;">
-                            <option value="all">Todos los sets activos</option>
-                            ${setOptions}
-                        </select>
-                    </div>
-                </div>
-
-                <div style="flex: 1; min-width: 250px; display: flex; flex-direction: column; gap: 1rem;">
-                    <div>
-                        <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Valor de Maná (MV)</label>
-                        <input type="number" class="search-mv" min="0" placeholder="Ej. 3" style="padding: 0.5rem; border-radius: 6px; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); color: #fff; width: 100%;">
-                    </div>
-                    <div>
-                        <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Palabras Clave (Keywords)</label>
-                        <input type="text" class="search-keywords" placeholder="Ej. Flying, Trample..." style="padding: 0.5rem; border-radius: 6px; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); color: #fff; width: 100%;">
-                    </div>
-                    <div style="margin-top: auto;">
-                        <button class="btn-reset-filters save-btn" style="width: 100%; background: #666; color: #fff;">Limpiar Filtros</button>
-                    </div>
-                </div>
+                <select class="search-colormode" style="padding: 0.5rem; border-radius: 6px; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); color: #fff; width: 100%;">
+                    <option value="includes">Incluye estos colores</option>
+                    <option value="exact">Exactamente estos</option>
+                </select>
             </div>
+
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Tipo de Carta</label>
+                <select class="search-type" style="padding: 0.5rem; border-radius: 6px; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); color: #fff; width: 100%;">
+                    <option value="all">Cualquiera</option>
+                    <option value="Creature">Criatura</option>
+                    <option value="Instant">Instantáneo</option>
+                    <option value="Sorcery">Conjuro</option>
+                    <option value="Artifact">Artefacto</option>
+                    <option value="Enchantment">Encantamiento</option>
+                    <option value="Planeswalker">Planeswalker</option>
+                    <option value="Land">Tierra</option>
+                </select>
+            </div>
+
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Rareza</label>
+                <select class="search-rarity" style="padding: 0.5rem; border-radius: 6px; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); color: #fff; width: 100%;">
+                    <option value="all">Cualquiera</option>
+                    <option value="common">Común</option>
+                    <option value="uncommon">Infrecuente</option>
+                    <option value="rare">Rara</option>
+                    <option value="mythic">Mítica</option>
+                </select>
+            </div>
+
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Set</label>
+                <select class="search-set" style="padding: 0.5rem; border-radius: 6px; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); color: #fff; width: 100%;">
+                    <option value="all">Todos (Activos)</option>
+                    ${setOptions}
+                </select>
+            </div>
+
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Valor de Maná (MV)</label>
+                <input type="number" class="search-mv" min="0" placeholder="Ej. 3" style="padding: 0.5rem; border-radius: 6px; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); color: #fff; width: 100%;">
+            </div>
+
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Keywords</label>
+                <input type="text" class="search-keywords" placeholder="Ej. Flying..." style="padding: 0.5rem; border-radius: 6px; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); color: #fff; width: 100%;">
+            </div>
+
+            <button class="btn-reset-filters save-btn" style="width: 100%; background: #666; color: #fff; margin-top: 1rem;">Limpiar Filtros</button>
         </div>
     `;
 
@@ -174,18 +169,11 @@ export function renderSearchUI(containerElement, allCards, onFilterCallback) {
     const elSet = containerElement.querySelector('.search-set');
     const elMv = containerElement.querySelector('.search-mv');
     const elColorMode = containerElement.querySelector('.search-colormode');
-    const btnToggle = containerElement.querySelector('.btn-toggle-advanced');
     const btnReset = containerElement.querySelector('.btn-reset-filters');
-    const advancedPanel = containerElement.querySelector('.advanced-filters');
     const manaBtns = containerElement.querySelectorAll('.mana-btn');
 
     const executeFilter = () => { onFilterCallback(filterCards(allCards, uiState)); };
     const debouncedFilter = debounce(executeFilter, 300);
-
-    btnToggle.addEventListener('click', () => {
-        const isHidden = advancedPanel.style.display === 'none';
-        advancedPanel.style.display = isHidden ? 'flex' : 'none';
-    });
 
     btnReset.addEventListener('click', () => {
         uiState.name = ''; uiState.oracleText = ''; uiState.keywords = ''; uiState.type = 'all'; uiState.rarity = 'all'; uiState.set = 'all'; uiState.manaValue = ''; uiState.colors = []; uiState.colorMode = 'includes';

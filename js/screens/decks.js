@@ -255,9 +255,11 @@ async function renderListView() {
         : decks.map(d => {
             const total = d.stats?.totalCards ?? 0;
             const side  = d.stats?.sideboardCards ?? 0;
+            const setBadges = [...new Set((d.mainboard || []).map(c => c.setCode))].filter(c => c).map(c => `<span class="set-badge">[${c.toUpperCase()}]</span>`).join('');
             return `<div class="deck-card" data-id="${d.id}">
                 <div class="deck-card-body">
                     <div class="deck-card-name">${d.name}</div>
+                    <div style="margin-bottom: 0.5rem;">${setBadges}</div>
                     <div class="deck-card-format">${FORMAT_LABELS[d.format]||d.format}</div>
                     <div class="deck-card-colors">${colorPips(d.stats?.colorIdentity)}</div>
                     <div class="deck-card-count">${total} cartas${side ? ` · SB: ${side}` : ''}</div>
@@ -323,16 +325,18 @@ function renderEditView() {
             </div>
         </div>
 
-        <!-- Two-column body -->
-        <div class="de-body" id="de-body">
-            <!-- LEFT: Inventory 75% -->
-            <div class="de-inventory" id="de-inventory">
-                <div id="de-search-container"></div>
-                <div id="de-inv-grid" class="de-inv-grid"></div>
+        <!-- Three-column body -->
+        <div class="app-columns-layout" id="de-body">
+            <!-- LEFT: Search Filters -->
+            <div id="de-search-container" class="app-sidebar-filters"></div>
+
+            <!-- CENTER: Inventory Grid -->
+            <div class="app-main-content">
+                <div id="de-inv-grid" class="card-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem;"></div>
             </div>
 
-            <!-- RIGHT: Builder 25% -->
-            <div class="de-builder">
+            <!-- RIGHT: Builder -->
+            <div class="app-sidebar-deckboard">
                 <!-- Integrated compact stats -->
                 <div class="de-stats-compact" id="de-stats-compact">
                     <div class="de-stats-row">
@@ -581,11 +585,12 @@ function renderZone(zone) {
             const noStock    = ownedCount(entry.uuid) <= 0;
             const outOfStock = totalInDeck(entry.name) >= ownedCount(entry.uuid);
             const plusDisabled = (atLimit || noStock || outOfStock) ? 'disabled style="opacity:0.35;cursor:not-allowed"' : '';
+            const isSetInactive = state.selectedSets && !state.selectedSets.some(s => s.code === entry.setCode);
             const mv         = getManaValue(entry);
             const manaCost   = getManaCost(entry);
             const costHtml   = manaCost ? parseManaSymbols(manaCost)
                              : `<span class="entry-mv">${mv > 0 ? mv : ''}</span>`;
-            html += `<div class="deck-entry ${over?'over-limit':''}">
+            html += `<div class="deck-entry ${over?'over-limit':''} ${isSetInactive ? 'set-inactive' : ''}">
                 <div class="deck-entry-qty">${entry.quantity}</div>
                 <div class="deck-entry-name" data-uuid="${entry.uuid}">${entry.name}</div>
                 <div class="deck-entry-cost">${costHtml}</div>

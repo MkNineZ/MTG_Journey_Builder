@@ -1861,3 +1861,74 @@ strong {
     .deck-build-panel { min-height: 400px; }
 }
 
+/* =========================================================================
+   COLUMN LAYOUT & DECKBOARD OVERRIDES
+   ========================================================================= */
+
+/* Contenedor raíz para los layouts de columnas */
+.app-columns-layout {
+    display: flex;
+    height: calc(100vh - 60px); /* Ajustar según la altura real de tu header global */
+    overflow: hidden;
+    width: 100%;
+}
+
+/* Columna izquierda fija para los filtros avanzados (Común para todas las secciones) */
+.app-sidebar-filters {
+    width: 280px;
+    min-width: 280px;
+    height: 100%;
+    overflow-y: auto;
+    padding: 15px;
+    border-right: 1px solid var(--border-color);
+    background-color: rgba(15, 15, 15, 0.9);
+}
+
+/* Contenedor central para los resultados de cartas (Común para todas las secciones) */
+.app-main-content {
+    flex: 1;
+    height: 100%;
+    overflow-y: auto;
+    padding: 20px;
+    background-color: var(--background-color);
+}
+
+/* Columna derecha fija para el mazo (Solo en decks.js) */
+.app-sidebar-deckboard {
+    width: 350px;
+    min-width: 350px;
+    height: 100%;
+    overflow-y: auto;
+    padding: 15px;
+    border-left: 1px solid var(--border-color);
+    background-color: rgba(20, 20, 20, 0.95);
+    display: flex;
+    flex-direction: column;
+}
+
+/* =========================================================================
+   SETS MANAGEMENT & WARNINGS
+   ========================================================================= */
+
+/* Estilo para las cartas en mazos guardados cuyo set fue desactivado */
+.set-inactive {
+    color: #e74c3c !important;
+    border-left: 3px solid #e74c3c !important;
+    background: rgba(231, 76, 60, 0.1) !important;
+    opacity: 0.8;
+}
+
+/* Etiqueta visual para indicar sets dentro de un mazo */
+.set-badge {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    margin-right: 4px;
+    margin-bottom: 4px;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
