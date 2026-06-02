@@ -1,5 +1,5 @@
 import { state } from '../utils/state.js';
-import { renderSearchUI } from '../components/searchEngine.js';
+import { renderSearchUI, filterCards } from '../components/searchEngine.js';
 import { updateInventoryCount, clearNewStatus, saveToInventory } from '../utils/db.js';
 import { getCardImageUrl, getCardImageUrlEn } from '../utils/api.js';
 
@@ -166,7 +166,7 @@ export function initCollection() {
 
         const searchContainer = document.getElementById('collection-search');
         renderSearchUI(searchContainer, inventory, onFilter);
-        onFilter(inventory);
+        onFilter(filterCards(inventory, { name: '', oracleText: '', keywords: '', type: 'all', rarity: 'all', set: 'all', manaValue: '', colors: [], colorMode: 'includes' }));
     };
 
     // Card interactions

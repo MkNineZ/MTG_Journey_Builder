@@ -415,7 +415,7 @@ function renderEditView() {
         
         if (card) {
             const uuid = card.dataset.uuid;
-            const c = state.inventory.find(i => i.uuid === uuid);
+            const c = filteredInv.find(i => i.uuid === uuid);
             if (!c) return;
             
             const inDeck      = totalInDeck(c.name);
@@ -522,7 +522,7 @@ function openCardModal(uuid) {
     document.getElementById('deck-modal-close').onclick = closeCardModal;
     document.querySelectorAll('.deck-modal-add').forEach(btn => {
         btn.onclick = () => {
-            const c = state.inventory.find(i => i.uuid === btn.dataset.uuid);
+            const c = filteredInv.find(i => i.uuid === btn.dataset.uuid);
             if (c) addCardToDeck(c, btn.dataset.zone);
         };
     });

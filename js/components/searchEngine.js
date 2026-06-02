@@ -12,27 +12,28 @@ function getFullCardData(uuid) {
 }
 
 export function filterCards(cards, criteria) {
-    return cards.filter(card => {
+    const results = [];
+    for (const card of cards) {
         // Forzamos a obtener la carta limpia directamente de la base de datos de los sets
         const dbCard = typeof card.uuid !== 'undefined' ? getFullCardData(card.uuid) : getFullCardData(card.id);
         if (!dbCard) {
             console.warn("UUID no encontrado en la base de datos de sets:", card.uuid || card.id);
-            return false;
+            continue;
         }
 
-        if (criteria.name && !dbCard.name?.toLowerCase().includes(criteria.name.toLowerCase())) return false;
-        if (criteria.oracleText && !dbCard.text?.toLowerCase().includes(criteria.oracleText.toLowerCase())) return false;
+        if (criteria.name && !dbCard.name?.toLowerCase().includes(criteria.name.toLowerCase())) continue;
+        if (criteria.oracleText && !dbCard.text?.toLowerCase().includes(criteria.oracleText.toLowerCase())) continue;
         if (criteria.keywords) {
             const searchKeyword = criteria.keywords.toLowerCase();
             const hasKeyword = dbCard.keywords && dbCard.keywords.some(kw => kw.toLowerCase().includes(searchKeyword));
             const inText = dbCard.text && dbCard.text.toLowerCase().includes(searchKeyword);
-            if (!hasKeyword && !inText) return false;
+            if (!hasKeyword && !inText) continue;
         }
-        if (criteria.type && criteria.type !== 'all' && !dbCard.type?.toLowerCase().includes(criteria.type.toLowerCase())) return false;
-        if (criteria.set && criteria.set !== 'all' && dbCard.setCode !== criteria.set) return false;
-        if (criteria.rarity && criteria.rarity !== 'all' && dbCard.rarity?.toLowerCase() !== criteria.rarity.toLowerCase()) return false;
+        if (criteria.type && criteria.type !== 'all' && !dbCard.type?.toLowerCase().includes(criteria.type.toLowerCase())) continue;
+        if (criteria.set && criteria.set !== 'all' && dbCard.setCode !== criteria.set) continue;
+        if (criteria.rarity && criteria.rarity !== 'all' && dbCard.rarity?.toLowerCase() !== criteria.rarity.toLowerCase()) continue;
         if (criteria.manaValue !== null && criteria.manaValue !== '') {
-            if (dbCard.convertedManaCost === undefined || parseInt(dbCard.convertedManaCost) !== parseInt(criteria.manaValue)) return false;
+            if (dbCard.convertedManaCost === undefined || parseInt(dbCard.convertedManaCost) !== parseInt(criteria.manaValue)) continue;
         }
         if (criteria.colors && criteria.colors.length > 0) {
             const cardColors = dbCard.colors || [];
@@ -40,32 +41,27 @@ export function filterCards(cards, criteria) {
             const activeColors = criteria.colors.filter(c => c !== 'C');
 
             if (criteria.colorMode === 'exact') {
-                // Exact Mode: Must match exactly the selected set of colors
                 if (searchingColorless && activeColors.length === 0) {
-                    // Only Colorless selected
-                    if (cardColors.length > 0) return false;
+                    if (cardColors.length > 0) continue;
                 } else {
-                    // Specific colors selected (with or without 'C' which is redundant here)
-                    if (cardColors.length !== activeColors.length) return false;
+                    if (cardColors.length !== activeColors.length) continue;
                     const hasAll = activeColors.every(c => cardColors.includes(c));
-                    if (!hasAll) return false;
+                    if (!hasAll) continue;
                 }
             } else {
-                // Inclusive Mode (Color Identity style): 
-                // Card colors must be a subset of the selected colors.
                 if (activeColors.length > 0) {
-                    // If colors are selected, card cannot have colors OUTSIDE that selection.
-                    // Colorless cards ([]) always pass this check.
                     const hasForbiddenColor = cardColors.some(c => !activeColors.includes(c));
-                    if (hasForbiddenColor) return false;
+                    if (hasForbiddenColor) continue;
                 } else if (searchingColorless) {
-                    // ONLY 'C' was selected: show only colorless cards
-                    if (cardColors.length > 0) return false;
+                    if (cardColors.length > 0) continue;
                 }
             }
         }
-        return true;
-    });
+        
+        // Return perfect dbCard combined with the inventory's count metric
+        results.push({ ...dbCard, count: card.count });
+    }
+    return results;
 }
 
 function debounce(func, wait) {
