@@ -487,8 +487,36 @@ function renderEditView() {
         const plus   = e.target.closest('.deck-entry-plus');
         const nameEl = e.target.closest('.deck-entry-name');
         const cmdBtn = e.target.closest('.btn-commander');
+        const transferBtn = e.target.closest('.btn-transfer');
 
-        if (cmdBtn) {
+        if (transferBtn) {
+            const uuid = transferBtn.dataset.uuid;
+            const zone = transferBtn.dataset.zone;
+            const targetZone = zone === 'mainboard' ? 'sideboard' : 'mainboard';
+            const entry = currentDeck[zone].find(en => en.uuid === uuid);
+            
+            if (entry) {
+                // Validación para sideboard límite si va hacia sideboard
+                if (targetZone === 'sideboard') {
+                    const sideTotal = currentDeck.sideboard.reduce((s,e) => s+e.quantity, 0);
+                    if (sideTotal >= SIDE_MAX) {
+                        showToast(`Sideboard lleno (${SIDE_MAX}).`, 'warn');
+                        return;
+                    }
+                }
+                
+                removeCardFromDeck(uuid, zone);
+                
+                const targetEntry = currentDeck[targetZone].find(en => en.uuid === uuid);
+                if (targetEntry) {
+                    targetEntry.quantity++;
+                } else {
+                    currentDeck[targetZone].push({ ...entry, quantity: 1 });
+                }
+                
+                refreshEditor();
+            }
+        } else if (cmdBtn) {
             const uuid = cmdBtn.dataset.uuid;
             const zone = cmdBtn.dataset.zone;
             const targetZone = zone === 'commander' ? 'mainboard' : 'commander';
@@ -680,6 +708,9 @@ function renderZone(zone) {
             const formatMax  = currentDeck.format === 'commander' ? 1 : MAX_COPIES;
             const atLimit    = !isBasicLand(entry) && totalInDeck(entry.name) >= formatMax;
             
+            // Si es commander y tiene más de 1 copia (y no es tierra básica), pintamos de rojo la cantidad
+            const isIllegalQuantity = currentDeck.format === 'commander' && !isBasicLand(entry) && entry.quantity > 1;
+            
             const noStock    = ownedCount(entry.uuid) <= 0;
             const outOfStock = totalInDeck(entry.name) >= ownedCount(entry.uuid);
             const plusDisabled = (atLimit || noStock || outOfStock) ? 'disabled style="opacity:0.35;cursor:not-allowed"' : '';
@@ -689,10 +720,12 @@ function renderZone(zone) {
             const costHtml   = manaCost ? parseManaSymbols(manaCost)
                              : `<span class="entry-mv">${mv > 0 ? mv : ''}</span>`;
             html += `<div class="deck-entry ${over?'over-limit':''} ${isSetInactive ? 'set-inactive' : ''}">
-                <div class="deck-entry-qty">${entry.quantity}</div>
+                <div class="deck-entry-qty" ${isIllegalQuantity ? 'style="color: #ff4444;"' : ''}>${entry.quantity}</div>
                 <div class="deck-entry-name" data-uuid="${entry.uuid}">${displayName}</div>
                 <div class="deck-entry-cost">${costHtml}</div>
                 <div class="deck-entry-controls">
+                    ${currentDeck.format === 'clasico' ? 
+                        `<button class="btn-transfer" data-uuid="${entry.uuid}" data-zone="${zone}" title="Mover a ${zone === 'mainboard' ? 'Sideboard' : 'Mainboard'}" style="background: transparent; border: none; color: var(--text-secondary); cursor: pointer; padding: 0 0.4rem; font-size: 1.1rem;">⇄</button>` : ''}
                     ${currentDeck.format === 'commander' && (zone === 'mainboard' || zone === 'commander') ? 
                         `<button class="btn-commander" data-uuid="${entry.uuid}" data-zone="${zone}" title="${zone === 'commander' ? 'Quitar de Comandante' : 'Hacer Comandante'}">👑</button>` : ''}
                     <button class="deck-entry-minus" data-uuid="${entry.uuid}" data-zone="${zone}">-</button>
@@ -724,7 +757,7 @@ function updateDeckCountLabel() {
         
         const lbl = document.getElementById('deck-count-label');
         if (lbl) {
-            const color = isMainValid ? 'var(--accent-secondary)' : '#e74c3c';
+            const color = isMainValid ? 'var(--accent-secondary)' : '#ff4444';
             lbl.innerHTML = `<span style="color:${color};font-weight:700">${total}</span>/100`;
         }
         const cmdLbl = document.getElementById('commander-count-label');
@@ -732,19 +765,20 @@ function updateDeckCountLabel() {
             cmdLbl.innerHTML = `(${cmd})`;
         }
     } else {
-        isMainValid = (main >= MAIN_MIN);
+        // Formato clásico: 60 exacto? No, el usuario dijo "supera las 60"
+        isMainValid = (main === MAIN_MIN);
         isSideValid = (side <= SIDE_MAX);
         
         const lbl = document.getElementById('deck-count-label');
         if (lbl) {
-            const color = isMainValid ? 'var(--accent-secondary)' : '#e74c3c';
+            const color = isMainValid ? 'var(--accent-secondary)' : '#ff4444';
             lbl.innerHTML = `<span style="color:${color};font-weight:700">${main}</span>/${MAIN_MIN}`;
         }
     }
 
     const slbl = document.getElementById('side-count-label');
     if (slbl) {
-        const scolor = isSideValid ? 'var(--text-secondary)' : '#e74c3c';
+        const scolor = isSideValid ? 'var(--text-secondary)' : '#ff4444';
         slbl.innerHTML = `<span style="color:${scolor}">${side}</span>/${currentDeck.format === 'commander' ? 0 : SIDE_MAX}`;
     }
 }
