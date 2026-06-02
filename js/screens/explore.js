@@ -57,11 +57,14 @@ export function initExplore() {
         }
 
         // Flatten all cards from all active sets
-        const allCards = activeSetsData.flatMap(set => (set.cards || []).map(c => ({
-            ...c,
-            setCode: set.code,
-            manaValue: c.manaValue ?? (c.convertedManaCost || 0)
-        })));
+        const allCards = activeSetsData.flatMap(set => (set.cards || []).map(c => {
+            const exactCmc = c.convertedManaCost !== undefined ? c.convertedManaCost : (c.manaValue !== undefined ? c.manaValue : (c.cmc !== undefined ? c.cmc : 0));
+            return {
+                ...c,
+                setCode: set.code,
+                manaValue: exactCmc
+            };
+        }));
 
         // Remove duplicate UUIDs if any
         const uniqueCards = Array.from(new Map(allCards.map(c => [c.uuid, c])).values());

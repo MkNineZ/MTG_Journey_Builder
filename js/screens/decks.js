@@ -115,10 +115,8 @@ function getFullCardData(uuid) {
 function getManaValue(entry) {
     const full = getFullCardData(entry.uuid);
     const card = full || entry;
-    const cmc = card.cmc !== undefined ? card.cmc : 
-                (card.manaValue !== undefined ? card.manaValue : 
-                (card.convertedManaCost !== undefined ? card.convertedManaCost : 0));
-    return cmc;
+    const exactCmc = card.convertedManaCost !== undefined ? card.convertedManaCost : (card.manaValue !== undefined ? card.manaValue : (card.cmc !== undefined ? card.cmc : 0));
+    return exactCmc;
 }
 
 function getManaCost(entry) {
@@ -164,9 +162,10 @@ function addCardToDeck(card, zone) {
     if (existing) {
         existing.quantity++;
     } else {
+        const exactCmc = card.convertedManaCost !== undefined ? card.convertedManaCost : (card.manaValue !== undefined ? card.manaValue : (card.cmc !== undefined ? card.cmc : 0));
         arr.push({ uuid: card.uuid, name: card.name, setCode: card.setCode,
             number: card.number || '', colors: card.colors || [],
-            type: card.type || '', manaValue: card.manaValue ?? 0,
+            type: card.type || '', manaValue: exactCmc,
             rarity: card.rarity || 'common', quantity: 1 });
     }
     refreshEditor();

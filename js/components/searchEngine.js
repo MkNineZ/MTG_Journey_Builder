@@ -14,8 +14,8 @@ export function filterCards(cards, criteria) {
         if (criteria.set && criteria.set !== 'all' && card.setCode !== criteria.set) return false;
         if (criteria.rarity && criteria.rarity !== 'all' && card.rarity?.toLowerCase() !== criteria.rarity.toLowerCase()) return false;
         if (criteria.manaValue !== null && criteria.manaValue !== '') {
-            const mv = parseFloat(criteria.manaValue);
-            if (card.manaValue === undefined || card.manaValue !== mv) return false;
+            const exactCmc = card.convertedManaCost !== undefined ? card.convertedManaCost : (card.manaValue !== undefined ? card.manaValue : (card.cmc !== undefined ? card.cmc : 0));
+            if (parseInt(exactCmc) !== parseInt(criteria.manaValue)) return false;
         }
         if (criteria.colors && criteria.colors.length > 0) {
             const cardColors = card.colors || [];
