@@ -7,6 +7,7 @@ import { initBoosters, openBoosterClassic, openBoosterCustom, openBoosterCustomC
 import { initDecks } from './screens/decks.js';
 import { initAbout } from './screens/about.js';
 import { state } from './utils/state.js';
+import { exportDatabase } from './utils/db.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
@@ -51,6 +52,52 @@ document.addEventListener('DOMContentLoaded', async () => {
             dot.classList.remove('active');
         }
     });
+
+    // ── Global Save Button ────────────────────────────────────────────────────
+    const globalSaveBtn = document.getElementById('global-save-btn');
+    if (globalSaveBtn) {
+        globalSaveBtn.addEventListener('click', async () => {
+            try {
+                globalSaveBtn.disabled = true;
+                const originalHtml = globalSaveBtn.innerHTML;
+                globalSaveBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 5px;"></i> Preparando...';
+                
+                const dbData = await exportDatabase();
+                const fullBackup = {
+                    ...dbData,
+                    settings: {
+                        language: state.language,
+                        hoverZoom: state.hoverZoom,
+                        selectedSets: state.selectedSets.map(s => s.code)
+                    }
+                };
+                
+                const blob = new Blob([JSON.stringify(fullBackup, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `mtg-journey-backup-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                globalSaveBtn.innerHTML = '<i class="fas fa-check" style="margin-right: 5px; color: #4ade80;"></i> ¡Guardado!';
+                globalSaveBtn.style.borderColor = '#4ade80';
+                
+                setTimeout(() => {
+                    globalSaveBtn.disabled = false;
+                    globalSaveBtn.innerHTML = originalHtml;
+                    globalSaveBtn.style.borderColor = 'var(--accent-color)';
+                }, 2000);
+            } catch (err) {
+                console.error('[Backup] Error:', err);
+                alert('Error al exportar el progreso.');
+                globalSaveBtn.disabled = false;
+                globalSaveBtn.innerHTML = '<i class="fas fa-save" style="margin-right: 5px;"></i> Guardar Progreso';
+            }
+        });
+    }
 
     // ── Global Event Delegation ───────────────────────────────────────────────
     // All booster interactions are handled here to survive tab switches and
