@@ -317,7 +317,7 @@ async function renderListView() {
 function renderEditView() {
     statsOpen   = false;
     currentZone = 'mainboard';
-    filteredInv = [...state.inventory];
+    filteredInv = filterCards(state.inventory, { name: '', oracleText: '', keywords: '', type: 'all', rarity: 'all', set: 'all', manaValue: '', colors: [], colorMode: 'includes' });
 
     const formatOpts = FORMATS.map(f =>
         `<option value="${f}" ${currentDeck?.format===f?'selected':''}>${FORMAT_LABELS[f]}</option>`).join('');

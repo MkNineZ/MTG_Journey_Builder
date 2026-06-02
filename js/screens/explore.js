@@ -37,11 +37,11 @@ export function initExplore() {
 
     // Ghost Portal Zoom
     resultsContainer.addEventListener('mouseover', e => {
-        const cardEl = e.target.closest('.deck-inv-card');
+        const cardEl = e.target.closest('.library-card');
         if (cardEl) showGhostPortal(cardEl);
     });
     resultsContainer.addEventListener('mouseout', e => {
-        if (!e.relatedTarget || !e.relatedTarget.closest?.('.deck-inv-card')) {
+        if (!e.relatedTarget || !e.relatedTarget.closest?.('.library-card')) {
             hideGhostPortal();
         }
     });
