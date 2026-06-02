@@ -8,9 +8,8 @@ const BASIC_LANDS = ['Plains', 'Island', 'Swamp', 'Mountain', 'Forest', 'Wastes'
 const MAX_COPIES  = 4;
 const MAIN_MIN    = 60;
 const SIDE_MAX    = 15;
-const FORMATS     = ['standard','pioneer','modern','legacy','commander','custom'];
-const FORMAT_LABELS = { standard:'Standard', pioneer:'Pioneer', modern:'Modern',
-    legacy:'Legacy', commander:'Commander / EDH', custom:'Personalizado' };
+const FORMATS     = ['clasico', 'commander'];
+const FORMAT_LABELS = { clasico: 'Clásico', commander: 'Commander / EDH' };
 
 // ── Module State ──────────────────────────────────────────────────────────────
 let view        = 'list';
@@ -217,7 +216,7 @@ async function loadDeckForEditing(id) {
 }
 
 function newEmptyDeck() {
-    currentDeck = { name: 'Nuevo Mazo', format: 'standard',
+    currentDeck = { name: 'Nuevo Mazo', format: 'clasico',
         commander: [], mainboard: [], sideboard: [],
         stats: { totalCards:0, sideboardCards:0, colorIdentity:[] } };
     switchView('edit');
@@ -361,26 +360,31 @@ function renderEditView() {
                         </div>
                     </div>
                 </div>
-                <!-- Zone tabs + list -->
-                <div class="zone-tabs">
-                    <button class="zone-tab" data-zone="commander" id="tab-commander" style="display: ${currentDeck?.format === 'commander' ? 'flex' : 'none'};">
-                        Commander <span id="commander-count-label" class="zone-count"></span>
-                    </button>
-                    <button class="zone-tab active" data-zone="mainboard">
-                        Mainboard <span id="deck-count-label" class="zone-count"></span>
-                    </button>
-                    <button class="zone-tab" data-zone="sideboard">
-                        Sideboard <span id="side-count-label" class="zone-count"></span>
-                    </button>
-                </div>
-                <div class="deck-zone-wrapper" id="zone-wrapper-commander">
-                    <div id="zone-commander" class="deck-zone-list"></div>
-                </div>
-                <div class="deck-zone-wrapper active" id="zone-wrapper-mainboard">
-                    <div id="zone-mainboard" class="deck-zone-list"></div>
-                </div>
-                <div class="deck-zone-wrapper" id="zone-wrapper-sideboard">
-                    <div id="zone-sideboard" class="deck-zone-list"></div>
+                <!-- Stacked Zones -->
+                <div class="deck-zone-stacked-layout" style="display: flex; flex-direction: column; gap: 1rem; flex: 1; overflow-y: auto;">
+                    <!-- Commander Zone -->
+                    <div class="deck-zone-wrapper" id="zone-wrapper-commander" style="display: ${currentDeck?.format === 'commander' ? 'block' : 'none'};">
+                        <div class="deck-zone-header" style="background: rgba(255,255,255,0.05); padding: 0.5rem 1rem; border-radius: 6px; font-weight: 700; color: var(--accent-color); margin-bottom: 0.5rem; border-left: 3px solid var(--accent-color);">
+                            Commander <span id="commander-count-label" class="zone-count" style="margin-left: 0.5rem; font-size: 0.9em; opacity: 0.8;"></span>
+                        </div>
+                        <div id="zone-commander" class="deck-zone-list"></div>
+                    </div>
+                    
+                    <!-- Mainboard Zone -->
+                    <div class="deck-zone-wrapper" id="zone-wrapper-mainboard" style="display: block;">
+                        <div class="deck-zone-header" style="background: rgba(255,255,255,0.05); padding: 0.5rem 1rem; border-radius: 6px; font-weight: 700; margin-bottom: 0.5rem;">
+                            Mainboard <span id="deck-count-label" class="zone-count" style="margin-left: 0.5rem; font-size: 0.9em; opacity: 0.8;"></span>
+                        </div>
+                        <div id="zone-mainboard" class="deck-zone-list"></div>
+                    </div>
+                    
+                    <!-- Sideboard Zone -->
+                    <div class="deck-zone-wrapper" id="zone-wrapper-sideboard" style="display: ${currentDeck?.format === 'clasico' ? 'block' : 'none'};">
+                        <div class="deck-zone-header" style="background: rgba(255,255,255,0.05); padding: 0.5rem 1rem; border-radius: 6px; font-weight: 700; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                            Sideboard <span id="side-count-label" class="zone-count" style="margin-left: 0.5rem; font-size: 0.9em; opacity: 0.8;"></span>
+                        </div>
+                        <div id="zone-sideboard" class="deck-zone-list"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -400,28 +404,42 @@ function renderEditView() {
         if (currentDeck) {
             currentDeck.format = e.target.value;
             const isCmd = currentDeck.format === 'commander';
-            const tabCmd = document.getElementById('tab-commander');
-            if (tabCmd) {
-                tabCmd.style.display = isCmd ? 'flex' : 'none';
-                if (!isCmd && currentZone === 'commander') {
-                    // Si cambiamos a formato no-commander y estábamos en esa pestaña, movemos a mainboard
-                    document.querySelector('.zone-tab[data-zone="mainboard"]').click();
-                }
+            
+            const cmdWrapper = document.getElementById('zone-wrapper-commander');
+            const sideWrapper = document.getElementById('zone-wrapper-sideboard');
+            
+            if (cmdWrapper) cmdWrapper.style.display = isCmd ? 'block' : 'none';
+            if (sideWrapper) sideWrapper.style.display = isCmd ? 'none' : 'block';
+            
+            // Si pasamos a clásico y había cartas en commander, las pasamos al mainboard
+            if (!isCmd && currentDeck.commander && currentDeck.commander.length > 0) {
+                currentDeck.commander.forEach(c => {
+                    const existing = currentDeck.mainboard.find(m => m.uuid === c.uuid);
+                    if (existing) {
+                        existing.quantity += c.quantity;
+                    } else {
+                        currentDeck.mainboard.push({ ...c });
+                    }
+                });
+                currentDeck.commander = [];
             }
-            updateStats();
+            
+            // Si pasamos a commander y había cartas en sideboard, las pasamos al mainboard
+            if (isCmd && currentDeck.sideboard && currentDeck.sideboard.length > 0) {
+                currentDeck.sideboard.forEach(c => {
+                    const existing = currentDeck.mainboard.find(m => m.uuid === c.uuid);
+                    if (existing) {
+                        existing.quantity += c.quantity;
+                    } else {
+                        currentDeck.mainboard.push({ ...c });
+                    }
+                });
+                currentDeck.sideboard = [];
+            }
+            
+            refreshEditor();
         }
     };
-
-    // Zone tabs
-    document.querySelectorAll('.zone-tab').forEach(tab => {
-        tab.onclick = () => {
-            document.querySelectorAll('.zone-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.deck-zone-wrapper').forEach(w => w.classList.remove('active'));
-            tab.classList.add('active');
-            currentZone = tab.dataset.zone;
-            document.getElementById(`zone-wrapper-${currentZone}`).classList.add('active');
-        };
-    });
 
     // Advanced search component
     renderSearchUI(document.getElementById('de-search-container'), state.inventory, filtered => {
@@ -477,6 +495,15 @@ function renderEditView() {
             const entry = currentDeck[zone].find(en => en.uuid === uuid);
             
             if (entry) {
+                // Validación para evitar más de un comandante
+                if (targetZone === 'commander') {
+                    const cmdTotal = currentDeck.commander ? currentDeck.commander.reduce((s,e) => s+e.quantity, 0) : 0;
+                    if (cmdTotal >= 1) {
+                        showToast('Solo puedes tener 1 comandante. Quita el actual primero.', 'warn');
+                        return;
+                    }
+                }
+
                 // Remove one from origin zone
                 removeCardFromDeck(uuid, zone);
                 
@@ -557,8 +584,7 @@ function openCardModal(uuid) {
             </p>
             <div style="display:flex;flex-direction:column;gap:0.6rem;">
                 <button class="save-btn deck-modal-add" data-uuid="${card.uuid}" data-zone="mainboard">+ Añadir al Mainboard</button>
-                <button class="nav-btn deck-modal-add" data-uuid="${card.uuid}" data-zone="sideboard"
-                        style="border:1px solid var(--border-color);">+ Añadir al Sideboard</button>
+                ${currentDeck.format !== 'commander' ? `<button class="nav-btn deck-modal-add" data-uuid="${card.uuid}" data-zone="sideboard" style="border:1px solid var(--border-color);">+ Añadir al Sideboard</button>` : ''}
             </div>
         </div>`;
 
@@ -777,10 +803,11 @@ function updateStats() {
 }
 
 function refreshEditor() {
+    renderZone('commander');
     renderZone('mainboard');
     renderZone('sideboard');
     updateDeckCountLabel();
-    updateStats(); // always update — stats are now always visible
+    updateStats(); // always update - stats are now always visible
     renderInventoryGrid();
 }
 

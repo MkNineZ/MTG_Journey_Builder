@@ -1009,12 +1009,24 @@ strong {
 .deck-name-input:focus { outline: none; border-color: var(--accent-secondary); }
 
 .deck-format-select {
-    background: rgba(0,0,0,0.4);
-    border: 1px solid var(--border-color);
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.1);
     border-radius: 8px;
-    color: var(--text-secondary);
-    font-size: 0.85rem;
-    padding: 0.55rem 0.75rem;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    padding: 0.75rem 1rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    outline: none;
+    cursor: pointer;
+}
+.deck-format-select:focus {
+    border-color: var(--accent-secondary);
+    box-shadow: 0 0 0 2px rgba(233,30,99,0.2);
+}
+.deck-format-select option {
+    background: #1e1e1e;
+    color: var(--text-primary);
 }
 
 /* ── EDIT VIEW TOP BAR ── */
@@ -1513,12 +1525,24 @@ strong {
 .deck-name-input:focus { outline: none; border-color: var(--accent-secondary); }
 
 .deck-format-select {
-    background: rgba(0,0,0,0.4);
-    border: 1px solid var(--border-color);
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.1);
     border-radius: 8px;
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-    padding: 0.6rem 0.8rem;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    padding: 0.75rem 1rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    outline: none;
+    cursor: pointer;
+}
+.deck-format-select:focus {
+    border-color: var(--accent-secondary);
+    box-shadow: 0 0 0 2px rgba(233,30,99,0.2);
+}
+.deck-format-select option {
+    background: #1e1e1e;
+    color: var(--text-primary);
 }
 
 /* Body layout: sidebar | inventory | builder */
