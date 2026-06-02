@@ -622,7 +622,11 @@ function updateStats() {
         const type = full?.type || e.type || '';
         if (type.toLowerCase().includes('land')) return; // Skip lands from the curve
 
-        const cmc = getManaValue(e);
+        const cardObj = full || e;
+        const cmc = cardObj.convertedManaCost !== undefined ? cardObj.convertedManaCost : 
+                    (cardObj.manaValue !== undefined ? cardObj.manaValue : 
+                    (cardObj.cmc !== undefined ? cardObj.cmc : 0));
+
         const index = Math.min(parseInt(cmc) || 0, 7);
         console.log("Carta en la curva:", e, "CMC resolved:", cmc, "Index in curve:", index);
         curve[index] += e.quantity; 

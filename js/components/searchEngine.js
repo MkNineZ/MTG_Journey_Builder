@@ -1,7 +1,20 @@
 // searchEngine.js
 
+import { state } from '../utils/state.js';
+
+function getFullCardData(uuid) {
+    if (!state || !state.activeSetsData) return null;
+    for (const set of state.activeSetsData) {
+        const card = (set.cards || []).find(c => c.uuid === uuid);
+        if (card) return card;
+    }
+    return null;
+}
+
 export function filterCards(cards, criteria) {
-    return cards.filter(card => {
+    return cards.filter(cardEntry => {
+        const fullCard = getFullCardData(cardEntry.uuid);
+        const card = fullCard || cardEntry;
         if (criteria.name && !card.name?.toLowerCase().includes(criteria.name.toLowerCase())) return false;
         if (criteria.oracleText && !card.text?.toLowerCase().includes(criteria.oracleText.toLowerCase())) return false;
         if (criteria.keywords) {
