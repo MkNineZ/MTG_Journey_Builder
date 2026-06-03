@@ -2107,12 +2107,16 @@ strong {
     height: 250px;
     position: relative;
     margin-top: 0;
+    transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), z-index 0s;
 }
 .tabletop-card-container ~ .tabletop-card-container {
     margin-top: -200px;
 }
 .tabletop-card-container:hover {
     z-index: 100 !important;
+}
+.tabletop-card-container:hover ~ .tabletop-card-container {
+    transform: translateY(210px);
 }
 
 .tabletop-card {
