@@ -400,8 +400,8 @@ function renderEditView() {
                 
                 <!-- Tabletop Visual Container -->
                 <div id="deck-visual-tabletop">
-                    <div class="tabletop-header">
-                        <div class="tabletop-header-left">
+                    <div id="tabletop-header-row">
+                        <div style="display: flex; gap: 15px; align-items: center;">
                             <span style="font-weight:bold; font-size: 1.1rem;">Vista de Mesa</span>
                             <select id="tabletop-sort-criteria" class="deck-format-select" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">
                                 <option value="mv">Por Valor de Maná (Curva)</option>
@@ -409,7 +409,7 @@ function renderEditView() {
                                 <option value="color">Por Color</option>
                             </select>
                         </div>
-                        <div class="tabletop-header-stats">
+                        <div style="display: flex; gap: 20px; align-items: center; height: 100%;">
                             <div id="tabletop-mana-curve" class="mana-curve"></div>
                             <div id="tabletop-color-dist"></div>
                         </div>
