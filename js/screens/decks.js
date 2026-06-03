@@ -409,9 +409,18 @@ function renderEditView() {
                         </select>
                     </div>
                     <div class="tabletop-scroll-area">
-                        <div id="tabletop-board-main" class="tabletop-board"></div>
-                        <div class="tabletop-sideboard-divider" id="tabletop-side-divider" style="display: none;"></div>
-                        <div id="tabletop-board-side" class="tabletop-board" style="display: none;"></div>
+                        <div>
+                            <div class="tabletop-section-title">MAINBOARD</div>
+                            <div id="tabletop-board-main" class="tabletop-board"></div>
+                        </div>
+                        <div>
+                            <div class="tabletop-section-title">TIERRAS</div>
+                            <div id="tabletop-board-lands" class="tabletop-board"></div>
+                        </div>
+                        <div>
+                            <div class="tabletop-section-title">SIDEBOARD</div>
+                            <div id="tabletop-board-side" class="tabletop-board"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -892,15 +901,26 @@ function renderTabletop() {
     if (!currentDeck) return;
     
     const criteria = document.getElementById('tabletop-sort-criteria')?.value || 'mv';
-    const mainCards = [...currentDeck.mainboard, ...(currentDeck.commander || [])];
+    const mainCardsRaw = [...currentDeck.mainboard, ...(currentDeck.commander || [])];
     const sideCards = currentDeck.sideboard || [];
     
-    const renderBoard = (cards, containerId) => {
+    // Split spells and lands
+    const mainCards = mainCardsRaw.filter(entry => {
+        const dbCard = getFullCardData(entry.uuid);
+        const isLand = isBasicLand(entry) || (dbCard && dbCard.type?.toLowerCase().includes('land'));
+        return !isLand;
+    });
+    const landsCards = mainCardsRaw.filter(entry => {
+        const dbCard = getFullCardData(entry.uuid);
+        return isBasicLand(entry) || (dbCard && dbCard.type?.toLowerCase().includes('land'));
+    });
+    
+    const renderBoard = (cards, containerId, emptyText) => {
         const container = document.getElementById(containerId);
         if (!container) return;
         
         if (cards.length === 0) {
-            container.innerHTML = '<div style="color: var(--text-secondary); opacity: 0.5;">Vacío</div>';
+            container.innerHTML = `<div style="color: var(--text-secondary); opacity: 0.5; padding: 1rem 0; font-style: italic; width: 100%;">— ${emptyText} —</div>`;
             return;
         }
 
@@ -961,20 +981,9 @@ function renderTabletop() {
         }).join('');
     };
     
-    renderBoard(mainCards, 'tabletop-board-main');
-    
-    const sideDivider = document.getElementById('tabletop-side-divider');
-    const sideBoard = document.getElementById('tabletop-board-side');
-    if (currentDeck.format === 'clasico' && sideCards.length > 0) {
-        if (sideDivider) sideDivider.style.display = 'block';
-        if (sideBoard) {
-            sideBoard.style.display = 'flex';
-            renderBoard(sideCards, 'tabletop-board-side');
-        }
-    } else {
-        if (sideDivider) sideDivider.style.display = 'none';
-        if (sideBoard) sideBoard.style.display = 'none';
-    }
+    renderBoard(mainCards, 'tabletop-board-main', 'Sin cartas');
+    renderBoard(landsCards, 'tabletop-board-lands', 'Sin tierras');
+    renderBoard(sideCards, 'tabletop-board-side', 'Sideboard vacío');
 }
 
 function refreshEditor() {

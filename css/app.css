@@ -1982,9 +1982,18 @@ strong {
 }
 
 /* ── Tabletop Expansion ── */
+.app-sidebar-filters, .app-main-content, .app-sidebar-deckboard {
+    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
 .app-columns-layout.is-expanded .app-sidebar-filters,
 .app-columns-layout.is-expanded .app-main-content {
-    display: none !important;
+    min-width: 0 !important;
+    width: 0 !important;
+    flex: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    opacity: 0;
 }
 .app-columns-layout.is-expanded .app-sidebar-deckboard {
     width: 100% !important;
@@ -1995,13 +2004,12 @@ strong {
 .tabletop-toggle-btn {
     position: absolute;
     top: 50%;
-    left: -24px;
-    width: 24px;
-    height: 50px;
+    left: -20px;
+    width: 40px;
+    height: 40px;
     background: #2a2a2a;
     border: 1px solid var(--border-color);
-    border-right: none;
-    border-radius: 4px 0 0 4px;
+    border-radius: 50%;
     color: #fff;
     cursor: pointer;
     display: flex;
@@ -2011,7 +2019,11 @@ strong {
     font-weight: bold;
     transform: translateY(-50%);
     z-index: 999;
-    transition: background 0.2s, color 0.2s;
+    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    box-shadow: -2px 0 10px rgba(0,0,0,0.5);
+}
+.app-columns-layout.is-expanded .tabletop-toggle-btn {
+    transform: translateY(-50%) rotate(180deg);
 }
 .tabletop-toggle-btn:hover {
     background: var(--accent-color);
@@ -2058,10 +2070,22 @@ strong {
     gap: 1rem;
     align-items: flex-start;
 }
+.tabletop-section-title {
+    font-size: 1.2rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
 
 .tabletop-column {
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
     min-width: 180px;
     width: 180px;
 }
@@ -2086,10 +2110,10 @@ strong {
     box-shadow: 0 4px 6px rgba(0,0,0,0.5);
     position: relative;
     transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
-    margin-top: -200px;
-}
-.tabletop-card:first-child {
     margin-top: 0;
+}
+.tabletop-card ~ .tabletop-card {
+    margin-top: -200px;
 }
 .tabletop-card:hover {
     transform: translateY(-20px) scale(1.05);
