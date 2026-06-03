@@ -2066,19 +2066,50 @@ strong {
     gap: 1.5rem;
     align-items: center;
 }
+#tabletop-mana-curve {
+    height: 95px !important;
+    min-height: 95px !important;
+    gap: 0.5rem;
+}
+#tabletop-mana-curve .curve-bar-col {
+    min-width: 22px;
+}
+#tabletop-mana-curve .curve-bar-count {
+    font-size: 0.8rem;
+}
+#tabletop-mana-curve .curve-bar-label .mana-sym {
+    width: 18px !important;
+    height: 18px !important;
+}
+#tabletop-color-dist {
+    display: flex;
+    flex-direction: row;
+    gap: 0.8rem;
+    align-items: center;
+    justify-content: flex-end;
+}
 #tabletop-color-dist .color-dist-bar-wrap {
     display: block;
-    width: 40px;
+    width: 80px;
+    height: 8px;
     flex: none;
 }
 #tabletop-color-dist .color-dist-row {
     background: rgba(255,255,255,0.05);
-    padding: 0.3rem 0.6rem;
-    border-radius: 12px;
+    padding: 0.5rem 0.8rem;
+    border-radius: 16px;
     margin: 0;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.6rem;
+}
+#tabletop-color-dist .mana-sym {
+    width: 20px !important;
+    height: 20px !important;
+}
+#tabletop-color-dist .color-dist-pct {
+    font-size: 0.95rem;
+    font-weight: 700;
 }
 
 .tabletop-scroll-area {
