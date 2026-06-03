@@ -177,7 +177,7 @@ function renderCard(c, owned) {
 
     return `
         <div class="library-card card-skeleton" data-uuid="${c.uuid}" data-rarity="${rarity}" style="position: relative; cursor: pointer; border: 2px solid ${isOwned ? color : '#333'}; border-radius: 12px; overflow: hidden; background: #000; transition: all 0.3s ease; ${styleOwned}">
-            ${isOwned ? `<div class="card-badge-count" style="position: absolute; top: 10px; right: 10px; background: var(--accent-color); color: #000; padding: 0.3rem 0.7rem; border-radius: 8px; font-weight: 900; font-size: 0.9rem; z-index: 10; box-shadow: 0 5px 15px rgba(0,0,0,0.5);">x${owned.count}</div>` : ''}
+            ${isOwned ? `<div class="card-quantity-badge">x${owned.count}</div>` : ''}
             <img src="${imgUrl}" alt="${c.name}" loading="lazy" style="width: 100%; display: block; opacity: 0; transition: opacity 0.3s ease;" onload="this.style.opacity=1; this.parentElement.classList.remove('card-skeleton');" onerror="this.onerror=null; this.src='${fallbackUrl}';">
             <div style="padding: 0.7rem; background: rgba(0,0,0,0.85); display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); position: relative; z-index: 2;">
                 <i class="ss ss-${c.setCode.toLowerCase()} ss-mtg" style="font-size: 1.2rem; color: ${isOwned ? color : '#555'};"></i>
@@ -192,7 +192,7 @@ function updateCardDOMState(uuid, count, rarity) {
     cards.forEach(cardEl => {
         const rarityColors = { common: '#fff', uncommon: '#3498db', rare: '#f1c40f', mythic: '#e74c3c' };
         const color = rarityColors[rarity.toLowerCase()] || '#fff';
-        let badge = cardEl.querySelector('.card-badge-count');
+        let badge = cardEl.querySelector('.card-quantity-badge');
         const icon = cardEl.querySelector('.ss-mtg');
         const text = cardEl.querySelector('span');
 
@@ -205,8 +205,7 @@ function updateCardDOMState(uuid, count, rarity) {
 
             if (!badge) {
                 badge = document.createElement('div');
-                badge.className = 'card-badge-count';
-                badge.style.cssText = `position: absolute; top: 10px; right: 10px; background: var(--accent-color); color: #000; padding: 0.3rem 0.7rem; border-radius: 8px; font-weight: 900; font-size: 0.9rem; z-index: 10; box-shadow: 0 5px 15px rgba(0,0,0,0.5);`;
+                badge.className = 'card-quantity-badge';
                 cardEl.insertBefore(badge, cardEl.firstChild);
             }
             badge.innerText = `x${count}`;

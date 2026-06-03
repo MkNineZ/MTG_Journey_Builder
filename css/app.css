@@ -1198,21 +1198,20 @@ strong {
 /* Deck Inventory Badge (replaces footer) */
 /* Mythic Bronze Card Badge */
 /* Mythic Bronze Card Badge - Glow Up Edition */
-.deck-inv-badge {
+.card-quantity-badge {
     position: absolute;
-    bottom: -10px; /* Pisando el borde inferior */
+    bottom: -10px; /* Floating at bottom edge */
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.85);
-    color: #FFFFA8; /* Dorado intenso */
+    background: linear-gradient(135deg, #b95c26, #863812);
+    color: #fff;
     padding: 3px 14px;
     border-radius: 20px;
     font-size: 0.95rem;
     font-weight: 900;
     pointer-events: none;
-    box-shadow: 0 0 12px rgba(255, 250, 141, 0.5);
-    border: 2px solid rgba(255, 250, 141, 0.9);
-    text-shadow: 0 0 5px rgba(255, 250, 141, 0.8);
+    box-shadow: 0 4px 15px rgba(185, 92, 38, 0.6);
+    border: 1px solid #c0392b;
     z-index: 10;
     white-space: nowrap;
 }
