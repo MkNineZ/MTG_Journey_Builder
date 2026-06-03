@@ -658,9 +658,8 @@ function renderEditView() {
             }
         });
     }
-}
 
-// Modal close
+    // Modal close
     document.getElementById('deck-card-modal').onclick = e => {
         if (e.target === e.currentTarget) closeCardModal();
     };
