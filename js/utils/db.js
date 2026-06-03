@@ -312,7 +312,18 @@ export async function clearInventory() {
             });
             resolve();
         };
-        req.onerror = () => reject(tx.error);
+        req.onerror = () => reject(req.error);
+    });
+}
+
+export async function deleteSet(code) {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction('sets', 'readwrite');
+        const store = tx.objectStore('sets');
+        const req = store.delete(code);
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
     });
 }
 

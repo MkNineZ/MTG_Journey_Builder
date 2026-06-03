@@ -1,7 +1,7 @@
 import { state } from '../utils/state.js';
 import { navigateTo } from '../components/navigation.js';
 import { fetchSetData } from '../utils/api.js';
-import { saveSet, clearAllSets, exportDatabase, importDatabase } from '../utils/db.js';
+import { saveSet, clearAllSets, exportDatabase, importDatabase, deleteSet } from '../utils/db.js';
 
 let availableSets = [];
 
@@ -27,7 +27,7 @@ export async function initSettings() {
                         <option value="it" ${state.language === 'it' ? 'selected' : ''}>Italiano</option>
                         <option value="de" ${state.language === 'de' ? 'selected' : ''}>Deutsch</option>
                     </select>
-                    <button id="apply-lang-btn" class="save-btn" style="margin-top: 0.5rem; width: 100%;">Aplicar cambios</button>
+                    <button id="apply-lang-btn" class="btn-settings-action" style="margin-top: 0.5rem; width: 100%;">Aplicar cambios</button>
                 </div>
 
                 <!-- Visual Preferences (Zoom Slider) -->
@@ -52,12 +52,12 @@ export async function initSettings() {
             <p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0;">Gestiona tus datos locales. La exportación incluye tu inventario, mazos guardados y ajustes de usuario.</p>
             
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
-                <button id="export-progress-btn" class="save-btn" style="height: 80px; display: flex; align-items: center; justify-content: center; gap: 1rem; font-size: 1.1rem; background: linear-gradient(135deg, #b8860b, #8b4513);">
-                    <i class="fas fa-download"></i>
-                    Exportar Progreso
+                <button id="export-progress-btn" class="btn-mythic-accent" style="height: 60px;">
+                    <i class="fas fa-save"></i>
+                    Guardar Progreso
                 </button>
                 
-                <label for="import-file-input" class="nav-btn" style="height: 80px; display: flex; align-items: center; justify-content: center; gap: 1rem; font-size: 1.1rem; border: 1px solid var(--accent-color); color: var(--accent-color); cursor: pointer; margin: 0;">
+                <label for="import-file-input" class="btn-settings-action" style="margin: 0;">
                     <i class="fas fa-upload"></i>
                     Importar Archivo
                     <input type="file" id="import-file-input" accept=".json" style="display: none;">
@@ -89,6 +89,12 @@ export async function initSettings() {
                 <div style="display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 2rem; margin-bottom: 2rem;">
                     <button id="deselect-all-btn" class="nav-btn" style="border: 1px solid var(--border-color); padding: 0.8rem 1.5rem;">Deseleccionar Todo</button>
                     <button id="save-sets-btn" class="save-btn">Sincronizar Selección</button>
+                </div>
+
+                <!-- Panel de Sets Activos (Filtro Rápido) -->
+                <div id="active-sets-panel" style="margin-bottom: 2rem; padding: 1.5rem; background: rgba(0,0,0,0.3); border-radius: 12px; border: 1px solid var(--border-color);">
+                    <h4 style="margin-top: 0; margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px;">Sets Activos Actuales</h4>
+                    <div id="active-sets-badges" style="display: flex; flex-wrap: wrap; gap: 0.8rem;"></div>
                 </div>
 
                 <div id="set-search-container" style="margin-bottom: 2rem; position: relative;">
@@ -146,6 +152,42 @@ export async function initSettings() {
         summaryLabel.innerHTML = `Sets activos: <strong>${localSelected.length}</strong>`;
         saveBtn.disabled = localSelected.length === 0;
         deselectBtn.disabled = localSelected.length === 0;
+
+        // Update Active Sets Badges
+        const badgesContainer = document.getElementById('active-sets-badges');
+        if (state.selectedSets.length === 0) {
+            badgesContainer.innerHTML = '<span style="color: var(--text-secondary); font-size: 0.9rem; font-style: italic;">No hay sets activos. Selecciona algunos abajo y sincroniza.</span>';
+        } else {
+            badgesContainer.innerHTML = state.selectedSets.map(set => `
+                <div style="display: inline-flex; align-items: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.4rem 0.8rem; gap: 0.6rem;">
+                    <i class="ss ss-${set.code.toLowerCase()}" style="font-size: 1.1rem;"></i>
+                    <span style="font-weight: bold; font-size: 0.9rem;">[ ${set.code} ]</span>
+                    <span style="font-size: 0.9rem; color: var(--text-primary);">${set.name}</span>
+                    <button class="nav-btn deactivate-set-btn" data-code="${set.code}" style="margin-left: 0.5rem; color: #e74c3c; padding: 0.2rem 0.4rem; font-size: 0.9rem; border: 1px solid rgba(231,76,60,0.3); border-radius: 4px; line-height: 1;">DESACTIVAR</button>
+                </div>
+            `).join('');
+            
+            badgesContainer.querySelectorAll('.deactivate-set-btn').forEach(btn => {
+                btn.onclick = async (e) => {
+                    const codeToDeactivate = e.target.dataset.code;
+                    // Delete from DB
+                    try { await deleteSet(codeToDeactivate); } catch(err) { console.error("Error al borrar set", err); }
+                    
+                    // Update global state
+                    const newSelectedSets = state.selectedSets.filter(s => s.code !== codeToDeactivate);
+                    const newActiveSetsData = state.activeSetsData.filter(d => d.code !== codeToDeactivate);
+                    state.setSelectedSets(newSelectedSets);
+                    state.setActiveSetsData(newActiveSetsData);
+
+                    // Update local selections and grid classes
+                    localSelected = newSelectedSets.map(s => s.code);
+                    const card = grid.querySelector(`.set-card[data-code="${codeToDeactivate}"]`);
+                    if (card) card.classList.remove('selected');
+                    
+                    updateUI();
+                };
+            });
+        }
     };
 
     deselectBtn.onclick = () => {
@@ -284,13 +326,13 @@ export async function initSettings() {
                 exportBtn.innerHTML = '<i class="fas fa-check"></i> Exportado';
                 setTimeout(() => {
                     exportBtn.disabled = false;
-                    exportBtn.innerHTML = '<i class="fas fa-download"></i> Exportar Progreso';
+                    exportBtn.innerHTML = '<i class="fas fa-save"></i> Guardar Progreso';
                 }, 2000);
             } catch (err) {
                 console.error('[Backup] Error:', err);
                 alert('Error al exportar el progreso.');
                 exportBtn.disabled = false;
-                exportBtn.innerHTML = '<i class="fas fa-download"></i> Exportar Progreso';
+                exportBtn.innerHTML = '<i class="fas fa-save"></i> Guardar Progreso';
             }
         };
 
