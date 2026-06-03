@@ -877,7 +877,9 @@ function updateStats() {
             class="mana-sym" style="width:13px;height:13px" onerror="this.outerHTML='${i===7?'7+':i}'">`;
         return `<div class="curve-bar-col">
             <div class="curve-bar-count">${c||''}</div>
-            <div class="curve-bar" style="height:${(c/maxVal)*100}%"></div>
+            <div class="curve-bar-wrapper" style="flex: 1; display: flex; align-items: flex-end; width: 100%;">
+                <div class="curve-bar" style="height:${(c/maxVal)*100}%"></div>
+            </div>
             <div class="curve-bar-label">${label}</div>
         </div>`;
     }).join('');
