@@ -876,8 +876,7 @@ function updateStats() {
         curve[index] += card.quantity; 
     });
     const maxVal  = Math.max(...curve, 1);
-    const curveEl = document.getElementById('mana-curve-bars');
-    if (curveEl) curveEl.innerHTML = curve.map((c,i) => {
+    const curveHtml = curve.map((c,i) => {
         const sym = i === 7 ? '∞' : String(i);
         const label = `<img src="https://svgs.scryfall.io/card-symbols/${i}.svg"
             class="mana-sym" style="width:13px;height:13px" onerror="this.outerHTML='${i===7?'7+':i}'">`;
@@ -890,13 +889,20 @@ function updateStats() {
         </div>`;
     }).join('');
 
+    const curveEl = document.getElementById('mana-curve-bars');
+    if (curveEl) curveEl.innerHTML = curveHtml;
+    
+    const ttCurveEl = document.getElementById('tabletop-mana-curve');
+    if (ttCurveEl) ttCurveEl.innerHTML = curveHtml;
+
     // Color distribution with Scryfall SVG icons
     const colorMap = {};
     all.forEach(e => { (e.colors||[]).forEach(c => { colorMap[c] = (colorMap[c]||0)+e.quantity; }); });
     const total = Object.values(colorMap).reduce((s,v)=>s+v, 0) || 1;
     const distEl = document.getElementById('deck-color-dist');
     const COLOR_SYMBOLS = ['W','U','B','R','G','C'];
-    if (distEl) distEl.innerHTML = COLOR_SYMBOLS
+    
+    const distHtml = COLOR_SYMBOLS
         .filter(c => colorMap[c])
         .map(c => {
             const pct = Math.round((colorMap[c]/total)*100);
@@ -906,6 +912,11 @@ function updateStats() {
                 <span class="color-dist-pct">${pct}%</span>
             </div>`;
         }).join('') || '<p style="color:var(--text-secondary);font-size:0.75rem">Sin colores</p>';
+
+    if (distEl) distEl.innerHTML = distHtml;
+    
+    const ttDistEl = document.getElementById('tabletop-color-dist');
+    if (ttDistEl) ttDistEl.innerHTML = distHtml;
 }
 
 // ── Tabletop Mode Logic ───────────────────────────────────────────────────────
