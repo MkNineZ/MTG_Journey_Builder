@@ -400,32 +400,43 @@ function renderEditView() {
                 
                 <!-- Tabletop Visual Container -->
                 <div id="deck-visual-tabletop">
-                    <div id="tabletop-header-row">
-                        <div style="display: flex; gap: 15px; align-items: center;">
-                            <span style="font-weight:bold; font-size: 1.1rem;">Vista de Mesa</span>
-                            <select id="tabletop-sort-criteria" class="deck-format-select" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">
-                                <option value="mv">Por Valor de Maná (Curva)</option>
-                                <option value="type">Por Tipo de Carta</option>
-                                <option value="color">Por Color</option>
-                            </select>
+                    <!-- LEFT COLUMN: Cards Area -->
+                    <div class="tabletop-card-area">
+                        <div id="tabletop-header-row">
+                            <div style="display: flex; gap: 15px; align-items: center;">
+                                <span style="font-weight:bold; font-size: 1.1rem;">Vista de Mesa</span>
+                                <select id="tabletop-sort-criteria" class="deck-format-select" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">
+                                    <option value="mv">Por Valor de Maná (Curva)</option>
+                                    <option value="type">Por Tipo de Carta</option>
+                                    <option value="color">Por Color</option>
+                                </select>
+                            </div>
                         </div>
-                        <div style="display: flex; gap: 20px; align-items: center; height: 100%;">
-                            <div id="tabletop-mana-curve" class="mana-curve"></div>
-                            <div id="tabletop-color-dist"></div>
+                        <div class="tabletop-scroll-area">
+                            <div>
+                                <div class="tabletop-section-title">MAINBOARD</div>
+                                <div id="tabletop-board-main" class="tabletop-board"></div>
+                            </div>
+                            <div>
+                                <div class="tabletop-section-title">TIERRAS</div>
+                                <div id="tabletop-board-lands" class="tabletop-board"></div>
+                            </div>
+                            <div>
+                                <div class="tabletop-section-title">SIDEBOARD</div>
+                                <div id="tabletop-board-side" class="tabletop-board"></div>
+                            </div>
                         </div>
                     </div>
-                    <div class="tabletop-scroll-area">
-                        <div>
-                            <div class="tabletop-section-title">MAINBOARD</div>
-                            <div id="tabletop-board-main" class="tabletop-board"></div>
+                    
+                    <!-- RIGHT COLUMN: Dedicated Stats Sidebar -->
+                    <div class="tabletop-dashboard-sidebar">
+                        <div class="tabletop-sidebar-block">
+                            <div class="tabletop-sidebar-title">Curva de Maná</div>
+                            <div id="tabletop-mana-curve" class="mana-curve"></div>
                         </div>
-                        <div>
-                            <div class="tabletop-section-title">TIERRAS</div>
-                            <div id="tabletop-board-lands" class="tabletop-board"></div>
-                        </div>
-                        <div>
-                            <div class="tabletop-section-title">SIDEBOARD</div>
-                            <div id="tabletop-board-side" class="tabletop-board"></div>
+                        <div class="tabletop-sidebar-block">
+                            <div class="tabletop-sidebar-title">Distribución de Colores</div>
+                            <div id="tabletop-color-dist" class="color-dist"></div>
                         </div>
                     </div>
                 </div>
