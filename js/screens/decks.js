@@ -17,6 +17,7 @@ let currentDeck = null;
 let currentZone = 'mainboard';
 let statsOpen   = false;
 let filteredInv = []; // current filtered inventory for the editor
+let handHistory = [];
 
 // ── Hover preview element ─────────────────────────────────────────────────────
 let hoverImg = null;
@@ -438,6 +439,13 @@ function renderEditView() {
                             <div class="tabletop-sidebar-title">Distribución de Colores</div>
                             <div id="tabletop-color-dist" class="color-dist"></div>
                         </div>
+                        <div class="tabletop-sidebar-block">
+                            <div class="tabletop-sidebar-title">Composición</div>
+                            <div id="tabletop-deck-composition"></div>
+                        </div>
+                        <div style="margin-top: auto; padding-top: 1rem;">
+                            <button id="btn-sim-starting-hand" class="btn-mythic-accent" style="width: 100%; height: 50px; text-transform: uppercase;">🎲 Simular Mano Inicial</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -446,6 +454,25 @@ function renderEditView() {
         <!-- Card preview modal -->
         <div id="deck-card-modal" class="deck-modal-overlay" style="display:none;">
             <div id="deck-card-modal-content" class="deck-modal-content"></div>
+        </div>
+        
+        <!-- Starting hand simulator modal -->
+        <div id="starting-hand-modal" class="deck-modal-overlay" style="display:none; justify-content: center; align-items: center; background: rgba(0,0,0,0.85); z-index: 100000;">
+            <div class="starting-hand-modal-content" style="display: flex; flex-direction: column; align-items: center; gap: 2rem; width: 90%; max-width: 1200px; padding: 2rem; background: #1a1a1a; border: 1px solid var(--border-color); border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.8); box-sizing: border-box;">
+                <h3 style="font-family: var(--font-heading); font-size: 1.8rem; margin: 0; color: var(--accent-secondary); text-transform: uppercase; letter-spacing: 2px;">Simulador de Mano Inicial</h3>
+                
+                <!-- Horizontal Row of Cards -->
+                <div id="starting-hand-cards" style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; width: 100%; min-height: 280px; align-items: center;"></div>
+                
+                <!-- Analytical Stats Text -->
+                <div id="starting-hand-stats" style="font-size: 1.1rem; font-weight: 600; color: var(--text-primary); text-align: center; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 0.8rem 1.5rem; border-radius: 8px; width: 100%; max-width: 600px; box-sizing: border-box;"></div>
+                
+                <!-- Action Buttons -->
+                <div style="display: flex; gap: 1.5rem; justify-content: center; width: 100%;">
+                    <button id="btn-draw-new-hand" class="btn-mythic-accent" style="height: 50px; padding: 0 2rem; font-size: 1rem;">🔄 Robar Nueva Mano</button>
+                    <button id="btn-close-hand-modal" class="btn-settings-action" style="height: 50px; padding: 0 2rem; font-size: 1rem; border-color: rgba(255,255,255,0.1); margin: 0;">✕ Cerrar</button>
+                </div>
+            </div>
         </div>`;
 
 
@@ -663,6 +690,40 @@ function renderEditView() {
     document.getElementById('deck-card-modal').onclick = e => {
         if (e.target === e.currentTarget) closeCardModal();
     };
+
+    // Starting Hand Modal events
+    const startingHandModal = document.getElementById('starting-hand-modal');
+    const drawNewHandBtn = document.getElementById('btn-draw-new-hand');
+    const closeHandModalBtn = document.getElementById('btn-close-hand-modal');
+    const simHandBtn = document.getElementById('btn-sim-starting-hand');
+
+    if (startingHandModal) {
+        startingHandModal.onclick = e => {
+            if (e.target === e.currentTarget) {
+                startingHandModal.style.display = 'none';
+                handHistory = [];
+            }
+        };
+    }
+
+    if (drawNewHandBtn) {
+        drawNewHandBtn.onclick = () => {
+            simulateStartingHand();
+        };
+    }
+
+    if (closeHandModalBtn) {
+        closeHandModalBtn.onclick = () => {
+            if (startingHandModal) startingHandModal.style.display = 'none';
+            handHistory = [];
+        };
+    }
+
+    if (simHandBtn) {
+        simHandBtn.onclick = () => {
+            openStartingHandModal();
+        };
+    }
 
     refreshEditor();
 }
@@ -928,6 +989,77 @@ function updateStats() {
     
     const ttDistEl = document.getElementById('tabletop-color-dist');
     if (ttDistEl) ttDistEl.innerHTML = distHtml;
+
+    // ── Composition Stats calculation ──
+    const compEl = document.getElementById('tabletop-deck-composition');
+    if (compEl) {
+        const typeCounts = {
+            'Criatura': 0,
+            'Instantáneo': 0,
+            'Conjuro': 0,
+            'Encantamiento': 0,
+            'Artefacto': 0,
+            'Planeswalker': 0,
+            'Tierra': 0,
+            'Otros': 0
+        };
+        let cmcSum = 0;
+        let nonLandCount = 0;
+        let mainCount = 0;
+        
+        all.forEach(entry => {
+            const dbCard = typeof entry.uuid !== 'undefined' ? getFullCardData(entry.uuid) : null;
+            const cardType = (dbCard ? dbCard.type : entry.type) || '';
+            const isLand = isBasicLand(entry) || cardType.toLowerCase().includes('land');
+            
+            const typeGroup = getTypeGroup(cardType);
+            typeCounts[typeGroup] = (typeCounts[typeGroup] || 0) + entry.quantity;
+            
+            if (!isLand) {
+                const mv = getManaValue(entry);
+                cmcSum += mv * entry.quantity;
+                nonLandCount += entry.quantity;
+            }
+            
+            mainCount += entry.quantity;
+        });
+        
+        const sideCount = currentDeck.sideboard ? currentDeck.sideboard.reduce((s, e) => s + e.quantity, 0) : 0;
+        const avgMv = nonLandCount > 0 ? (cmcSum / nonLandCount).toFixed(1) : '0.0';
+        
+        const typeOrder = ['Criatura', 'Instantáneo', 'Conjuro', 'Encantamiento', 'Artefacto', 'Planeswalker', 'Tierra', 'Otros'];
+        const typesHtml = typeOrder
+            .filter(t => typeCounts[t] > 0)
+            .map(t => `<div style="display: flex; justify-content: space-between;">
+                <span>${t === 'Criatura' ? 'Criaturas' : t === 'Instantáneo' ? 'Instantáneos' : t === 'Conjuro' ? 'Conjuros' : t === 'Encantamiento' ? 'Encantamientos' : t === 'Artefacto' ? 'Artefactos' : t === 'Planeswalker' ? 'Planeswalkers' : t === 'Tierra' ? 'Tierras' : t}:</span>
+                <strong style="color: var(--text-primary);">${typeCounts[t]}</strong>
+            </div>`)
+            .join('');
+            
+        compEl.innerHTML = `
+            <div class="composition-wrapper" style="display: flex; flex-direction: column; gap: 0.8rem; font-size: 0.9rem; color: var(--text-secondary);">
+                <div class="comp-types" style="display: flex; flex-direction: column; gap: 0.4rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.6rem;">
+                    ${typesHtml || '<div style="font-style:italic; opacity:0.6;">Sin cartas</div>'}
+                </div>
+                
+                <div class="comp-avg-mv" style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.6rem;">
+                    <span>MV Promedio (sin tierras):</span>
+                    <strong style="color: var(--text-primary);">${avgMv}</strong>
+                </div>
+                
+                <div class="comp-legality" style="display: flex; flex-direction: column; gap: 0.4rem;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Mainboard:</span>
+                        <strong style="color: ${mainCount > 60 ? '#ff4444' : 'var(--text-primary)'};">${mainCount} / 60</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Sideboard:</span>
+                        <strong style="color: var(--text-primary);">${sideCount} / 15</strong>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
 }
 
 // ── Tabletop Mode Logic ───────────────────────────────────────────────────────
@@ -1068,4 +1200,103 @@ function refreshEditor() {
 // ── Init ──────────────────────────────────────────────────────────────────────
 export function initDecks() {
     switchView('list');
+}
+
+// ── Starting Hand Simulator ──────────────────────────────────────────────────
+function openStartingHandModal() {
+    const modal = document.getElementById('starting-hand-modal');
+    if (!modal) return;
+    
+    // Clear history when opening
+    handHistory = [];
+    
+    modal.style.display = 'flex';
+    simulateStartingHand();
+}
+
+function simulateStartingHand() {
+    if (!currentDeck) return;
+    
+    const mainCards = [...currentDeck.mainboard];
+    if (currentDeck.format === 'commander' && currentDeck.commander) {
+        mainCards.push(...currentDeck.commander);
+    }
+    
+    const rawCards = [];
+    mainCards.forEach(entry => {
+        for (let i = 0; i < entry.quantity; i++) {
+            rawCards.push(entry);
+        }
+    });
+
+    if (rawCards.length < 7) {
+        showToast("Necesitas al menos 7 cartas en el mazo principal para simular una mano.", "warn");
+        const modal = document.getElementById('starting-hand-modal');
+        if (modal) modal.style.display = 'none';
+        handHistory = [];
+        return;
+    }
+
+    // Shuffle using Fisher-Yates
+    for (let i = rawCards.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [rawCards[i], rawCards[j]] = [rawCards[j], rawCards[i]];
+    }
+
+    // Draw 7 cards
+    const hand = rawCards.slice(0, 7);
+
+    // Calculate Lands and average MV for this hand
+    let landCount = 0;
+    let mvSum = 0;
+    let nonLandCount = 0;
+    
+    hand.forEach(entry => {
+        const dbCard = typeof entry.uuid !== 'undefined' ? getFullCardData(entry.uuid) : null;
+        const cardType = (dbCard ? dbCard.type : entry.type) || '';
+        const isLand = isBasicLand(entry) || cardType.toLowerCase().includes('land');
+        
+        if (isLand) {
+            landCount++;
+        } else {
+            const mv = getManaValue(entry);
+            mvSum += mv;
+            nonLandCount++;
+        }
+    });
+
+    // Protect against division by zero (7-land draw) returning NaN
+    const handAvgMv = nonLandCount > 0 ? (mvSum / nonLandCount).toFixed(1) : "0.0";
+
+    // Update history
+    handHistory.push({ lands: landCount, avgMv: handAvgMv });
+    if (handHistory.length > 5) {
+        handHistory.shift(); // Keep only last 5 draws
+    }
+
+    // Render hand
+    const cardsContainer = document.getElementById('starting-hand-cards');
+    const statsContainer = document.getElementById('starting-hand-stats');
+
+    if (cardsContainer) {
+        const lang = state.language || 'en';
+        cardsContainer.innerHTML = hand.map(entry => {
+            const imgUrl = getCardImageUrl(entry, lang);
+            const fallbackUrl = getCardImageUrlEn(entry);
+            
+            return `<div class="starting-hand-card-item" style="width: 140px; height: 195px; border-radius: 8px; overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.5); transition: transform 0.2s; cursor: pointer;" 
+                         onmouseover="this.style.transform='scale(1.1) translateY(-10px)'" 
+                         onmouseout="this.style.transform='scale(1)'">
+                <img src="${imgUrl}" alt="${entry.name}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.src='${fallbackUrl}';">
+            </div>`;
+        }).join('');
+    }
+
+    if (statsContainer) {
+        const totalHands = handHistory.length;
+        const avgLands = (handHistory.reduce((s, h) => s + h.lands, 0) / totalHands).toFixed(1);
+        const avgMvOverHistory = (handHistory.reduce((s, h) => s + parseFloat(h.avgMv), 0) / totalHands).toFixed(1);
+        
+        statsContainer.innerHTML = `📊 Media (últimos ${totalHands} robos): <strong style="color:var(--accent-secondary);">${avgLands}</strong> Tierras | MV Medio: <strong style="color:var(--accent-secondary);">${avgMvOverHistory}</strong>`;
+    }
 }
