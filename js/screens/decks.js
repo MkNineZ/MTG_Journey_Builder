@@ -96,8 +96,8 @@ function hideGhostPortal() {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-const isBasicLand = c   => BASIC_LANDS.some(b => c.name?.startsWith(b));
-const ownedCount  = uuid => state.inventory.find(i => i.uuid === uuid)?.count ?? 0;
+const isBasicLand = c   => BASIC_LANDS.some(b => c.name?.startsWith(b) || c.name?.includes('Llanura') || c.name?.includes('Isla') || c.name?.includes('Pantano') || c.name?.includes('Montaña') || c.name?.includes('Bosque'));
+const ownedCount  = entry => isBasicLand(entry) ? 999 : (state.inventory.find(i => i.uuid === entry.uuid)?.count ?? 0);
 const totalInDeck = name => !currentDeck ? 0 :
     [...currentDeck.mainboard, ...currentDeck.sideboard, ...(currentDeck.commander || [])]
         .filter(e => e.name === name).reduce((s, e) => s + e.quantity, 0);
@@ -494,7 +494,7 @@ function renderEditView() {
 
     // Advanced search component
     renderSearchUI(document.getElementById('de-search-container'), state.inventory, filtered => {
-        filteredInv = filtered;
+        filteredInv = filtered.filter(c => !isBasicLand(c));
         renderInventoryGrid();
     });
 
@@ -754,7 +754,7 @@ function renderZone(zone) {
                 }
             }
 
-            const over       = entry.quantity > ownedCount(entry.uuid);
+            const over       = entry.quantity > ownedCount(entry);
             
             const formatMax  = currentDeck.format === 'commander' ? 1 : MAX_COPIES;
             const atLimit    = !isBasicLand(entry) && totalInDeck(entry.name) >= formatMax;
@@ -762,8 +762,8 @@ function renderZone(zone) {
             // Si es commander y tiene más de 1 copia (y no es tierra básica), pintamos de rojo la cantidad
             const isIllegalQuantity = currentDeck.format === 'commander' && !isBasicLand(entry) && entry.quantity > 1;
             
-            const noStock    = ownedCount(entry.uuid) <= 0;
-            const outOfStock = totalInDeck(entry.name) >= ownedCount(entry.uuid);
+            const noStock    = ownedCount(entry) <= 0;
+            const outOfStock = totalInDeck(entry.name) >= ownedCount(entry);
             const plusDisabled = (atLimit || noStock || outOfStock) ? 'disabled style="opacity:0.35;cursor:not-allowed"' : '';
             const isSetInactive = state.selectedSets && !state.selectedSets.some(s => s.code === entry.setCode);
             const mv         = getManaValue(entry);

@@ -169,11 +169,14 @@ export function initCollection() {
             return;
         }
 
+        const BASIC_LANDS = ['Plains', 'Island', 'Swamp', 'Mountain', 'Forest', 'Wastes'];
+        const isBasicLand = c => BASIC_LANDS.some(b => c.name?.startsWith(b) || c.name?.includes('Llanura') || c.name?.includes('Isla') || c.name?.includes('Pantano') || c.name?.includes('Montaña') || c.name?.includes('Bosque'));
+
         const onFilter = (filtered) => {
-            currentFilteredCards = filtered;
-            const totalCards = filtered.reduce((acc, c) => acc + c.count, 0);
-            infoContainer.innerHTML = `Tienes <strong>${totalCards}</strong> cartas en total (<strong>${filtered.length}</strong> modelos únicos).`;
-            const newHTML = filtered
+            currentFilteredCards = filtered.filter(c => !isBasicLand(c));
+            const totalCards = currentFilteredCards.reduce((acc, c) => acc + c.count, 0);
+            infoContainer.innerHTML = `Tienes <strong>${totalCards}</strong> cartas en total (<strong>${currentFilteredCards.length}</strong> modelos únicos).`;
+            const newHTML = currentFilteredCards
                 .sort((a, b) => b.count - a.count)
                 .map(c => renderCard(c))
                 .join('');
