@@ -722,7 +722,7 @@ function renderInventoryGrid() {
                 <img src="${imgUrl}" alt="${card.name}" loading="lazy" class="deck-inv-img"
                      onload="this.style.opacity=1"
                      onerror="this.onerror=null;this.src='${fallbackUrl}'">
-                <div class="deck-inv-badge">x${card.count}</div>
+                <div class="card-quantity-badge">x${card.count}</div>
             </div>`;
     }).join('');
 }
@@ -963,19 +963,38 @@ function renderTabletop() {
             }
         });
         
+        const processedGroups = [];
         const sortedKeys = Object.keys(groups).sort((a,b) => groups[a].order - groups[b].order);
         
-        container.innerHTML = sortedKeys.map(k => {
+        sortedKeys.forEach(k => {
             const g = groups[k];
+            const MAX_CARDS = 10;
+            if (g.items.length > MAX_CARDS) {
+                for (let i = 0; i < g.items.length; i += MAX_CARDS) {
+                    const chunk = g.items.slice(i, i + MAX_CARDS);
+                    processedGroups.push({
+                        label: i === 0 ? g.label : `${g.label} (cont.)`,
+                        items: chunk,
+                        totalCount: g.items.length
+                    });
+                }
+            } else {
+                processedGroups.push({ label: g.label, items: g.items, totalCount: g.items.length });
+            }
+        });
+        
+        container.innerHTML = processedGroups.map(g => {
             const cardsHtml = g.items.map(entry => {
                 const lang = state.language || 'en';
                 const imgUrl = getCardImageUrl(entry, lang);
                 const fallbackUrl = getCardImageUrlEn(entry);
-                return `<div class="tabletop-card" style="background-image: url('${imgUrl}'), url('${fallbackUrl}')" title="${entry.name}"></div>`;
+                return `<div class="tabletop-card-container" title="${entry.name}">
+                            <div class="tabletop-card" style="background-image: url('${imgUrl}'), url('${fallbackUrl}')"></div>
+                        </div>`;
             }).join('');
             
             return `<div class="tabletop-column">
-                <div class="tabletop-column-header">${g.label} <span style="opacity: 0.6; font-size: 0.7rem;">(${g.items.length})</span></div>
+                <div class="tabletop-column-header">${g.label} <span style="opacity: 0.6; font-size: 0.7rem;">(${g.totalCount})</span></div>
                 ${cardsHtml}
             </div>`;
         }).join('');

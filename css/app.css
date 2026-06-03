@@ -2018,11 +2018,12 @@ strong {
     font-size: 1.1rem;
     font-weight: bold;
     transform: translateY(-50%);
-    z-index: 999;
+    z-index: 9999;
     transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
     box-shadow: -2px 0 10px rgba(0,0,0,0.5);
 }
 .app-columns-layout.is-expanded .tabletop-toggle-btn {
+    left: 20px;
     transform: translateY(-50%) rotate(180deg);
 }
 .tabletop-toggle-btn:hover {
@@ -2101,23 +2102,31 @@ strong {
     padding-bottom: 0.25rem;
 }
 
-.tabletop-card {
+.tabletop-card-container {
     width: 180px;
     height: 250px;
+    position: relative;
+    margin-top: 0;
+}
+.tabletop-card-container ~ .tabletop-card-container {
+    margin-top: -200px;
+}
+.tabletop-card-container:hover {
+    z-index: 100 !important;
+}
+
+.tabletop-card {
+    width: 100%;
+    height: 100%;
     border-radius: 10px;
     background-size: cover;
     background-position: center;
     box-shadow: 0 4px 6px rgba(0,0,0,0.5);
-    position: relative;
     transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
-    margin-top: 0;
+    pointer-events: none;
 }
-.tabletop-card ~ .tabletop-card {
-    margin-top: -200px;
-}
-.tabletop-card:hover {
+.tabletop-card-container:hover .tabletop-card {
     transform: translateY(-20px) scale(1.05);
-    z-index: 100 !important;
     box-shadow: 0 10px 20px rgba(0,0,0,0.8);
 }
 .tabletop-card-count {
