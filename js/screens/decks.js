@@ -410,12 +410,8 @@ function renderEditView() {
                             </select>
                         </div>
                         <div class="tabletop-header-stats">
-                            <div class="de-stats-block" style="background: none; border: none; padding: 0;">
-                                <div id="tabletop-mana-curve" class="mana-curve" style="height: 60px;"></div>
-                            </div>
-                            <div class="de-stats-block" style="background: none; border: none; padding: 0;">
-                                <div id="tabletop-color-dist" class="color-dist" style="display: flex; gap: 0.5rem; align-items: center; justify-content: flex-end;"></div>
-                            </div>
+                            <div id="tabletop-mana-curve" class="mana-curve" style="height: 60px; margin: 0; padding: 0; min-height: 60px;"></div>
+                            <div id="tabletop-color-dist" style="display: flex; flex-direction: row; gap: 0.5rem; align-items: center; justify-content: flex-end; margin: 0; padding: 0; min-height: 60px;"></div>
                         </div>
                     </div>
                     <div class="tabletop-scroll-area">
@@ -915,6 +911,8 @@ function updateStats() {
 // ── Tabletop Mode Logic ───────────────────────────────────────────────────────
 function renderTabletop() {
     if (!currentDeck) return;
+    
+    updateStats(); // Force re-render of the stats directly
     
     const criteria = document.getElementById('tabletop-sort-criteria')?.value || 'mv';
     const mainCardsRaw = [...currentDeck.mainboard, ...(currentDeck.commander || [])];
