@@ -2024,7 +2024,7 @@ strong {
 }
 .is-expanded .tabletop-toggle-btn {
     left: 0;
-    transform: translateY(-50%) rotate(180deg);
+    transform: translateY(-50%);
 }
 .tabletop-toggle-btn:hover {
     background: var(--accent-color);
@@ -2122,10 +2122,12 @@ strong {
     background-size: cover;
     background-position: center;
     box-shadow: 0 4px 6px rgba(0,0,0,0.5);
-    transition: filter 0.2s;
+    transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+    pointer-events: none;
 }
 .tabletop-card-container:hover .tabletop-card {
-    filter: brightness(1.2);
+    transform: translateY(-20px) scale(1.05);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.8);
 }
 .tabletop-card-count {
     position: absolute;

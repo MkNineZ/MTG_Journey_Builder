@@ -485,10 +485,12 @@ function renderEditView() {
     const sortCriteria = document.getElementById('tabletop-sort-criteria');
     
     if (toggleBtn && layoutContainer) {
+        // Inicializar texto
+        toggleBtn.innerHTML = layoutContainer.classList.contains('is-expanded') ? '&rarr;' : '&larr;';
         toggleBtn.onclick = () => {
             layoutContainer.classList.toggle('is-expanded');
             const isExp = layoutContainer.classList.contains('is-expanded');
-            toggleBtn.textContent = isExp ? '→' : '←';
+            toggleBtn.innerHTML = isExp ? '&rarr;' : '&larr;';
             if (isExp) renderTabletop();
         };
     }
@@ -638,26 +640,7 @@ function renderEditView() {
         }
     });
 
-    // Hover preview on tabletop mode
-    const tabletopArea = document.getElementById('de-body');
-    if (tabletopArea) {
-        tabletopArea.addEventListener('mouseover', e => {
-            const container = e.target.closest('.tabletop-card-container[data-uuid]');
-            if (!container) return;
-            const uuid = container.dataset.uuid;
-            const entry = [...(currentDeck?.mainboard||[]), ...(currentDeck?.sideboard||[]), ...(currentDeck?.commander||[])]
-                .find(en => en.uuid === uuid);
-            if (entry) showHoverPreview(entry, e);
-        });
-        tabletopArea.addEventListener('mousemove', e => {
-            if (e.target.closest('.tabletop-card-container[data-uuid]')) positionHoverPreview(e);
-        });
-        tabletopArea.addEventListener('mouseout', e => {
-            if (!e.relatedTarget || !e.relatedTarget.closest?.('.tabletop-card-container')) {
-                hideHoverPreview();
-            }
-        });
-    }
+
 
     // Modal close
     document.getElementById('deck-card-modal').onclick = e => {
