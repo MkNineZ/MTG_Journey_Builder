@@ -169,6 +169,62 @@ export function initBoosters() {
 
     render(state);
     state.subscribe(render);
+
+    // Ghost Portal Zoom
+    container.addEventListener('mouseover', e => {
+        const cardEl = e.target.closest('.booster-card-item');
+        if (cardEl) showGhostPortal(cardEl);
+    });
+    container.addEventListener('mouseout', e => {
+        if (!e.relatedTarget || !e.relatedTarget.closest?.('.booster-card-item')) {
+            hideGhostPortal();
+        }
+    });
+}
+
+// ── Ghost Portal Zoom (Escape Overflow) ───────────────────────────────────────
+let ghostPortal = null;
+function getGhostPortal() {
+    if (!ghostPortal) {
+        ghostPortal = document.createElement('img');
+        ghostPortal.className = 'ghost-zoom-portal';
+        document.body.appendChild(ghostPortal);
+    }
+    return ghostPortal;
+}
+
+function showGhostPortal(cardEl) {
+    const portal = getGhostPortal();
+    const imgEl  = cardEl.querySelector('img');
+    if (!imgEl) return;
+
+    const rect = cardEl.getBoundingClientRect();
+    const zoom = getComputedStyle(document.documentElement).getPropertyValue('--card-hover-zoom') || '1.4';
+
+    // Boundary check for left edge
+    const z = parseFloat(zoom) || 1.4;
+    const offset = (rect.width * (z - 1)) / 2;
+    let finalLeft = rect.left;
+    if (finalLeft - offset < 20) finalLeft = 20 + offset;
+
+    portal.src = imgEl.src;
+    portal.style.width  = rect.width + 'px';
+    portal.style.height = rect.height + 'px';
+    portal.style.top    = rect.top + 'px';
+    portal.style.left   = finalLeft + 'px';
+    
+    portal.style.display = 'block';
+    requestAnimationFrame(() => {
+        portal.classList.add('visible');
+        portal.style.transform = `scale(${zoom})`;
+    });
+}
+
+function hideGhostPortal() {
+    if (!ghostPortal) return;
+    ghostPortal.classList.remove('visible');
+    ghostPortal.style.transform = 'scale(1)';
+    setTimeout(() => { if (!ghostPortal.classList.contains('visible')) ghostPortal.style.display = 'none'; }, 200);
 }
 
 // ─── Exported actions (called from app.js global delegation) ──────────────────
