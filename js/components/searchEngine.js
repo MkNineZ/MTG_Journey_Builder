@@ -21,15 +21,45 @@ export function filterCards(cards, criteria) {
             continue;
         }
 
-        if (criteria.name && !dbCard.name?.toLowerCase().includes(criteria.name.toLowerCase())) continue;
-        if (criteria.oracleText && !dbCard.text?.toLowerCase().includes(criteria.oracleText.toLowerCase())) continue;
+        const isSpanish = state.language === 'es';
+        const fData = isSpanish && dbCard.foreignData ? dbCard.foreignData.find(f => f.language === 'Spanish') : null;
+
+        if (criteria.name) {
+            const searchName = criteria.name.toLowerCase();
+            const engMatch = dbCard.name?.toLowerCase().includes(searchName);
+            const esMatch = fData?.name?.toLowerCase().includes(searchName);
+            if (!engMatch && !esMatch) continue;
+        }
+        
+        if (criteria.oracleText) {
+            const searchOracle = criteria.oracleText.toLowerCase();
+            const engMatch = dbCard.text?.toLowerCase().includes(searchOracle);
+            const esMatch = fData?.text?.toLowerCase().includes(searchOracle);
+            if (!engMatch && !esMatch) continue;
+        }
+        
         if (criteria.keywords) {
             const searchKeyword = criteria.keywords.toLowerCase();
-            const hasKeyword = dbCard.keywords && dbCard.keywords.some(kw => kw.toLowerCase().includes(searchKeyword));
-            const inText = dbCard.text && dbCard.text.toLowerCase().includes(searchKeyword);
-            if (!hasKeyword && !inText) continue;
+            const hasKeywordEng = dbCard.keywords && dbCard.keywords.some(kw => kw.toLowerCase().includes(searchKeyword));
+            const inTextEng = dbCard.text?.toLowerCase().includes(searchKeyword);
+            const inTextEs = fData?.text?.toLowerCase().includes(searchKeyword);
+            if (!hasKeywordEng && !inTextEng && !inTextEs) continue;
         }
-        if (criteria.type && criteria.type !== 'all' && !dbCard.type?.toLowerCase().includes(criteria.type.toLowerCase())) continue;
+        
+        if (criteria.type && criteria.type !== 'all') {
+            const searchType = criteria.type.toLowerCase();
+            const engMatch = dbCard.type?.toLowerCase().includes(searchType);
+            const esMatch = fData?.type?.toLowerCase().includes(searchType);
+            if (!engMatch && !esMatch) continue;
+        }
+
+        if (criteria.subtype) {
+            const searchSub = criteria.subtype.toLowerCase();
+            const engMatch = dbCard.type?.toLowerCase().includes(searchSub);
+            const esMatch = fData?.type?.toLowerCase().includes(searchSub);
+            if (!engMatch && !esMatch) continue;
+        }
+
         if (criteria.set && criteria.set !== 'all' && dbCard.setCode !== criteria.set) continue;
         if (criteria.rarity && criteria.rarity !== 'all' && dbCard.rarity?.toLowerCase() !== criteria.rarity.toLowerCase()) continue;
         if (criteria.manaValue !== null && criteria.manaValue !== '') {
@@ -123,6 +153,11 @@ export function renderSearchUI(containerElement, allCards, onFilterCallback) {
             </div>
 
             <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Subtipo (Ej: Zombie, Goblin)</label>
+                <input type="text" class="search-subtype" placeholder="Ej. Zombie, Zombi..." style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.5); color: #fff;">
+            </div>
+
+            <div>
                 <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Rareza</label>
                 <select class="search-rarity" style="padding: 0.5rem; border-radius: 6px; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); color: #fff; width: 100%;">
                     <option value="all">Cualquiera</option>
@@ -155,12 +190,13 @@ export function renderSearchUI(containerElement, allCards, onFilterCallback) {
         </div>
     `;
 
-    const uiState = { name: '', oracleText: '', keywords: '', type: 'all', rarity: 'all', set: 'all', manaValue: '', colors: [], colorMode: 'includes' };
+    const uiState = { name: '', oracleText: '', keywords: '', type: 'all', subtype: '', rarity: 'all', set: 'all', manaValue: '', colors: [], colorMode: 'includes' };
 
     const elName = containerElement.querySelector('.search-name');
     const elOracle = containerElement.querySelector('.search-oracle');
     const elKeywords = containerElement.querySelector('.search-keywords');
     const elType = containerElement.querySelector('.search-type');
+    const elSubtype = containerElement.querySelector('.search-subtype');
     const elRarity = containerElement.querySelector('.search-rarity');
     const elSet = containerElement.querySelector('.search-set');
     const elMv = containerElement.querySelector('.search-mv');
@@ -172,8 +208,8 @@ export function renderSearchUI(containerElement, allCards, onFilterCallback) {
     const debouncedFilter = debounce(executeFilter, 300);
 
     btnReset.addEventListener('click', () => {
-        uiState.name = ''; uiState.oracleText = ''; uiState.keywords = ''; uiState.type = 'all'; uiState.rarity = 'all'; uiState.set = 'all'; uiState.manaValue = ''; uiState.colors = []; uiState.colorMode = 'includes';
-        elName.value = ''; elOracle.value = ''; elKeywords.value = ''; elType.value = 'all'; elRarity.value = 'all'; elSet.value = 'all'; elMv.value = ''; elColorMode.value = 'includes';
+        uiState.name = ''; uiState.oracleText = ''; uiState.keywords = ''; uiState.type = 'all'; uiState.subtype = ''; uiState.rarity = 'all'; uiState.set = 'all'; uiState.manaValue = ''; uiState.colors = []; uiState.colorMode = 'includes';
+        elName.value = ''; elOracle.value = ''; elKeywords.value = ''; elType.value = 'all'; elSubtype.value = ''; elRarity.value = 'all'; elSet.value = 'all'; elMv.value = ''; elColorMode.value = 'includes';
         manaBtns.forEach(btn => { btn.style.borderColor = 'transparent'; btn.style.boxShadow = 'none'; });
         executeFilter();
     });
@@ -182,6 +218,7 @@ export function renderSearchUI(containerElement, allCards, onFilterCallback) {
     elOracle.addEventListener('input', (e) => { uiState.oracleText = e.target.value; debouncedFilter(); });
     elKeywords.addEventListener('input', (e) => { uiState.keywords = e.target.value; debouncedFilter(); });
     elType.addEventListener('change', (e) => { uiState.type = e.target.value; executeFilter(); });
+    elSubtype.addEventListener('input', (e) => { uiState.subtype = e.target.value; debouncedFilter(); });
     elRarity.addEventListener('change', (e) => { uiState.rarity = e.target.value; executeFilter(); });
     elSet.addEventListener('change', (e) => { uiState.set = e.target.value; executeFilter(); });
     elMv.addEventListener('input', (e) => { uiState.manaValue = e.target.value; debouncedFilter(); });
