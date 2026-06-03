@@ -37,10 +37,10 @@ function showHoverPreview(card, evt) {
 }
 function positionHoverPreview(evt) {
     const img = getHoverImg();
-    const x = evt.clientX + 16;
+    const x = evt.clientX + 40;
     const y = evt.clientY - 60;
     
-    let calcLeft = (x + 210 > window.innerWidth ? x - 230 : x);
+    let calcLeft = (x + 210 > window.innerWidth ? evt.clientX - 260 : x);
     if (calcLeft < 20) calcLeft = 20;
 
     img.style.left = calcLeft + 'px';
@@ -638,7 +638,29 @@ function renderEditView() {
         }
     });
 
-    // Modal close
+    // Hover preview on tabletop mode
+    const tabletopArea = document.getElementById('de-body');
+    if (tabletopArea) {
+        tabletopArea.addEventListener('mouseover', e => {
+            const container = e.target.closest('.tabletop-card-container[data-uuid]');
+            if (!container) return;
+            const uuid = container.dataset.uuid;
+            const entry = [...(currentDeck?.mainboard||[]), ...(currentDeck?.sideboard||[]), ...(currentDeck?.commander||[])]
+                .find(en => en.uuid === uuid);
+            if (entry) showHoverPreview(entry, e);
+        });
+        tabletopArea.addEventListener('mousemove', e => {
+            if (e.target.closest('.tabletop-card-container[data-uuid]')) positionHoverPreview(e);
+        });
+        tabletopArea.addEventListener('mouseout', e => {
+            if (!e.relatedTarget || !e.relatedTarget.closest?.('.tabletop-card-container')) {
+                hideHoverPreview();
+            }
+        });
+    }
+}
+
+// Modal close
     document.getElementById('deck-card-modal').onclick = e => {
         if (e.target === e.currentTarget) closeCardModal();
     };
@@ -988,7 +1010,7 @@ function renderTabletop() {
                 const lang = state.language || 'en';
                 const imgUrl = getCardImageUrl(entry, lang);
                 const fallbackUrl = getCardImageUrlEn(entry);
-                return `<div class="tabletop-card-container" title="${entry.name}">
+                return `<div class="tabletop-card-container" data-uuid="${entry.uuid}" title="${entry.name}">
                             <div class="tabletop-card" style="background-image: url('${imgUrl}'), url('${fallbackUrl}')"></div>
                         </div>`;
             }).join('');

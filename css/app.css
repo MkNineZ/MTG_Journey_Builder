@@ -2018,12 +2018,12 @@ strong {
     font-size: 1.1rem;
     font-weight: bold;
     transform: translateY(-50%);
-    z-index: 9999;
+    z-index: 99999;
     transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
     box-shadow: -2px 0 10px rgba(0,0,0,0.5);
 }
-.app-columns-layout.is-expanded .tabletop-toggle-btn {
-    left: 20px;
+.is-expanded .tabletop-toggle-btn {
+    left: 0;
     transform: translateY(-50%) rotate(180deg);
 }
 .tabletop-toggle-btn:hover {
@@ -2122,12 +2122,10 @@ strong {
     background-size: cover;
     background-position: center;
     box-shadow: 0 4px 6px rgba(0,0,0,0.5);
-    transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
-    pointer-events: none;
+    transition: filter 0.2s;
 }
 .tabletop-card-container:hover .tabletop-card {
-    transform: translateY(-20px) scale(1.05);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.8);
+    filter: brightness(1.2);
 }
 .tabletop-card-count {
     position: absolute;
