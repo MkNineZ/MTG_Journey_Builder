@@ -264,11 +264,7 @@ async function renderListView() {
     const colorPips = colors => (colors||[]).map(c =>
         `<span class="mana-pip mana-${c.toLowerCase()}">${c}</span>`).join('');
 
-    const cards = decks.length === 0
-        ? `<div class="deck-list-empty"><div style="font-size:3rem;margin-bottom:1rem">🃏</div>
-               <p>No tienes mazos guardados todavía.</p>
-               <p style="color:var(--text-secondary);font-size:0.85rem;margin-top:0.5rem">Crea uno con el botón de arriba.</p></div>`
-        : decks.map(d => {
+    const decksHtml = decks.map(d => {
             const total = d.stats?.totalCards ?? 0;
             const side  = d.stats?.sideboardCards ?? 0;
             const setBadges = [...new Set((d.mainboard || []).map(c => c.setCode))].filter(c => c).map(c => `<span class="set-badge">[${c.toUpperCase()}]</span>`).join('');
@@ -288,12 +284,20 @@ async function renderListView() {
             </div>`;
           }).join('');
 
+    const ghostCardHtml = `
+        <div id="new-deck-btn" class="deck-card deck-create-ghost-card">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; opacity: 0.7; transition: opacity 0.2s;">
+                <i class="fas fa-plus" style="font-size: 2.5rem; margin-bottom: 1rem;"></i>
+                <div style="font-weight: bold; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 1px;">Crear Nuevo Mazo</div>
+            </div>
+        </div>
+    `;
+
     container.innerHTML = `
         <div class="deck-list-header">
             <h2 class="deck-list-title">Mis Mazos</h2>
-            <button id="new-deck-btn" class="save-btn">✨ Nuevo Mazo</button>
         </div>
-        <div class="deck-cards-grid">${cards}</div>`;
+        <div class="deck-cards-grid">${decksHtml}${ghostCardHtml}</div>`;
 
     container.onclick = async e => {
         const editBtn   = e.target.closest('.deck-action-edit');

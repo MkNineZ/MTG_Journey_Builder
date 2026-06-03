@@ -910,6 +910,27 @@ strong {
     border-color: rgba(133,109,64,0.4);
 }
 
+.deck-create-ghost-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 2px dashed #444;
+    cursor: pointer;
+    box-shadow: none;
+    color: var(--text-secondary);
+}
+.deck-create-ghost-card:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--accent-color);
+    box-shadow: 0 0 15px rgba(255,255,255,0.05);
+    color: var(--accent-color);
+    transform: translateY(-3px);
+}
+.deck-create-ghost-card i {
+    transition: color 0.2s;
+}
+.deck-create-ghost-card:hover i {
+    color: var(--accent-color);
+}
+
 .deck-card-body {
     padding: 1.25rem 1.25rem 0.75rem;
     border-bottom: 1px solid var(--border-color);
