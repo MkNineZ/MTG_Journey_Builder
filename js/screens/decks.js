@@ -401,12 +401,22 @@ function renderEditView() {
                 <!-- Tabletop Visual Container -->
                 <div id="deck-visual-tabletop">
                     <div class="tabletop-header">
-                        <span style="font-weight:bold; font-size: 1.1rem;">Vista de Mesa</span>
-                        <select id="tabletop-sort-criteria" class="deck-format-select" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">
-                            <option value="mv">Por Valor de Maná (Curva)</option>
-                            <option value="type">Por Tipo de Carta</option>
-                            <option value="color">Por Color</option>
-                        </select>
+                        <div class="tabletop-header-left">
+                            <span style="font-weight:bold; font-size: 1.1rem;">Vista de Mesa</span>
+                            <select id="tabletop-sort-criteria" class="deck-format-select" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">
+                                <option value="mv">Por Valor de Maná (Curva)</option>
+                                <option value="type">Por Tipo de Carta</option>
+                                <option value="color">Por Color</option>
+                            </select>
+                        </div>
+                        <div class="tabletop-header-stats">
+                            <div class="de-stats-block" style="background: none; border: none; padding: 0;">
+                                <div id="tabletop-mana-curve" class="mana-curve" style="height: 60px;"></div>
+                            </div>
+                            <div class="de-stats-block" style="background: none; border: none; padding: 0;">
+                                <div id="tabletop-color-dist" class="color-dist" style="display: flex; gap: 0.5rem; align-items: center; justify-content: flex-end;"></div>
+                            </div>
+                        </div>
                     </div>
                     <div class="tabletop-scroll-area">
                         <div>
@@ -937,7 +947,17 @@ function renderTabletop() {
             let groupKey = 'Otro';
             let sortOrder = 0;
             
-            if (criteria === 'mv') {
+            if (containerId === 'tabletop-board-lands') {
+                const typeLine = (dbCard ? dbCard.type : entry.type) || '';
+                const isBasic = typeLine.toLowerCase().includes('basic') || typeLine.toLowerCase().includes('básica');
+                if (isBasic) {
+                    groupKey = 'Tierras Básicas';
+                    sortOrder = 1;
+                } else {
+                    groupKey = 'Tierras Especiales';
+                    sortOrder = 2;
+                }
+            } else if (criteria === 'mv') {
                 const cmc = dbCard && dbCard.convertedManaCost !== undefined ? dbCard.convertedManaCost : 0;
                 const index = Math.min(parseInt(cmc) || 0, 7);
                 groupKey = index === 7 ? '7+' : String(index);
