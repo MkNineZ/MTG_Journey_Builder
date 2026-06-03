@@ -2067,13 +2067,18 @@ strong {
     align-items: center;
 }
 #tabletop-color-dist .color-dist-bar-wrap {
-    display: none;
+    display: block;
+    width: 40px;
+    flex: none;
 }
 #tabletop-color-dist .color-dist-row {
     background: rgba(255,255,255,0.05);
-    padding: 0.2rem 0.5rem;
+    padding: 0.3rem 0.6rem;
     border-radius: 12px;
     margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .tabletop-scroll-area {
