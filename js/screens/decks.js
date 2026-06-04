@@ -308,10 +308,10 @@ async function renderListView() {
             
             if (isCommander && d.commander && d.commander.length > 0) {
                 const commanderUrl = getCardArtCropUrl(d.commander[0], lang);
-                bgStyle = `background-image: linear-gradient(rgba(15, 23, 42, 0.75), rgba(15, 23, 42, 0.9)), url('${commanderUrl}');`;
+                bgStyle = `background-image: linear-gradient(rgba(0,0,0, 0.7), rgba(0,0,0, 0.7)), url('${commanderUrl}');`;
             } else {
                 if (d.coverCardArt) {
-                    bgStyle = `background-image: linear-gradient(rgba(15, 23, 42, 0.75), rgba(15, 23, 42, 0.9)), url('${d.coverCardArt}');`;
+                    bgStyle = `background-image: linear-gradient(rgba(0,0,0, 0.7), rgba(0,0,0, 0.7)), url('${d.coverCardArt}');`;
                 }
                 editBtn = `<i class="fa-solid fa-pen deck-cover-edit-btn" data-id="${d.id}" title="Cambiar portada"></i>`;
             }
@@ -405,7 +405,7 @@ async function openCoverPicker(deckId) {
             const cropUrl = getCardArtCropUrl(c, lang);
             const fallbackUrl = getCardArtCropUrlEn(c);
             return `<div class="cover-picker-card" data-cardname="${c.name.replace(/"/g, '&quot;')}">
-                        <img src="${cropUrl}" onerror="this.src='${fallbackUrl}'" alt="${c.name}">
+                        <div class="card-art-crop" style="background-image: url('${cropUrl}'), url('${fallbackUrl}');"></div>
                     </div>`;
         }).join('');
         
