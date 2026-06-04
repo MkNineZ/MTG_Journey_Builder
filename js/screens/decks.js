@@ -300,7 +300,24 @@ async function renderListView() {
             const total = d.stats?.totalCards ?? 0;
             const side  = d.stats?.sideboardCards ?? 0;
             const setBadges = [...new Set((d.mainboard || []).map(c => c.setCode))].filter(c => c).map(c => `<span class="set-badge">[${c.toUpperCase()}]</span>`).join('');
-            return `<div class="deck-card" data-id="${d.id}">
+            
+            let bgStyle = '';
+            let editBtn = '';
+            const isCommander = d.format === 'commander' || d.format === 'brawl';
+            const lang = state.language || 'en';
+            
+            if (isCommander && d.commander && d.commander.length > 0) {
+                const commanderUrl = getCardArtCropUrl(d.commander[0], lang);
+                bgStyle = `background-image: linear-gradient(to bottom, rgba(15, 23, 42, 0.7), rgba(15, 23, 42, 0.95)), url('${commanderUrl}');`;
+            } else {
+                if (d.coverCardArt) {
+                    bgStyle = `background-image: linear-gradient(to bottom, rgba(15, 23, 42, 0.75), rgba(15, 23, 42, 0.95)), url('${d.coverCardArt}');`;
+                }
+                editBtn = `<i class="fa-solid fa-pen deck-cover-edit-btn" data-id="${d.id}" title="Cambiar portada"></i>`;
+            }
+
+            return `<div class="deck-card" data-id="${d.id}" style="${bgStyle}">
+                ${editBtn}
                 <div class="deck-card-body">
                     <div class="deck-card-name">${d.name}</div>
                     <div style="margin-bottom: 0.5rem;">${setBadges}</div>
@@ -350,6 +367,69 @@ async function renderListView() {
             renderListView();
             showToast('🗑️ Mazo eliminado.', 'ok');
         }
+        
+        const coverBtn = e.target.closest('.deck-cover-edit-btn');
+        if (coverBtn) {
+            e.stopPropagation();
+            openCoverPicker(parseInt(coverBtn.dataset.id, 10));
+        }
+    };
+}
+
+async function openCoverPicker(deckId) {
+    const deck = await getDeck(deckId);
+    if (!deck) return;
+    
+    const modal = document.getElementById('cover-picker-modal');
+    const grid = document.getElementById('cover-picker-grid');
+    const closeBtn = document.getElementById('cover-picker-close');
+    
+    if (!modal || !grid) return;
+    
+    const allCards = [...(deck.mainboard || []), ...(deck.sideboard || [])];
+    
+    if (allCards.length === 0) {
+        grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--text-secondary); padding: 2rem 0;">Añade cartas a tu mazo en el editor para poder elegir una portada.</div>`;
+    } else {
+        const uniqueCards = [];
+        const seen = new Set();
+        for (const c of allCards) {
+            if (!seen.has(c.name)) {
+                seen.add(c.name);
+                uniqueCards.push(c);
+            }
+        }
+        
+        const lang = state.language || 'en';
+        grid.innerHTML = uniqueCards.map(c => {
+            const cropUrl = getCardArtCropUrl(c, lang);
+            const fallbackUrl = getCardArtCropUrlEn(c);
+            return `<div class="cover-picker-card" data-cardname="${c.name.replace(/"/g, '&quot;')}">
+                        <img src="${cropUrl}" onerror="this.src='${fallbackUrl}'" alt="${c.name}">
+                    </div>`;
+        }).join('');
+        
+        grid.onclick = async e => {
+            const cardEl = e.target.closest('.cover-picker-card');
+            if (!cardEl) return;
+            const cardName = cardEl.dataset.cardname;
+            const card = uniqueCards.find(c => c.name === cardName);
+            if (card) {
+                deck.coverCardArt = getCardArtCropUrl(card, lang);
+                await saveDeck(deck);
+                modal.style.display = 'none';
+                renderListView();
+            }
+        };
+    }
+    
+    modal.style.display = 'flex';
+    
+    if (closeBtn) {
+        closeBtn.onclick = () => modal.style.display = 'none';
+    }
+    modal.onmousedown = e => {
+        if (e.target === modal) modal.style.display = 'none';
     };
 }
 

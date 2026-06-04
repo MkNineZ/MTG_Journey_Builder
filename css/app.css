@@ -903,11 +903,63 @@ strong {
     border-radius: 16px;
     overflow: hidden;
     transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+    background-size: cover;
+    background-position: center;
 }
 .deck-card:hover {
     transform: translateY(-3px);
     box-shadow: 0 8px 32px rgba(0,0,0,0.4);
     border-color: rgba(133,109,64,0.4);
+}
+
+/* Cover Edit Button */
+.deck-cover-edit-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.6);
+    color: var(--text-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    cursor: pointer;
+    z-index: 10;
+    transition: all 0.2s;
+    opacity: 0;
+}
+.deck-card:hover .deck-cover-edit-btn {
+    opacity: 1;
+}
+.deck-cover-edit-btn:hover {
+    background: var(--accent-color);
+    color: #fff;
+    transform: scale(1.1);
+}
+
+/* Cover Picker Grid */
+.cover-picker-card {
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    border: 2px solid transparent;
+}
+.cover-picker-card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.8);
+    border-color: var(--accent-color);
+}
+.cover-picker-card img {
+    width: 100%;
+    height: auto;
+    display: block;
 }
 
 .deck-create-ghost-card {
