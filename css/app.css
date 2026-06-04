@@ -1320,7 +1320,7 @@ strong {
 /* Hover preview image */
 .card-hover-preview {
     position: fixed;
-    width: 320px;
+    width: calc(220px * var(--card-hover-zoom, 1.4));
     height: auto !important;
     object-fit: contain;
     border-radius: 10px;

@@ -31,21 +31,52 @@ function getHoverImg() {
 }
 function showHoverPreview(card, evt) {
     const img = getHoverImg();
-    img.src = getCardImageUrlEn(card);
+    const lang = state.language || 'en';
+    const localizedUrl = getCardImageUrl(card, lang);
+    const fallbackUrl = getCardImageUrlEn(card);
+    
+    if (img.dataset.cardId !== card.uuid) {
+        img.src = localizedUrl;
+        img.dataset.cardId = card.uuid;
+        img.onerror = function() {
+            if (this.src !== fallbackUrl) {
+                this.src = fallbackUrl;
+            }
+        };
+    }
+    
     img.style.display = 'block';
     positionHoverPreview(evt);
     requestAnimationFrame(() => img.classList.add('visible'));
 }
 function positionHoverPreview(evt) {
     const img = getHoverImg();
-    const x = evt.clientX + 40;
-    const y = evt.clientY - 60;
+    const itemEl = evt.target.closest('.deck-entry-name[data-uuid]') || evt.target.closest('.deck-entry-row') || evt.target.closest('li');
+    const sidebarEl = document.querySelector('.app-sidebar-deckboard') || document.getElementById('de-sidebar');
     
-    let calcLeft = (x + 210 > window.innerWidth ? evt.clientX - 260 : x);
-    if (calcLeft < 20) calcLeft = 20;
+    if (!itemEl || !sidebarEl) return;
+    
+    const rect = itemEl.getBoundingClientRect();
+    const colRect = sidebarEl.getBoundingClientRect();
+    
+    const zoomStr = getComputedStyle(document.documentElement).getPropertyValue('--card-hover-zoom') || '1.4';
+    const zoom = parseFloat(zoomStr) || 1.4;
+    const imgWidth = 220 * zoom; 
+    const imgHeight = imgWidth * (3.5 / 2.5); // Magic MTG ratio (88x63)
+    
+    const gap = 15;
+    let x = colRect.left - imgWidth - gap;
+    
+    // Alineación vertical: centro de la previsualización con el borde superior del item
+    let y = rect.top - (imgHeight / 2);
+    
+    // Boundary checks
+    if (y < 10) y = 10;
+    if (y + imgHeight > window.innerHeight) y = window.innerHeight - imgHeight - 10;
+    if (x < 10) x = 10;
 
-    img.style.left = calcLeft + 'px';
-    img.style.top  = Math.max(8, Math.min(y, window.innerHeight - 310)) + 'px';
+    img.style.left = x + 'px';
+    img.style.top  = y + 'px';
 }
 function hideHoverPreview() {
     const img = getHoverImg();
@@ -671,7 +702,7 @@ function renderEditView() {
         const nameEl = e.target.closest('.deck-entry-name[data-uuid]');
         if (!nameEl) return;
         const uuid = nameEl.dataset.uuid;
-        const entry = [...(currentDeck?.mainboard||[]), ...(currentDeck?.sideboard||[])]
+        const entry = [...(currentDeck?.mainboard||[]), ...(currentDeck?.sideboard||[]), ...(currentDeck?.commander||[])]
             .find(en => en.uuid === uuid);
         if (entry) showHoverPreview(entry, e);
     });
