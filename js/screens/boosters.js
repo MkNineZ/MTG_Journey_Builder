@@ -76,39 +76,55 @@ export function initBoosters() {
             <h2>Apertura de Sobres</h2>
             <p style="color: var(--text-secondary); margin-bottom: 2rem;">Elige un set y un modo de apertura.</p>`;
 
-        grid.innerHTML = activeSetsData.map((setData, index) => `
-            <div class="booster-set-group" style="grid-column: 1 / -1; display: flex; gap: 2rem; margin-bottom: 3rem; flex-wrap: wrap; background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 16px; border: 1px solid var(--border-color);">
+        grid.innerHTML = activeSetsData.map((setData, index) => {
+            const setArtUrl = \`assets/pack-bg-${setData.code.toLowerCase()}.jpg\`;
+            
+            return \`
+            <div class="booster-set-group" style="grid-column: 1 / -1; display: flex; flex-direction: column; gap: 1.5rem; margin-bottom: 3rem; background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 16px; border: 1px solid var(--border-color);">
                 
-                <!-- Single Pack -->
-                <div class="booster-pack-card" data-index="${index}" style="flex: 1; min-width: 250px; position: relative;">
-                    <button class="nav-btn open-booster-custom" data-index="${index}" style="position: absolute; top: 10px; right: 10px; z-index: 10; padding: 0.4rem 0.6rem; border-radius: 50%; font-size: 1rem; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2);" title="Configuración Custom">⚙️</button>
-                    
-                    <div class="pack-art pack-art-anim" style="position: relative; border-radius: 12px; overflow: hidden; background: linear-gradient(var(--bg-color), var(--surface-color)); text-align: center; padding: 2rem 1rem; cursor: pointer;">
-                        <div class="pack-foil-overlay"></div>
-                        <i class="ss ss-${setData.code.toLowerCase()} ss-mtg ss-4x" style="color: #fff; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.8));"></i>
-                        <h3 style="color: #fff; font-family: var(--font-heading); margin-top: 1rem; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">${setData.code}</h3>
-                        <p style="color: #ddd; font-size: 0.8rem; text-shadow: 0 1px 2px rgba(0,0,0,0.8);">15 Cartas</p>
+                <!-- Cabecera del Set con Engranaje Custom -->
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 1rem;">
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <i class="ss ss-${setData.code.toLowerCase()} ss-mtg ss-3x" style="color: var(--accent-color); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i>
+                        <div>
+                            <h3 style="margin-bottom: 0.1rem; font-family: var(--font-heading); font-size: 1.2rem;">${setData.code}</h3>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">${setData.name}</div>
+                        </div>
                     </div>
-                    
-                    <button class="save-btn open-booster-classic" data-index="${index}" style="width: 100%; padding: 0.8rem; margin-top: 1rem; font-size: 0.9rem;">
-                        🗡️ Abrir Sobre
+                    <button class="nav-btn open-booster-custom" data-index="${index}" style="padding: 0.5rem 0.8rem; border-radius: 8px; font-size: 1rem; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2); transition: background 0.2s;" title="Configuración Custom">
+                        ⚙️ Custom
                     </button>
                 </div>
 
-                <!-- Booster Box -->
-                <div class="booster-box-card" data-index="${index}" style="flex: 2; min-width: 350px; position: relative;">
-                    <button class="nav-btn open-booster-custom" data-index="${index}" style="position: absolute; top: 10px; right: 10px; z-index: 10; padding: 0.4rem 0.6rem; border-radius: 50%; font-size: 1rem; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2);" title="Configuración Custom">⚙️</button>
+                <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
+                    <!-- Single Pack (Opción 1) -->
+                    <div class="booster-pack-card pack-art-anim" data-index="${index}" style="flex: 1; min-width: 200px; max-width: 300px; aspect-ratio: 2.5/3.5; position: relative; border-radius: 8px; overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.6); cursor: pointer; background-image: url('${setArtUrl}'), url('assets/booster%20blank.png'); background-size: cover; background-position: center; background-blend-mode: multiply; border: 1px solid rgba(255,255,255,0.05); transition: transform 0.2s, box-shadow 0.2s;">
+                        <div class="pack-foil-overlay"></div>
+                        
+                        <div style="position: absolute; top: 15%; width: 100%; text-align: center; z-index: 2; pointer-events: none;">
+                            <i class="ss ss-${setData.code.toLowerCase()} ss-mtg ss-3x" style="color: #fff; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8)); opacity: 0.8;"></i>
+                            <h3 style="color: #fff; font-family: var(--font-heading); margin-top: 0.5rem; text-shadow: 0 2px 4px rgba(0,0,0,0.9); font-size: 1rem;">${setData.code}</h3>
+                        </div>
 
-                    <div class="box-art box-art-anim" style="position: relative; border-radius: 8px; background: rgba(20,20,20,0.9); border: 1px solid rgba(255,255,255,0.1); padding: 2rem; overflow: hidden;">
-                        <div class="box-lid"></div>
-                        <i class="ss ss-${setData.code.toLowerCase()} ss-mtg ss-5x" style="color: #fff; opacity: 0.1; position: absolute; right: -20px; bottom: -20px; pointer-events: none;"></i>
-                        <div style="position: relative; z-index: 2;">
-                            <h3 style="margin-bottom: 0.3rem; font-family: var(--font-heading); font-size: 1.4rem; color: var(--accent-color);">${setData.name}</h3>
-                            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 2rem;">Draft Booster Display</p>
+                        <button class="save-btn open-booster-classic" data-index="${index}" style="position: absolute; bottom: 8%; left: 50%; transform: translateX(-50%); width: 80%; padding: 0.7rem; font-size: 0.9rem; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.2); z-index: 3;">
+                            🗡️ Abrir Sobre
+                        </button>
+                    </div>
+
+                    <!-- Booster Box (Opción 2) -->
+                    <div class="booster-box-card box-art-anim" data-index="${index}" style="flex: 2; min-width: 300px; aspect-ratio: 16/9; position: relative; border-radius: 8px; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.8); background-image: url('${setArtUrl}'), url('assets/booster%20box%20blank.png'); background-size: contain; background-position: center; background-blend-mode: multiply; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; justify-content: center; align-items: center; transition: transform 0.2s, box-shadow 0.2s;">
+                        
+                        <div style="position: absolute; right: 5%; top: 10%;">
+                            <i class="ss ss-${setData.code.toLowerCase()} ss-mtg ss-5x" style="color: #fff; opacity: 0.3; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.9));"></i>
+                        </div>
+
+                        <div style="position: relative; z-index: 2; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); text-align: center;">
+                            <h3 style="margin-bottom: 0.5rem; font-family: var(--font-heading); font-size: 1.3rem; color: #fff;">${setData.name}</h3>
+                            <p style="color: #ccc; font-size: 0.85rem; margin-bottom: 1.5rem;">Draft Booster Display</p>
                             
-                            <div style="display: flex; gap: 0.8rem; align-items: center; max-width: 300px;">
-                                <input type="number" class="mass-open-count" data-index="${index}" value="36" min="1" max="100" style="width: 70px; padding: 0.7rem; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.4); color: #fff; font-size: 1rem; text-align: center;">
-                                <button class="save-btn open-booster-mass-classic" data-index="${index}" style="flex: 1; padding: 0.8rem; font-size: 1rem; background: var(--accent-hover);">
+                            <div style="display: flex; gap: 0.5rem; align-items: center; justify-content: center;">
+                                <input type="number" class="mass-open-count" data-index="${index}" value="36" min="1" max="100" style="width: 60px; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.1); color: #fff; font-size: 1rem; text-align: center;">
+                                <button class="save-btn open-booster-mass-classic" data-index="${index}" style="padding: 0.7rem 1.5rem; font-size: 1rem; background: var(--accent-hover);">
                                     📦 Abrir Caja
                                 </button>
                             </div>
@@ -117,7 +133,8 @@ export function initBoosters() {
                 </div>
 
             </div>
-        `).join('');
+            \`;
+        }).join('');
 
         // Render custom panels for each set (hidden by default)
         const customPanelsHTML = activeSetsData.map((setData, index) => `
