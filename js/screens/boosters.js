@@ -133,7 +133,7 @@ export function initBoosters() {
                 </div>
 
             </div>
-            \`;
+            `;
         }).join('');
 
         // Render custom panels for each set (hidden by default)
