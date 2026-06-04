@@ -77,9 +77,9 @@ export function initBoosters() {
             <p style="color: var(--text-secondary); margin-bottom: 2rem;">Elige un set y un modo de apertura.</p>`;
 
         grid.innerHTML = activeSetsData.map((setData, index) => {
-            const setArtUrl = \`assets/pack-bg-${setData.code.toLowerCase()}.jpg\`;
+            const setArtUrl = `assets/pack-bg-${setData.code.toLowerCase()}.jpg`;
             
-            return \`
+            return `
             <div class="booster-set-group" style="grid-column: 1 / -1; display: flex; flex-direction: column; gap: 1.5rem; margin-bottom: 3rem; background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 16px; border: 1px solid var(--border-color);">
                 
                 <!-- Cabecera del Set con Engranaje Custom -->
