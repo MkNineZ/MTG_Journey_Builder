@@ -82,9 +82,15 @@ export function initBoosters() {
                 <h3 style="margin-bottom: 0.3rem; font-family: var(--font-heading); font-size: 0.9rem;">${setData.code}</h3>
                 <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 1.2rem; height: 2.5em; overflow: hidden;">${setData.name}</div>
                 <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                    <button class="save-btn open-booster-classic" data-index="${index}" style="width: 100%; padding: 0.6rem; font-size: 0.82rem;">
-                        ✨ Clásico (15)
-                    </button>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <button class="save-btn open-booster-classic" data-index="${index}" style="flex: 1; padding: 0.6rem; font-size: 0.82rem;">
+                            🗡️ Clásico (15)
+                        </button>
+                        <input type="number" class="mass-open-count" data-index="${index}" value="36" min="1" max="100" style="width: 50px; padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.2); color: #fff; font-size: 0.8rem; text-align: center;">
+                        <button class="save-btn open-booster-mass-classic" data-index="${index}" style="flex: 1; padding: 0.6rem; font-size: 0.82rem; background: var(--accent-hover);">
+                            📦 Abrir Múltiples
+                        </button>
+                    </div>
                     <button class="nav-btn open-booster-custom" data-index="${index}" style="width: 100%; padding: 0.6rem; font-size: 0.82rem; border: 1px solid var(--border-color);">
                         ⚙️ Custom
                     </button>
@@ -241,7 +247,33 @@ export async function openBoosterClassic(index) {
     state.currentOpeningPack = cards;
     displayBooster(state.currentOpeningPack, false);
 
-    if (btn) { btn.innerText = '✨ Clásico (15)'; btn.disabled = false; }
+    if (btn) { btn.innerText = '🗡️ Clásico (15)'; btn.disabled = false; }
+}
+
+export async function openBoosterMassClassic(index) {
+    console.log('INICIANDO APERTURA MASIVA — Modo Clásico');
+    const setData = state.activeSetsData[index];
+    if (!setData) return;
+
+    const input = document.querySelector(`.mass-open-count[data-index="${index}"]`);
+    const count = parseInt(input?.value, 10) || 36;
+    if (count <= 0 || count > 100) {
+        alert("El número de sobres debe ser entre 1 y 100");
+        return;
+    }
+
+    const btn = document.querySelector(`.open-booster-mass-classic[data-index="${index}"]`);
+    if (btn) { btn.innerText = 'GENERANDO...'; btn.disabled = true; }
+
+    let allCards = [];
+    for (let i = 0; i < count; i++) {
+        const packCards = await generateBoosterClassic(setData);
+        allCards = allCards.concat(packCards);
+    }
+    state.currentOpeningPack = allCards;
+    displayBooster(state.currentOpeningPack, false);
+
+    if (btn) { btn.innerText = '📦 Abrir Múltiples'; btn.disabled = false; }
 }
 
 export async function openBoosterCustom(index) {
@@ -515,7 +547,7 @@ function displayBooster(cards, stockWarning = false) {
     resultContainer.style.display = 'block';
     warning.style.display = stockWarning ? 'block' : 'none';
 
-    grid.innerHTML = cards.map(c => {
+    const renderCard = c => {
         const color       = rarityColors[c.rarity?.toLowerCase()] || '#ccc';
         const imgUrl      = getCardImageUrl(c, lang);
         const fallbackUrl = getCardImageUrlEn(c);
@@ -532,7 +564,36 @@ function displayBooster(cards, stockWarning = false) {
                     ${c.rarity.toUpperCase()}
                 </div>
             </div>`;
-    }).join('');
+    };
+
+    if (cards.length > 30) {
+        // Group by rarity for mass openings
+        const groups = { mythic: [], rare: [], uncommon: [], common: [] };
+        cards.forEach(c => {
+            const r = c.rarity?.toLowerCase();
+            if (groups[r]) groups[r].push(c);
+            else groups.common.push(c);
+        });
+
+        const rarityNames = { mythic: 'Míticas', rare: 'Raras', uncommon: 'Infrecuentes', common: 'Comunes' };
+        
+        let groupedHtml = '';
+        ['mythic', 'rare', 'uncommon', 'common'].forEach(r => {
+            if (groups[r].length > 0) {
+                groupedHtml += `
+                    <div style="grid-column: 1 / -1; border-bottom: 2px solid ${rarityColors[r]}40; margin-top: 1.5rem; margin-bottom: 0.5rem; padding-bottom: 0.5rem;">
+                        <h3 style="color: ${rarityColors[r]}; margin: 0; text-transform: uppercase; letter-spacing: 1px;">
+                            ${rarityNames[r]} <span style="opacity:0.6; font-size:0.9em; font-weight: normal;">(${groups[r].length})</span>
+                        </h3>
+                    </div>
+                `;
+                groupedHtml += groups[r].map(renderCard).join('');
+            }
+        });
+        grid.innerHTML = groupedHtml;
+    } else {
+        grid.innerHTML = cards.map(renderCard).join('');
+    }
 
     // Generate plain text export
     const counts = {};

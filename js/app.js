@@ -3,7 +3,7 @@ import { initActivityLog } from './components/activityLog.js';
 import { initSettings } from './screens/settings.js';
 import { initExplore } from './screens/explore.js';
 import { initCollection } from './screens/collection.js';
-import { initBoosters, openBoosterClassic, openBoosterCustom, openBoosterCustomConfirm, confirmBoosterSave, toggleColorBtn, discardBooster, openBoosterModal } from './screens/boosters.js';
+import { initBoosters, openBoosterClassic, openBoosterMassClassic, openBoosterCustom, openBoosterCustomConfirm, confirmBoosterSave, toggleColorBtn, discardBooster, openBoosterModal } from './screens/boosters.js';
 import { initDecks } from './screens/decks.js';
 import { initAbout } from './screens/about.js';
 import { state } from './utils/state.js';
@@ -135,6 +135,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (classicBtn) {
             const index = parseInt(classicBtn.dataset.index, 10);
             await openBoosterClassic(index);
+            return;
+        }
+
+        // Mass Classic booster
+        const massClassicBtn = e.target.closest('.open-booster-mass-classic');
+        if (massClassicBtn) {
+            const index = parseInt(massClassicBtn.dataset.index, 10);
+            await openBoosterMassClassic(index);
             return;
         }
 
