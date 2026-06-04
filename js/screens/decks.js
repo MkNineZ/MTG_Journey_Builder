@@ -406,6 +406,7 @@ async function openCoverPicker(deckId) {
             const fallbackUrl = getCardArtCropUrlEn(c);
             return `<div class="cover-picker-card" data-cardname="${c.name.replace(/"/g, '&quot;')}">
                         <div class="card-art-crop" style="background-image: url('${cropUrl}'), url('${fallbackUrl}');"></div>
+                        <span class="cover-card-name">${c.name}</span>
                     </div>`;
         }).join('');
         

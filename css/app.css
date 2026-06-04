@@ -968,6 +968,7 @@ strong {
     transition: transform 0.2s, box-shadow 0.2s;
     box-shadow: 0 4px 10px rgba(0,0,0,0.5);
     border: 2px solid transparent;
+    position: relative;
 }
 .cover-picker-card:hover {
     transform: scale(1.05);
@@ -979,6 +980,23 @@ strong {
     height: 100%;
     background-size: cover;
     background-position: center;
+}
+.cover-card-name {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 8px;
+    color: #ffffff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-align: center;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.5) 70%, transparent 100%);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
+    z-index: 2;
 }
 
 .deck-create-ghost-card {
