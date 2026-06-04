@@ -949,11 +949,13 @@ strong {
 
 /* Cover Picker Grid */
 .cover-picker-grid {
+    width: 100% !important;
     display: grid !important;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)) !important;
     gap: 15px;
-    padding: 20px;
+    padding: 5px;
     overflow-y: auto !important;
+    max-height: 60vh;
     min-height: 200px !important;
 }
 .cover-picker-card {
