@@ -1,6 +1,6 @@
 import { getAllDecks, getDeck, saveDeck, deleteDeck } from '../utils/db.js';
 import { state } from '../utils/state.js';
-import { getCardImageUrl, getCardImageUrlEn } from '../utils/api.js';
+import { getCardImageUrl, getCardImageUrlEn, getCardArtCropUrl, getCardArtCropUrlEn } from '../utils/api.js';
 import { filterCards, renderSearchUI } from '../components/searchEngine.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -958,6 +958,60 @@ function updateDeckCountLabel() {
 
 function updateStats() {
     if (!currentDeck) return;
+    
+    // --- Commander Banner Injection ---
+    const isCommanderFormat = (currentDeck.format === 'commander' || currentDeck.format === 'brawl');
+    const hasCommander = currentDeck.commander && currentDeck.commander.length > 0;
+    
+    document.querySelectorAll('.commander-stats-banner').forEach(el => el.remove());
+
+    if (isCommanderFormat && hasCommander) {
+        const commander = currentDeck.commander[0];
+        const lang = state.language || 'en';
+        const imgUrl = getCardArtCropUrl(commander, lang);
+        const fallbackUrl = getCardArtCropUrlEn(commander);
+        
+        let dbCard = typeof commander.uuid !== 'undefined' ? getFullCardData(commander.uuid) : getFullCardData(commander.id);
+        const name = commander.name;
+        let manaCostHtml = '';
+        if (dbCard && dbCard.manaCost) {
+            manaCostHtml = dbCard.manaCost.replace(/{([^}]+)}/g, '<img src="https://svgs.scryfall.io/card-symbols/$1.svg" class="mana-sym" style="width:16px;height:16px;margin-left:2px">');
+        }
+        
+        const bannerHtml = `
+            <div class="commander-stats-banner tabletop-sidebar-block deck-entry-name" data-uuid="${commander.uuid}" style="
+                background-image: linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 60%, transparent 100%), url('${imgUrl}'), url('${fallbackUrl}');
+                background-size: cover;
+                background-position: center 20%;
+                border-radius: 12px;
+                padding: 1rem;
+                margin-bottom: 1.5rem;
+                border: 1px solid rgba(255,255,255,0.1);
+                box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                min-height: 80px;
+                cursor: pointer;
+                position: relative;
+                overflow: hidden;
+            ">
+                <div style="font-size: 0.8rem; color: var(--accent-color); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 4px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); position: relative; z-index: 2;">Comandante</div>
+                <div style="font-size: 1.1rem; font-weight: 800; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 2;">
+                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%;">${name}</span>
+                    <span style="display: flex; align-items: center;">${manaCostHtml}</span>
+                </div>
+            </div>
+        `;
+        
+        const classicContainer = document.getElementById('de-stats-compact');
+        if (classicContainer) classicContainer.insertAdjacentHTML('afterbegin', bannerHtml);
+        
+        const tabletopContainer = document.querySelector('.tabletop-dashboard-sidebar');
+        if (tabletopContainer) tabletopContainer.insertAdjacentHTML('afterbegin', bannerHtml);
+    }
+    // --- End Commander Banner Injection ---
+
     const all = [...currentDeck.mainboard, ...(currentDeck.commander || [])];
 
     // Mana curve with Scryfall SVG labels
