@@ -162,6 +162,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        // Custom mass booster confirm (inside panel)
+        const customMassConfirmBtn = e.target.closest('.open-booster-mass-custom-confirm');
+        if (customMassConfirmBtn) {
+            const index = parseInt(customMassConfirmBtn.dataset.index, 10);
+            import('./screens/boosters.js').then(m => m.openBoosterMassCustomConfirm(index));
+            return;
+        }
+
         // Save booster to collection
         if (e.target.closest('#add-booster-to-inv')) {
             await confirmBoosterSave();

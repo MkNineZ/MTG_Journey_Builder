@@ -2500,3 +2500,82 @@ strong {
     border: 1px solid rgba(255,255,255,0.2);
 }
 
+/* ─── BOOSTER VISUAL REDESIGN (Single Pack & Booster Box) ─── */
+
+/* Animations */
+@keyframes packTear {
+    0% { transform: translateY(0); clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+    50% { transform: translateY(-10px) scale(1.02); opacity: 1; clip-path: polygon(0 20%, 100% 5%, 100% 100%, 0 100%); }
+    100% { transform: translateY(30px) scale(0.95); opacity: 0; clip-path: polygon(0 40%, 100% 25%, 100% 100%, 0 100%); }
+}
+
+@keyframes boxOpen {
+    0% { transform: perspective(1000px) rotateX(0deg); opacity: 1; }
+    50% { transform: perspective(1000px) rotateX(20deg) translateY(-10px); opacity: 0.8; }
+    100% { transform: perspective(1000px) rotateX(45deg) translateY(-30px); opacity: 0; }
+}
+
+/* Foil overlay */
+.pack-foil-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(125deg, transparent 0%, rgba(255,255,255,0.05) 30%, rgba(255,255,255,0.25) 40%, transparent 60%);
+    mix-blend-mode: overlay;
+    pointer-events: none;
+    transition: transform 0.5s ease-out;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+}
+
+.booster-pack-card:hover .pack-foil-overlay {
+    transform: translate(-10%, -10%);
+    transition: transform 0.6s ease-out;
+}
+
+/* Crimped edges */
+.pack-art {
+    border-top: 4px dashed rgba(255,255,255,0.15);
+    border-bottom: 4px dashed rgba(255,255,255,0.15);
+    box-shadow: inset 0 5px 15px rgba(0,0,0,0.8), 0 10px 20px rgba(0,0,0,0.5);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.booster-pack-card:hover .pack-art {
+    transform: translateY(-5px);
+    box-shadow: inset 0 5px 15px rgba(0,0,0,0.8), 0 15px 30px rgba(0,0,0,0.7);
+}
+
+/* Booster Box 3D perspective */
+.box-art {
+    box-shadow: 
+        inset 0 0 40px rgba(0,0,0,0.9),
+        0 15px 35px rgba(0,0,0,0.6),
+        0 5px 15px rgba(0,0,0,0.4);
+    border-top: 2px solid rgba(255,255,255,0.2);
+    border-left: 2px solid rgba(255,255,255,0.1);
+    transform-style: preserve-3d;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.booster-box-card:hover .box-art {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 
+        inset 0 0 50px rgba(0,0,0,0.9),
+        0 20px 45px rgba(0,0,0,0.7),
+        0 8px 20px rgba(0,0,0,0.5);
+}
+
+.box-lid {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 12px;
+    background: rgba(255,255,255,0.1);
+    transform-origin: top;
+    transform: rotateX(80deg);
+}
+

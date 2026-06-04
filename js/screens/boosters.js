@@ -77,24 +77,45 @@ export function initBoosters() {
             <p style="color: var(--text-secondary); margin-bottom: 2rem;">Elige un set y un modo de apertura.</p>`;
 
         grid.innerHTML = activeSetsData.map((setData, index) => `
-            <div class="set-card booster-set-card" style="padding: 1.5rem;">
-                <i class="ss ss-${setData.code.toLowerCase()} ss-mtg ss-3x" style="margin-bottom: 0.8rem; color: var(--accent-color);"></i>
-                <h3 style="margin-bottom: 0.3rem; font-family: var(--font-heading); font-size: 0.9rem;">${setData.code}</h3>
-                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 1.2rem; height: 2.5em; overflow: hidden;">${setData.name}</div>
-                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                    <div style="display: flex; gap: 0.5rem; align-items: center;">
-                        <button class="save-btn open-booster-classic" data-index="${index}" style="flex: 1; padding: 0.6rem; font-size: 0.82rem;">
-                            🗡️ Clásico (15)
-                        </button>
-                        <input type="number" class="mass-open-count" data-index="${index}" value="36" min="1" max="100" style="width: 50px; padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.2); color: #fff; font-size: 0.8rem; text-align: center;">
-                        <button class="save-btn open-booster-mass-classic" data-index="${index}" style="flex: 1; padding: 0.6rem; font-size: 0.82rem; background: var(--accent-hover);">
-                            📦 Abrir Múltiples
-                        </button>
+            <div class="booster-set-group" style="grid-column: 1 / -1; display: flex; gap: 2rem; margin-bottom: 3rem; flex-wrap: wrap; background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 16px; border: 1px solid var(--border-color);">
+                
+                <!-- Single Pack -->
+                <div class="booster-pack-card" data-index="${index}" style="flex: 1; min-width: 250px; position: relative;">
+                    <button class="nav-btn open-booster-custom" data-index="${index}" style="position: absolute; top: 10px; right: 10px; z-index: 10; padding: 0.4rem 0.6rem; border-radius: 50%; font-size: 1rem; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2);" title="Configuración Custom">⚙️</button>
+                    
+                    <div class="pack-art pack-art-anim" style="position: relative; border-radius: 12px; overflow: hidden; background: linear-gradient(var(--bg-color), var(--surface-color)); text-align: center; padding: 2rem 1rem; cursor: pointer;">
+                        <div class="pack-foil-overlay"></div>
+                        <i class="ss ss-${setData.code.toLowerCase()} ss-mtg ss-4x" style="color: #fff; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.8));"></i>
+                        <h3 style="color: #fff; font-family: var(--font-heading); margin-top: 1rem; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">${setData.code}</h3>
+                        <p style="color: #ddd; font-size: 0.8rem; text-shadow: 0 1px 2px rgba(0,0,0,0.8);">15 Cartas</p>
                     </div>
-                    <button class="nav-btn open-booster-custom" data-index="${index}" style="width: 100%; padding: 0.6rem; font-size: 0.82rem; border: 1px solid var(--border-color);">
-                        ⚙️ Custom
+                    
+                    <button class="save-btn open-booster-classic" data-index="${index}" style="width: 100%; padding: 0.8rem; margin-top: 1rem; font-size: 0.9rem;">
+                        🗡️ Abrir Sobre
                     </button>
                 </div>
+
+                <!-- Booster Box -->
+                <div class="booster-box-card" data-index="${index}" style="flex: 2; min-width: 350px; position: relative;">
+                    <button class="nav-btn open-booster-custom" data-index="${index}" style="position: absolute; top: 10px; right: 10px; z-index: 10; padding: 0.4rem 0.6rem; border-radius: 50%; font-size: 1rem; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2);" title="Configuración Custom">⚙️</button>
+
+                    <div class="box-art box-art-anim" style="position: relative; border-radius: 8px; background: rgba(20,20,20,0.9); border: 1px solid rgba(255,255,255,0.1); padding: 2rem; overflow: hidden;">
+                        <div class="box-lid"></div>
+                        <i class="ss ss-${setData.code.toLowerCase()} ss-mtg ss-5x" style="color: #fff; opacity: 0.1; position: absolute; right: -20px; bottom: -20px; pointer-events: none;"></i>
+                        <div style="position: relative; z-index: 2;">
+                            <h3 style="margin-bottom: 0.3rem; font-family: var(--font-heading); font-size: 1.4rem; color: var(--accent-color);">${setData.name}</h3>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 2rem;">Draft Booster Display</p>
+                            
+                            <div style="display: flex; gap: 0.8rem; align-items: center; max-width: 300px;">
+                                <input type="number" class="mass-open-count" data-index="${index}" value="36" min="1" max="100" style="width: 70px; padding: 0.7rem; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.4); color: #fff; font-size: 1rem; text-align: center;">
+                                <button class="save-btn open-booster-mass-classic" data-index="${index}" style="flex: 1; padding: 0.8rem; font-size: 1rem; background: var(--accent-hover);">
+                                    📦 Abrir Caja
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         `).join('');
 
@@ -155,10 +176,17 @@ export function initBoosters() {
                         </div>
                     </div>
 
-                    <button class="save-btn open-booster-custom-confirm" data-index="${index}"
-                        style="width: 100%; padding: 0.8rem; margin-top: 0.5rem;">
-                        ⚡ Generar Sobre Custom
-                    </button>
+                    <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                        <button class="save-btn open-booster-custom-confirm" data-index="${index}" style="flex: 1; padding: 0.8rem; font-size: 0.95rem;">
+                            ⚡ Generar 1 Sobre Custom
+                        </button>
+                        <div style="display: flex; gap: 0.5rem; flex: 1;">
+                            <input type="number" class="mass-custom-count" data-index="${index}" value="36" min="1" max="100" style="width: 60px; padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.4); color: #fff; font-size: 0.95rem; text-align: center;">
+                            <button class="save-btn open-booster-mass-custom-confirm" data-index="${index}" style="flex: 1; padding: 0.8rem; font-size: 0.95rem; background: var(--accent-hover);">
+                                📦 Generar Caja Custom
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         `).join('');
@@ -241,13 +269,20 @@ export async function openBoosterClassic(index) {
     if (!setData) return;
 
     const btn = document.querySelector(`.open-booster-classic[data-index="${index}"]`);
+    const packArt = btn?.closest('.booster-pack-card')?.querySelector('.pack-art-anim');
     if (btn) { btn.innerText = 'GENERANDO...'; btn.disabled = true; }
+    if (packArt) { packArt.style.animation = 'packTear 0.5s forwards'; }
 
     const cards = await generateBoosterClassic(setData);
+    
+    // Simulate animation delay
+    if (packArt) await new Promise(r => setTimeout(r, 400));
+
     state.currentOpeningPack = cards;
     displayBooster(state.currentOpeningPack, false);
 
-    if (btn) { btn.innerText = '🗡️ Clásico (15)'; btn.disabled = false; }
+    if (btn) { btn.innerText = '🗡️ Abrir Sobre'; btn.disabled = false; }
+    if (packArt) { packArt.style.animation = 'none'; }
 }
 
 export async function openBoosterMassClassic(index) {
@@ -263,17 +298,23 @@ export async function openBoosterMassClassic(index) {
     }
 
     const btn = document.querySelector(`.open-booster-mass-classic[data-index="${index}"]`);
+    const boxArt = btn?.closest('.booster-box-card')?.querySelector('.box-art-anim');
     if (btn) { btn.innerText = 'GENERANDO...'; btn.disabled = true; }
+    if (boxArt) { boxArt.style.animation = 'boxOpen 0.6s forwards'; }
 
     let allCards = [];
     for (let i = 0; i < count; i++) {
         const packCards = await generateBoosterClassic(setData);
         allCards = allCards.concat(packCards);
     }
+    
+    if (boxArt) await new Promise(r => setTimeout(r, 400));
+    
     state.currentOpeningPack = allCards;
     displayBooster(state.currentOpeningPack, false);
 
-    if (btn) { btn.innerText = '📦 Abrir Múltiples'; btn.disabled = false; }
+    if (btn) { btn.innerText = '📦 Abrir Caja'; btn.disabled = false; }
+    if (boxArt) { boxArt.style.animation = 'none'; }
 }
 
 export async function openBoosterCustom(index) {
@@ -317,7 +358,52 @@ export async function openBoosterCustomConfirm(index) {
     state.currentOpeningPack = cards;
     displayBooster(state.currentOpeningPack, stockWarning);
 
-    if (btn) { btn.innerText = '⚡ Generar Sobre Custom'; btn.disabled = false; }
+    if (btn) { btn.innerText = '⚡ Generar 1 Sobre Custom'; btn.disabled = false; }
+}
+
+export async function openBoosterMassCustomConfirm(index) {
+    console.log('INICIANDO APERTURA MASIVA — Modo Custom');
+    const setData = state.activeSetsData[index];
+    if (!setData) return;
+
+    const panel = document.getElementById(`custom-panel-${index}`);
+    const input = panel.querySelector('.mass-custom-count');
+    const count = parseInt(input?.value, 10) || 36;
+    
+    if (count <= 0 || count > 100) {
+        alert("El número de sobres debe ser entre 1 y 100");
+        return;
+    }
+
+    const counts = {};
+    panel.querySelectorAll('.rarity-input').forEach(inp => {
+        counts[inp.dataset.rarity] = parseInt(inp.value, 10) || 0;
+    });
+
+    const colors = [];
+    panel.querySelectorAll('.color-identity-btn.active').forEach(btn => {
+        colors.push(btn.dataset.color);
+    });
+
+    const smartFilter = panel.querySelector('.smart-filter-cb')?.checked ?? true;
+
+    const btn = panel.querySelector('.open-booster-mass-custom-confirm');
+    if (btn) { btn.innerText = 'GENERANDO...'; btn.disabled = true; }
+
+    const inventoryMap = smartFilter ? await getInventoryMap() : new Map();
+    
+    let allCards = [];
+    let anyStockWarning = false;
+    for (let i = 0; i < count; i++) {
+        const { cards, stockWarning } = await generateBoosterCustom(setData, counts, colors, inventoryMap);
+        allCards = allCards.concat(cards);
+        if (stockWarning) anyStockWarning = true;
+    }
+    
+    state.currentOpeningPack = allCards;
+    displayBooster(state.currentOpeningPack, anyStockWarning);
+
+    if (btn) { btn.innerText = '📦 Generar Caja Custom'; btn.disabled = false; }
 }
 
 export async function confirmBoosterSave() {
