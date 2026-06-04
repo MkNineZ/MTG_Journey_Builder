@@ -308,10 +308,10 @@ async function renderListView() {
             
             if (isCommander && d.commander && d.commander.length > 0) {
                 const commanderUrl = getCardArtCropUrl(d.commander[0], lang);
-                bgStyle = `background-image: linear-gradient(to bottom, rgba(15, 23, 42, 0.7), rgba(15, 23, 42, 0.95)), url('${commanderUrl}');`;
+                bgStyle = `background-image: linear-gradient(to top, rgba(0,0,0, 0.95) 0%, rgba(0,0,0, 0.3) 50%, transparent 100%), url('${commanderUrl}');`;
             } else {
                 if (d.coverCardArt) {
-                    bgStyle = `background-image: linear-gradient(to bottom, rgba(15, 23, 42, 0.75), rgba(15, 23, 42, 0.95)), url('${d.coverCardArt}');`;
+                    bgStyle = `background-image: linear-gradient(to top, rgba(0,0,0, 0.95) 0%, rgba(0,0,0, 0.3) 50%, transparent 100%), url('${d.coverCardArt}');`;
                 }
                 editBtn = `<i class="fa-solid fa-pen deck-cover-edit-btn" data-id="${d.id}" title="Cambiar portada"></i>`;
             }
