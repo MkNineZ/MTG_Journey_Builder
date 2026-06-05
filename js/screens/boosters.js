@@ -535,8 +535,6 @@ export function toggleColorBtn(btn) {
 
 // ─── Internal generators ──────────────────────────────────────────────────────
 
-asy
-
 async function generateBoosterClassic(setData, inventoryMap = new Map()) {
     if (!setData?.cards) return { cards: [], bonusUpgrades: [], stockWarning: false };
 
