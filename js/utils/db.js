@@ -31,8 +31,10 @@ export function initDB() {
             }
         };
 
-        request.onsuccess = (event) => {
+        request.onsuccess = async (event) => {
             dbInstance = event.target.result;
+            // Execute data migration silently in the background
+            migrateInventorySchema(dbInstance).catch(console.error);
             resolve(dbInstance);
         };
 
@@ -40,6 +42,36 @@ export function initDB() {
             console.error('IndexedDB error:', event.target.error);
             reject(event.target.error);
         };
+    });
+}
+
+// Background migration function to convert old 'count' properties to 'regularCount' and 'foilCount'
+async function migrateInventorySchema(db) {
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction('inventory', 'readwrite');
+        const store = tx.objectStore('inventory');
+        const request = store.getAll();
+
+        request.onsuccess = () => {
+            const items = request.result || [];
+            let updated = 0;
+            items.forEach(item => {
+                // If the old schema property exists, migrate it
+                if (item.count !== undefined && item.regularCount === undefined) {
+                    item.regularCount = item.count;
+                    item.foilCount = 0;
+                    delete item.count;
+                    store.put(item);
+                    updated++;
+                }
+            });
+            if (updated > 0) {
+                console.log(`[DB Migration] Migrated ${updated} cards to new foil schema.`);
+            }
+        };
+
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
     });
 }
 
@@ -87,11 +119,11 @@ export async function getInventory() {
     });
 }
 
-// Returns Map<uuid, count> for O(1) Smart-filter lookups
+// Returns Map<uuid, DBItem> for O(1) Smart-filter lookups, providing full foil counts
 export async function getInventoryMap() {
     const inventory = await getInventory();
     const map = new Map();
-    inventory.forEach(item => map.set(item.uuid, item.count));
+    inventory.forEach(item => map.set(item.uuid, item));
     return map;
 }
 
@@ -137,10 +169,21 @@ export async function saveToInventory(cards, source = 'manual') {
         for (const card of cards) {
             if (!card.uuid) continue;
             const existing = consolidatedMap.get(card.uuid);
+            const isFoil = !!card.isFoil;
+            const addCount = card.count || 1;
+
             if (existing) {
-                existing.count += (card.count || 1);
+                if (isFoil) {
+                    existing.foilCount += addCount;
+                } else {
+                    existing.regularCount += addCount;
+                }
             } else {
-                consolidatedMap.set(card.uuid, { ...card, count: (card.count || 1) });
+                consolidatedMap.set(card.uuid, { 
+                    ...card, 
+                    regularCount: isFoil ? 0 : addCount,
+                    foilCount: isFoil ? addCount : 0
+                });
             }
         }
         
@@ -157,9 +200,12 @@ export async function saveToInventory(cards, source = 'manual') {
             getReq.onsuccess = () => {
                 try {
                     let item = getReq.result;
-                    const addCount = card.count || 1;
                     if (item) {
-                        item.count += addCount;
+                        item.regularCount = (item.regularCount || 0) + (card.regularCount || 0);
+                        item.foilCount = (item.foilCount || 0) + (card.foilCount || 0);
+                        // Limpieza de schema legacy por si acaso
+                        if (item.count !== undefined) delete item.count;
+                        
                         item.isNew = true; 
                         stats.updated++;
                     } else {
@@ -168,7 +214,8 @@ export async function saveToInventory(cards, source = 'manual') {
                             name: card.name || 'Unknown Card', 
                             setCode: card.setCode || '???',
                             number: card.number || '0',
-                            count: addCount, 
+                            regularCount: card.regularCount || 0,
+                            foilCount: card.foilCount || 0,
                             rarity: card.rarity || 'common', 
                             colors: card.colors || [], 
                             type: card.type || 'Card', 

@@ -2579,3 +2579,50 @@ strong {
     transform: rotateX(80deg);
 }
 
+
+/* --- FOIL AND BONUS DROP EFFECTS --- */
+.foil-card-effect {
+    position: relative;
+    overflow: hidden;
+    transform-style: preserve-3d;
+    /* transition is handled inline or inherited, but parallax manipulates transform directly */
+}
+
+.foil-card-effect::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url('../assets/foil.jpeg');
+    background-size: 200% 200%;
+    background-position: var(--pos-x, 50%) var(--pos-y, 50%);
+    mix-blend-mode: color-dodge;
+    opacity: 0.6;
+    pointer-events: none;
+    z-index: 5;
+    border-radius: inherit;
+    transition: opacity 0.3s;
+}
+
+.foil-upgrade-label {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #ffd700;
+    font-family: var(--font-heading), 'Cinzel', serif;
+    font-weight: 800;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    text-shadow: 0px 2px 4px rgba(0,0,0,0.9), 0px 0px 8px rgba(0,0,0,1);
+    animation: goldPulse 2s infinite alternate;
+    z-index: 10;
+    background: rgba(0,0,0,0.5);
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(255,215,0,0.3);
+}
+
+@keyframes goldPulse {
+    0% { opacity: 0.8; text-shadow: 0px 2px 4px rgba(0,0,0,0.9), 0px 0px 8px rgba(0,0,0,1); }
+    100% { opacity: 1; text-shadow: 0px 2px 4px rgba(0,0,0,0.9), 0px 0px 15px rgba(255,215,0,0.8); }
+}

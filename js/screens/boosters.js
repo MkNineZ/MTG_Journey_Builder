@@ -267,8 +267,14 @@ async function generateBoosterWithPanelSettings(setData, index, runningInventory
 
     if (runningInventoryMap && smartFilter) {
         result.cards.forEach(c => {
-            const current = runningInventoryMap.get(c.uuid) || 0;
-            runningInventoryMap.set(c.uuid, current + 1);
+            const current = runningInventoryMap.get(c.uuid) || { regularCount: 0, foilCount: 0 };
+            const updated = { ...current };
+            if (c.isFoil) {
+                updated.foilCount = (updated.foilCount || 0) + 1;
+            } else {
+                updated.regularCount = (updated.regularCount || 0) + 1;
+            }
+            runningInventoryMap.set(c.uuid, updated);
         });
     }
 
@@ -285,8 +291,11 @@ export async function openBoosterClassic(index) {
 
     const result = await generateBoosterWithPanelSettings(setData, index);
     
-    state.currentOpeningPack = result.cards;
-    displayBooster(state.currentOpeningPack, result.stockWarning, false);
+    state.currentOpeningPack = {
+        cards: result.cards,
+        bonusUpgrades: result.bonusUpgrades
+    };
+    displayBooster(result.cards, result.stockWarning, false, result.bonusUpgrades);
 
     if (btn) { btn.innerText = '🗡️ Abrir 1 Sobre'; btn.disabled = false; }
 }
@@ -310,15 +319,20 @@ export async function openBoosterMassClassic(index) {
     let runningInventoryMap = smartFilter ? await getInventoryMap() : new Map();
 
     let allCards = [];
+    let allBonusUpgrades = [];
     let anyStockWarning = false;
     for (let i = 0; i < count; i++) {
         const result = await generateBoosterWithPanelSettings(setData, index, runningInventoryMap);
         allCards = allCards.concat(result.cards);
+        if (result.bonusUpgrades) allBonusUpgrades = allBonusUpgrades.concat(result.bonusUpgrades);
         if (result.stockWarning) anyStockWarning = true;
     }
     
-    state.currentOpeningPack = allCards;
-    displayBooster(state.currentOpeningPack, anyStockWarning, true);
+    state.currentOpeningPack = {
+        cards: allCards,
+        bonusUpgrades: allBonusUpgrades
+    };
+    displayBooster(allCards, anyStockWarning, true, allBonusUpgrades);
 
     if (btn) { btn.innerText = '📦 Abrir Múltiples'; btn.disabled = false; }
 }
@@ -413,14 +427,15 @@ export async function openBoosterMassCustomConfirm(index) {
 }
 
 export async function confirmBoosterSave() {
-    if (state.currentOpeningPack.length === 0) return;
+    if (!state.currentOpeningPack || !state.currentOpeningPack.cards || state.currentOpeningPack.cards.length === 0) return;
     try {
-        await saveToInventory(state.currentOpeningPack, 'booster');
-        state.incrementSessionCards(state.currentOpeningPack.length);
+        const allCardsToSave = [...state.currentOpeningPack.cards, ...(state.currentOpeningPack.bonusUpgrades || [])];
+        await saveToInventory(allCardsToSave, 'booster');
+        state.incrementSessionCards(allCardsToSave.length);
         await state.loadInventory();
         document.getElementById('booster-result-container').style.display = 'none';
         document.getElementById('booster-stock-warning').style.display = 'none';
-        state.currentOpeningPack = [];
+        state.currentOpeningPack = { cards: [], bonusUpgrades: [] };
         alert('¡Cartas añadidas correctamente!');
     } catch (err) {
         console.error('Error al guardar sobres:', err);
@@ -431,13 +446,14 @@ export async function confirmBoosterSave() {
 export function discardBooster() {
     document.getElementById('booster-result-container').style.display = 'none';
     document.getElementById('booster-stock-warning').style.display = 'none';
-    state.currentOpeningPack = [];
+    state.currentOpeningPack = { cards: [], bonusUpgrades: [] };
 }
 
 let currentBoosterModalIndex = -1;
 
 export function openBoosterModal(uuid) {
-    const cardData = state.currentOpeningPack.find(c => c.uuid === uuid);
+    const allPacks = [...(state.currentOpeningPack.cards || []), ...(state.currentOpeningPack.bonusUpgrades || [])];
+    const cardData = allPacks.find(c => c.uuid === uuid);
     if (!cardData) return;
     
     const modal = document.getElementById('booster-modal');
@@ -542,29 +558,61 @@ async function generateBoosterClassic(setData) {
     return selected.map(c => cardToBoosterEntry(c, setData.code));
 }
 
-async function generateBoosterCustom(setData, counts, colors, inventoryMap) {
-    if (!setData?.cards) return { cards: [], stockWarning: false };
+async function generateBoosterCustom(setData, countsRaw, colors, inventoryMap) {
+    if (!setData?.cards) return { cards: [], bonusUpgrades: [], stockWarning: false };
 
     let pool = [...setData.cards];
+    const counts = { ...countsRaw };
 
     // 1. Color identity filter
     if (colors.length > 0) {
         pool = pool.filter(c => {
             const ci = c.colorIdentity || [];
-            // Colorless / artifacts: always included
             if (ci.length === 0) return true;
-            // Every color of the card must be in the selected colors
             return ci.every(color => colors.includes(color));
         });
     }
 
-    // 2. Smart filter: skip cards with ≥4 copies
-    if (inventoryMap.size > 0) {
-        pool = pool.filter(c => (inventoryMap.get(c.uuid) ?? 0) < 4);
+    let selected = [];
+    let bonusUpgradesRaw = [];
+    let stockWarning = false;
+
+    // --- Foil Engine (22.5% Drop Rate) ---
+    // Replaces 1 common if triggered and valid
+    if (Math.random() < 0.225 && counts.common > 0) {
+        const foilRoll = Math.random();
+        let foilRarity = 'common';
+        if (foilRoll < 0.01) foilRarity = 'mythic';
+        else if (foilRoll < 0.09) foilRarity = 'rare';
+        else if (foilRoll < 0.29) foilRarity = 'uncommon';
+
+        const foilPool = pool.filter(c => c.rarity === foilRarity);
+        if (foilPool.length > 0) {
+            const pickedRawFoil = getRandom(foilPool, 1)[0];
+            const dbCard = inventoryMap.get(pickedRawFoil.uuid) || {};
+            const totalOwned = (dbCard.regularCount || 0) + (dbCard.foilCount || 0);
+
+            const clonedFoil = { ...pickedRawFoil, _isFoil: true };
+
+            if (totalOwned >= 4) {
+                // BONUS UPGRADE: User already has 4. Send to bonus, don't consume common slot (reroll)
+                bonusUpgradesRaw.push(clonedFoil);
+            } else {
+                // NORMAL UPGRADE: Consume 1 common slot
+                selected.push(clonedFoil);
+                counts.common--;
+            }
+        }
     }
 
-    let selected = [];
-    let stockWarning = false;
+    // 2. Smart filter: skip cards with >=4 copies (regular + foil) for the rest of the pack
+    if (inventoryMap.size > 0) {
+        pool = pool.filter(c => {
+            const dbCard = inventoryMap.get(c.uuid) || {};
+            const totalOwned = (dbCard.regularCount || 0) + (dbCard.foilCount || 0);
+            return totalOwned < 4;
+        });
+    }
 
     for (const [rarity, count] of Object.entries(counts)) {
         if (count <= 0) continue;
@@ -601,8 +649,15 @@ async function generateBoosterCustom(setData, counts, colors, inventoryMap) {
         selected.push(...picked);
     }
 
+    const mapFn = c => {
+        const entry = cardToBoosterEntry(c, setData.code);
+        if (c._isFoil) entry.isFoil = true;
+        return entry;
+    };
+
     return {
-        cards: selected.map(c => cardToBoosterEntry(c, setData.code)),
+        cards: selected.map(mapFn),
+        bonusUpgrades: bonusUpgradesRaw.map(mapFn),
         stockWarning
     };
 }
@@ -650,7 +705,7 @@ function getLocalizedName(card, lang) {
     return card.name;
 }
 
-export function displayBooster(cards, stockWarning = false, isMassOpen = false) {
+export function displayBooster(cards, stockWarning = false, isMassOpen = false, bonusUpgrades = []) {
     const resultContainer = document.getElementById('booster-result-container');
     const grid            = document.getElementById('booster-result');
     const warning         = document.getElementById('booster-stock-warning');
@@ -676,11 +731,210 @@ export function displayBooster(cards, stockWarning = false, isMassOpen = false) 
         const color       = rarityColors[c.rarity?.toLowerCase()] || '#ccc';
         const imgUrl      = getCardImageUrl(c, lang);
         const fallbackUrl = getCardImageUrlEn(c);
+        
+        const foilClass = c.isFoil ? 'foil-card-effect' : '';
+        const bonusLabel = c._isBonus ? '<div class="foil-upgrade-label">UPGRADE FOIL</div>' : '';
 
         return `
-            <div class="booster-card-item card-skeleton"
-                style="border: 2px solid ${color}; border-radius: 10px; overflow: hidden; background: #000; position: relative; transition: transform 0.2s; cursor: pointer;"
+            <div class="booster-card-item card-skeleton ${foilClass}"
+                style="border: 2px solid ${color}; border-radius: 10px; overflow: hidden; background: #000; position: relative; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;"
                 data-uuid="${c.uuid}">
+                ${bonusLabel}
+                <img src="${imgUrl}" alt="${c.name}" loading="lazy"
+                    style="width: 100%; display: block; opacity: 0; transition: opacity 0.3s ease;"
+                    onload="this.style.opacity=1; this.parentElement.classList.remove('card-skeleton');"
+                    onerror="this.onerror=null; this.src='${fallbackUrl}';">
+                <div style="position: absolute; bottom: 0; width: 100%; padding: 0.35rem; background: rgba(0,0,0,0.75); text-align: center; font-size: 0.65rem; color: ${color}; font-weight: 700; letter-spacing: 1px;">
+                    ${c.rarity.toUpperCase()}
+                </div>
+            </div>`;
+    };
+
+    if (isMassOpen) {
+        // Group by rarity and lands for mass openings
+        const groups = { mythic: [], rare: [], uncommon: [], common: [], special_land: [], basic_land: [] };
+        cards.forEach(c => {
+            const typeLine = (c.type || '').toLowerCase();
+            if (typeLine.includes('land')) {
+                if (typeLine.includes('basic')) {
+                    groups.basic_land.push(c);
+                } else {
+                    groups.special_land.push(c);
+                }
+            } else {
+                const r = c.rarity?.toLowerCase();
+                if (groups[r]) groups[r].push(c);
+                else groups.common.push(c);
+            }
+        });
+
+        const rarityNames = { 
+            mythic: 'Míticas', rare: 'Raras', uncommon: 'Infrecuentes', common: 'Comunes',
+            special_land: 'Tierras Especiales', basic_land: 'Tierras Básicas'
+        };
+        const sectionColors = { ...rarityColors, special_land: '#e67e22', basic_land: '#7f8c8d' };
+        
+        let groupedHtml = '';
+        ['mythic', 'rare', 'uncommon', 'common', 'special_land', 'basic_land'].forEach(r => {
+            if (groups[r].length > 0) {
+                groupedHtml += `
+                    <div style="grid-column: 1 / -1; border-bottom: 2px solid ${sectionColors[r]}40; margin-top: 1.5rem; margin-bottom: 0.5rem; padding-bottom: 0.5rem;">
+                        <h3 style="color: ${sectionColors[r]}; margin: 0; text-transform: uppercase; letter-spacing: 1px;">
+                            ${rarityNames[r]} <span style="opacity:0.6; font-size:0.9em; font-weight: normal;">(${groups[r].length})</span>
+                        </h3>
+                    </div>
+                `;
+                groupedHtml += groups[r].map(renderCard).join('');
+            }
+        });
+        grid.innerHTML = groupedHtml;
+    } else {
+        grid.innerHTML = cards.map(renderCard).join('');
+    }
+
+    // Generate plain text export
+    const counts = {};
+    cards.forEach(c => {
+        const localizedName = getLocalizedName(c, lang);
+        counts[localizedName] = (counts[localizedName] || 0) + 1;
+    });
+    
+    if (exportText) {
+    // 2. Smart filter: skip cards with >=4 copies (regular + foil) for the rest of the pack
+    if (inventoryMap.size > 0) {
+        pool = pool.filter(c => {
+            const dbCard = inventoryMap.get(c.uuid) || {};
+            const totalOwned = (dbCard.regularCount || 0) + (dbCard.foilCount || 0);
+            return totalOwned < 4;
+        });
+    }
+
+    for (const [rarity, count] of Object.entries(counts)) {
+        if (count <= 0) continue;
+        
+        let picked = [];
+        // If picking rares and mythic is 0, give a 1/8 chance to upgrade each rare slot to mythic
+        if (rarity === 'rare' && (counts.mythic || 0) === 0) {
+            let rarePool = pool.filter(c => c.rarity === 'rare');
+            let mythicPool = pool.filter(c => c.rarity === 'mythic');
+            
+            for (let i = 0; i < count; i++) {
+                if (mythicPool.length > 0 && Math.random() < 0.125) {
+                    const m = getRandom(mythicPool, 1);
+                    if (m.length > 0) {
+                        picked.push(m[0]);
+                        mythicPool = mythicPool.filter(c => c.uuid !== m[0].uuid);
+                    } else {
+                        const r = getRandom(rarePool, 1);
+                        picked.push(...r);
+                        if (r.length > 0) rarePool = rarePool.filter(c => c.uuid !== r[0].uuid);
+                    }
+                } else {
+                    const r = getRandom(rarePool, 1);
+                    picked.push(...r);
+                    if (r.length > 0) rarePool = rarePool.filter(c => c.uuid !== r[0].uuid);
+                }
+            }
+        } else {
+            const rarityPool = pool.filter(c => c.rarity === rarity);
+            picked = getRandom(rarityPool, count);
+        }
+
+        if (picked.length < count) stockWarning = true;
+        selected.push(...picked);
+    }
+
+    const mapFn = c => {
+        const entry = cardToBoosterEntry(c, setData.code);
+        if (c._isFoil) entry.isFoil = true;
+        return entry;
+    };
+
+    return {
+        cards: selected.map(mapFn),
+        bonusUpgrades: bonusUpgradesRaw.map(mapFn),
+        stockWarning
+    };
+}
+
+function cardToBoosterEntry(c, setCode) {
+    return {
+        uuid:       c.uuid,
+        name:       c.name,
+        setCode:    setCode,
+        number:     c.number,          // needed for Scryfall set+number URL
+        lang:       state.language || 'en', // snapshot language at generation time
+        rarity:     c.rarity || 'common',
+        type:       c.type   || 'Unknown',
+        colors:     c.colors || [],
+        scryfallId: c.identifiers?.scryfallId ?? null
+    };
+}
+
+function getRandom(arr, count) {
+    return [...arr].sort(() => 0.5 - Math.random()).slice(0, count);
+}
+
+// ─── Display ──────────────────────────────────────────────────────────────────
+
+function getLocalizedName(card, lang) {
+    if (!lang || lang === 'en') return card.name;
+    const LANG_MAP = {
+        'es': 'Spanish', 'fr': 'French', 'it': 'Italian', 'de': 'German',
+        'pt': 'Portuguese (Brazil)', 'ja': 'Japanese', 'ko': 'Korean',
+        'ru': 'Russian', 'zhs': 'Chinese Simplified', 'zht': 'Chinese Traditional'
+    };
+    const targetLang = LANG_MAP[lang];
+    
+    // Look up the full dbCard from active sets to get foreignData
+    let dbCard = null;
+    for (const set of state.activeSetsData) {
+        dbCard = (set.cards || []).find(c => c.uuid === card.uuid);
+        if (dbCard) break;
+    }
+    
+    if (dbCard && dbCard.foreignData) {
+        const foreign = dbCard.foreignData.find(f => f.language === targetLang);
+        if (foreign && foreign.name) return foreign.name;
+    }
+    return card.name;
+}
+
+export function displayBooster(cards, stockWarning = false, isMassOpen = false, bonusUpgrades = []) {
+    const resultContainer = document.getElementById('booster-result-container');
+    const grid            = document.getElementById('booster-result');
+    const warning         = document.getElementById('booster-stock-warning');
+    const exportText      = document.getElementById('booster-export-text');
+    const exportWrapper   = document.getElementById('booster-export-wrapper');
+    const lang            = state.language || 'en';
+
+    console.log('[Boosters] Renderizando', cards.length, 'cartas en idioma:', lang);
+
+    const rarityColors = {
+        common: '#ccc', uncommon: '#3498db', rare: '#f1c40f', mythic: '#e74c3c'
+    };
+
+    resultContainer.style.display = 'block';
+    warning.style.display = stockWarning ? 'block' : 'none';
+    
+    // Maintain export text area visible always
+    if (exportWrapper) {
+        exportWrapper.style.display = 'flex';
+    }
+
+    const renderCard = c => {
+        const color       = rarityColors[c.rarity?.toLowerCase()] || '#ccc';
+        const imgUrl      = getCardImageUrl(c, lang);
+        const fallbackUrl = getCardImageUrlEn(c);
+        
+        const foilClass = c.isFoil ? 'foil-card-effect' : '';
+        const bonusLabel = c._isBonus ? '<div class="foil-upgrade-label">UPGRADE FOIL</div>' : '';
+
+        return `
+            <div class="booster-card-item card-skeleton ${foilClass}"
+                style="border: 2px solid ${color}; border-radius: 10px; overflow: hidden; background: #000; position: relative; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;"
+                data-uuid="${c.uuid}">
+                ${bonusLabel}
                 <img src="${imgUrl}" alt="${c.name}" loading="lazy"
                     style="width: 100%; display: block; opacity: 0; transition: opacity 0.3s ease;"
                     onload="this.style.opacity=1; this.parentElement.classList.remove('card-skeleton');"
@@ -747,4 +1001,53 @@ export function displayBooster(cards, stockWarning = false, isMassOpen = false) 
     }
 
     resultContainer.scrollIntoView({ behavior: 'smooth' });
+
+    // --- Bonus Upgrades (Bonus Drop) ---
+    if (bonusUpgrades && bonusUpgrades.length > 0) {
+        let bonusHtml = `
+            <div style="grid-column: 1 / -1; margin-top: 2rem; margin-bottom: 1rem; text-align: center;">
+                <hr style="border: 0; border-top: 2px solid rgba(255, 215, 0, 0.3); width: 50%; margin: 0 auto 1rem auto;">
+                <h3 style="color: #ffd700; font-family: var(--font-heading); margin: 0; text-shadow: 0 0 10px rgba(255,215,0,0.5);">✨ BONUS DROP ✨</h3>
+                <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.5rem;">Cartas foil extra obtenidas por exceder 4 copias.</p>
+            </div>
+        `;
+        bonusUpgrades.forEach(c => {
+            const bCard = { ...c, _isBonus: true };
+            bonusHtml += renderCard(bCard);
+        });
+        grid.innerHTML += bonusHtml;
+    }
+
+    // --- 3D Parallax Tilt for Foil Cards ---
+    setTimeout(() => {
+        document.querySelectorAll('.foil-card-effect').forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                const xPercent = (x / rect.width) * 100;
+                const yPercent = (y / rect.height) * 100;
+
+                const rotX = ((y / rect.height) - 0.5) * -30;
+                const rotY = ((x / rect.width) - 0.5) * 30;
+
+                card.style.setProperty('--pos-x', `${xPercent}%`);
+                card.style.setProperty('--pos-y', `${yPercent}%`);
+                card.style.setProperty('--rot-x', `${rotX}deg`);
+                card.style.setProperty('--rot-y', `${rotY}deg`);
+                card.style.transform = `perspective(1000px) rotateX(var(--rot-x)) rotateY(var(--rot-y)) scale(1.05)`;
+                card.style.zIndex = '10';
+                card.style.boxShadow = `0 15px 30px rgba(0,0,0,0.8)`;
+            });
+
+            card.addEventListener('mouseleave', () => {
+                card.style.setProperty('--pos-x', `50%`);
+                card.style.setProperty('--pos-y', `50%`);
+                card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1)`;
+                card.style.zIndex = '1';
+                card.style.boxShadow = `none`;
+            });
+        });
+    }, 50);
 }
