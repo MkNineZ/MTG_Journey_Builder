@@ -104,17 +104,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ── Scroll to Top Logic ───────────────────────────────────────────────────
     const scrollTopBtn = document.getElementById('scroll-top-btn');
     if (scrollTopBtn) {
-        // Listen to scroll events on document (with capture phase to catch overflow: auto containers)
+        // Escuchamos el scroll a nivel de ventana para toda la página
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 300) {
+                scrollTopBtn.classList.add('visible');
+            } else {
+                scrollTopBtn.classList.remove('visible');
+            }
+        });
+
+        // Opcional: Escuchar también si hay algún contenedor interno con scroll
         document.addEventListener('scroll', (e) => {
             const target = e.target;
-            if (target && target.classList && target.classList.contains('app-main-content')) {
+            // Ignorar el document en sí porque ya lo controlamos arriba con window
+            if (target && target !== document && target.scrollTop !== undefined) {
                 if (target.scrollTop > 300) {
                     scrollTopBtn.classList.add('visible');
-                    // Store the current active scroll container so the button knows where to scroll
-                    scrollTopBtn.dataset.activeScrollContainer = target.id || '';
                     scrollTopBtn.activeScrollElement = target;
                 } else {
                     scrollTopBtn.classList.remove('visible');
+                    scrollTopBtn.activeScrollElement = null;
                 }
             }
         }, true);
@@ -122,6 +131,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         scrollTopBtn.addEventListener('click', () => {
             if (scrollTopBtn.activeScrollElement) {
                 scrollTopBtn.activeScrollElement.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         });
     }

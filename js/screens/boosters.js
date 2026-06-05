@@ -568,8 +568,35 @@ async function generateBoosterCustom(setData, counts, colors, inventoryMap) {
 
     for (const [rarity, count] of Object.entries(counts)) {
         if (count <= 0) continue;
-        const rarityPool = pool.filter(c => c.rarity === rarity);
-        const picked = getRandom(rarityPool, count);
+        
+        let picked = [];
+        // If picking rares and mythic is 0, give a 1/8 chance to upgrade each rare slot to mythic
+        if (rarity === 'rare' && (counts.mythic || 0) === 0) {
+            let rarePool = pool.filter(c => c.rarity === 'rare');
+            let mythicPool = pool.filter(c => c.rarity === 'mythic');
+            
+            for (let i = 0; i < count; i++) {
+                if (mythicPool.length > 0 && Math.random() < 0.125) {
+                    const m = getRandom(mythicPool, 1);
+                    if (m.length > 0) {
+                        picked.push(m[0]);
+                        mythicPool = mythicPool.filter(c => c.uuid !== m[0].uuid);
+                    } else {
+                        const r = getRandom(rarePool, 1);
+                        picked.push(...r);
+                        if (r.length > 0) rarePool = rarePool.filter(c => c.uuid !== r[0].uuid);
+                    }
+                } else {
+                    const r = getRandom(rarePool, 1);
+                    picked.push(...r);
+                    if (r.length > 0) rarePool = rarePool.filter(c => c.uuid !== r[0].uuid);
+                }
+            }
+        } else {
+            const rarityPool = pool.filter(c => c.rarity === rarity);
+            picked = getRandom(rarityPool, count);
+        }
+
         if (picked.length < count) stockWarning = true;
         selected.push(...picked);
     }
