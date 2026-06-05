@@ -241,7 +241,7 @@ function hideGhostPortal() {
 
 // ─── Exported actions (called from app.js global delegation) ──────────────────
 
-async function generateBoosterWithPanelSettings(setData, index) {
+async function generateBoosterWithPanelSettings(setData, index, runningInventoryMap = null) {
     const panel = document.getElementById(`custom-panel-${index}`);
     if (!panel) return { cards: await generateBoosterClassic(setData), stockWarning: false };
 
@@ -257,9 +257,22 @@ async function generateBoosterWithPanelSettings(setData, index) {
 
     const smartFilter = panel.querySelector('.smart-filter-cb')?.checked ?? true;
 
-    // Si los colores están vacíos y las cantidades son las de defecto (10, 3, 1, 0), podríamos usar el clásico para ir más rápido, pero generateBoosterCustom lo maneja bien.
-    const inventoryMap = smartFilter ? await getInventoryMap() : new Map();
-    return await generateBoosterCustom(setData, counts, colors, inventoryMap);
+    let inventoryMap = runningInventoryMap;
+    if (!inventoryMap && smartFilter) {
+        inventoryMap = await getInventoryMap();
+    }
+    if (!smartFilter) inventoryMap = new Map();
+
+    const result = await generateBoosterCustom(setData, counts, colors, inventoryMap);
+
+    if (runningInventoryMap && smartFilter) {
+        result.cards.forEach(c => {
+            const current = runningInventoryMap.get(c.uuid) || 0;
+            runningInventoryMap.set(c.uuid, current + 1);
+        });
+    }
+
+    return result;
 }
 
 export async function openBoosterClassic(index) {
@@ -293,10 +306,13 @@ export async function openBoosterMassClassic(index) {
     const btn = document.querySelector(`.open-booster-mass-classic[data-index="${index}"]`);
     if (btn) { btn.innerText = 'Abriendo...'; btn.disabled = true; }
 
+    const smartFilter = document.querySelector(`#custom-panel-${index} .smart-filter-cb`)?.checked ?? true;
+    let runningInventoryMap = smartFilter ? await getInventoryMap() : new Map();
+
     let allCards = [];
     let anyStockWarning = false;
     for (let i = 0; i < count; i++) {
-        const result = await generateBoosterWithPanelSettings(setData, index);
+        const result = await generateBoosterWithPanelSettings(setData, index, runningInventoryMap);
         allCards = allCards.concat(result.cards);
         if (result.stockWarning) anyStockWarning = true;
     }
@@ -624,9 +640,9 @@ export function displayBooster(cards, stockWarning = false, isMassOpen = false) 
     resultContainer.style.display = 'block';
     warning.style.display = stockWarning ? 'block' : 'none';
     
-    // Conditionally show/hide the export text area wrapper for mass openings
+    // Maintain export text area visible always
     if (exportWrapper) {
-        exportWrapper.style.display = isMassOpen ? 'none' : 'flex';
+        exportWrapper.style.display = 'flex';
     }
 
     const renderCard = c => {
@@ -649,22 +665,35 @@ export function displayBooster(cards, stockWarning = false, isMassOpen = false) 
     };
 
     if (isMassOpen) {
-        // Group by rarity for mass openings
-        const groups = { mythic: [], rare: [], uncommon: [], common: [] };
+        // Group by rarity and lands for mass openings
+        const groups = { mythic: [], rare: [], uncommon: [], common: [], special_land: [], basic_land: [] };
         cards.forEach(c => {
-            const r = c.rarity?.toLowerCase();
-            if (groups[r]) groups[r].push(c);
-            else groups.common.push(c);
+            const typeLine = (c.type || '').toLowerCase();
+            if (typeLine.includes('land')) {
+                if (typeLine.includes('basic')) {
+                    groups.basic_land.push(c);
+                } else {
+                    groups.special_land.push(c);
+                }
+            } else {
+                const r = c.rarity?.toLowerCase();
+                if (groups[r]) groups[r].push(c);
+                else groups.common.push(c);
+            }
         });
 
-        const rarityNames = { mythic: 'Míticas', rare: 'Raras', uncommon: 'Infrecuentes', common: 'Comunes' };
+        const rarityNames = { 
+            mythic: 'Míticas', rare: 'Raras', uncommon: 'Infrecuentes', common: 'Comunes',
+            special_land: 'Tierras Especiales', basic_land: 'Tierras Básicas'
+        };
+        const sectionColors = { ...rarityColors, special_land: '#e67e22', basic_land: '#7f8c8d' };
         
         let groupedHtml = '';
-        ['mythic', 'rare', 'uncommon', 'common'].forEach(r => {
+        ['mythic', 'rare', 'uncommon', 'common', 'special_land', 'basic_land'].forEach(r => {
             if (groups[r].length > 0) {
                 groupedHtml += `
-                    <div style="grid-column: 1 / -1; border-bottom: 2px solid ${rarityColors[r]}40; margin-top: 1.5rem; margin-bottom: 0.5rem; padding-bottom: 0.5rem;">
-                        <h3 style="color: ${rarityColors[r]}; margin: 0; text-transform: uppercase; letter-spacing: 1px;">
+                    <div style="grid-column: 1 / -1; border-bottom: 2px solid ${sectionColors[r]}40; margin-top: 1.5rem; margin-bottom: 0.5rem; padding-bottom: 0.5rem;">
+                        <h3 style="color: ${sectionColors[r]}; margin: 0; text-transform: uppercase; letter-spacing: 1px;">
                             ${rarityNames[r]} <span style="opacity:0.6; font-size:0.9em; font-weight: normal;">(${groups[r].length})</span>
                         </h3>
                     </div>
