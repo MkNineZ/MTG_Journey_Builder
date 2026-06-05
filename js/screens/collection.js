@@ -458,10 +458,12 @@ function renderCard(c) {
     const fallbackUrl = getCardImageUrlEn(c);
     const glowClass   = c.isNew ? `glow-active glow-${rarity}` : '';
 
+    const badgeCount = (c.regularCount || 0) + (c.foilCount || 0);
+
     return `
         <div class="library-card deck-inv-card ${glowClass}" data-uuid="${c.uuid}" style="position: relative; cursor: pointer; border: 2px solid ${color}; background: #000;">
             <img src="${imgUrl}" alt="${c.name}" loading="lazy" class="deck-inv-img" style="opacity: 0;" onload="this.style.opacity=1;" onerror="this.onerror=null; this.src='${fallbackUrl}';">
-            <div class="card-quantity-badge">x${c.count}</div>
+            <div class="card-quantity-badge">x${badgeCount}</div>
             <div style="padding: 0.5rem 0.7rem; background: rgba(0,0,0,0.85); display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); position: relative; z-index: 2;">
                 <i class="ss ss-${c.setCode.toLowerCase()} ss-mtg" style="font-size: 1.1rem; color: ${color};"></i>
                 <span style="color: ${color}; font-size: 0.7rem; font-weight: 600; text-transform: uppercase;">${rarity}</span>

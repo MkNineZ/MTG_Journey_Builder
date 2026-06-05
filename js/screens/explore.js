@@ -173,11 +173,12 @@ function renderCard(c, owned) {
     const imgUrl      = getCardImageUrl(c, lang);
     const fallbackUrl = getCardImageUrlEn(c);
     const isOwned     = !!owned;
+    const badgeCount  = isOwned ? (owned.regularCount || 0) + (owned.foilCount || 0) : 0;
     const styleOwned = isOwned ? '' : 'filter: grayscale(60%) brightness(0.7); opacity: 0.8;';
 
     return `
         <div class="library-card card-skeleton" data-uuid="${c.uuid}" data-rarity="${rarity}" style="position: relative; cursor: pointer; border: 2px solid ${isOwned ? color : '#333'}; border-radius: 12px; overflow: hidden; background: #000; transition: all 0.3s ease; ${styleOwned}">
-            ${isOwned ? `<div class="card-quantity-badge">x${owned.count}</div>` : ''}
+            ${isOwned ? `<div class="card-quantity-badge">x${badgeCount}</div>` : ''}
             <img src="${imgUrl}" alt="${c.name}" loading="lazy" style="width: 100%; display: block; opacity: 0; transition: opacity 0.3s ease;" onload="this.style.opacity=1; this.parentElement.classList.remove('card-skeleton');" onerror="this.onerror=null; this.src='${fallbackUrl}';">
             <div style="padding: 0.7rem; background: rgba(0,0,0,0.85); display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); position: relative; z-index: 2;">
                 <i class="ss ss-${c.setCode.toLowerCase()} ss-mtg" style="font-size: 1.2rem; color: ${isOwned ? color : '#555'};"></i>
@@ -239,7 +240,7 @@ function openModal(cardData) {
         const imgUrl = getCardImageUrl(data, lang);
         const fallbackUrl = getCardImageUrlEn(data);
         const inventoryItem = state.inventory.find(i => i.uuid === data.uuid);
-        let currentCount = inventoryItem ? inventoryItem.count : 0;
+        let currentCount = inventoryItem ? (inventoryItem.regularCount || 0) + (inventoryItem.foilCount || 0) : 0;
 
         content.innerHTML = `
             <button id="modal-prev" class="modal-nav-btn"><i class="fas fa-chevron-left"></i></button>

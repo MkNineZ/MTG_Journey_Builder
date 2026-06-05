@@ -200,12 +200,23 @@ function getGhostPortal() {
     if (!ghostPortal) {
         ghostPortal = document.createElement('div');
         ghostPortal.className = 'ghost-zoom-portal';
+        
+        const inner = document.createElement('div');
+        inner.className = 'ghost-portal-inner';
+        inner.style.width = '100%';
+        inner.style.height = '100%';
+        inner.style.borderRadius = 'inherit';
+        inner.style.transition = 'transform 0.1s ease-out';
+        
         const img = document.createElement('img');
         img.style.width = '100%';
         img.style.height = '100%';
         img.style.objectFit = 'contain';
         img.style.borderRadius = 'inherit';
-        ghostPortal.appendChild(img);
+        img.style.display = 'block';
+        
+        inner.appendChild(img);
+        ghostPortal.appendChild(inner);
         document.body.appendChild(ghostPortal);
     }
     return ghostPortal;
@@ -213,15 +224,17 @@ function getGhostPortal() {
 
 function showGhostPortal(cardEl) {
     const portal = getGhostPortal();
+    const inner = portal.querySelector('.ghost-portal-inner');
     const imgEl  = cardEl.querySelector('img');
     if (!imgEl) return;
 
     portal.dataset.activeUuid = cardEl.dataset.uuid;
 
     if (cardEl.classList.contains('foil-card-effect')) {
-        portal.classList.add('foil-card-effect');
+        inner.classList.add('foil-card-effect');
     } else {
-        portal.classList.remove('foil-card-effect');
+        inner.classList.remove('foil-card-effect');
+        inner.style.transform = 'none';
     }
 
     const rect = cardEl.getBoundingClientRect();
@@ -233,7 +246,7 @@ function showGhostPortal(cardEl) {
     let finalLeft = rect.left;
     if (finalLeft - offset < 20) finalLeft = 20 + offset;
 
-    const portalImg = portal.querySelector('img');
+    const portalImg = inner.querySelector('img');
     portalImg.src = imgEl.src;
     portal.style.width  = rect.width + 'px';
     portal.style.height = rect.height + 'px';
@@ -243,16 +256,16 @@ function showGhostPortal(cardEl) {
     portal.style.display = 'block';
     requestAnimationFrame(() => {
         portal.classList.add('visible');
+        portal.style.transform = `scale(${zoom})`;
+        
         if (cardEl.classList.contains('foil-card-effect')) {
             const rotX = cardEl.style.getPropertyValue('--rot-x') || '0deg';
             const rotY = cardEl.style.getPropertyValue('--rot-y') || '0deg';
-            portal.style.setProperty('--pos-x', cardEl.style.getPropertyValue('--pos-x') || '50%');
-            portal.style.setProperty('--pos-y', cardEl.style.getPropertyValue('--pos-y') || '50%');
-            portal.style.setProperty('--rot-x', rotX);
-            portal.style.setProperty('--rot-y', rotY);
-            portal.style.transform = `scale(${zoom}) perspective(1000px) rotateX(${rotX}) rotateY(${rotY})`;
-        } else {
-            portal.style.transform = `scale(${zoom})`;
+            inner.style.setProperty('--pos-x', cardEl.style.getPropertyValue('--pos-x') || '50%');
+            inner.style.setProperty('--pos-y', cardEl.style.getPropertyValue('--pos-y') || '50%');
+            inner.style.setProperty('--rot-x', rotX);
+            inner.style.setProperty('--rot-y', rotY);
+            inner.style.transform = `perspective(1000px) rotateX(${rotX}) rotateY(${rotY})`;
         }
     });
 }
@@ -261,6 +274,11 @@ function hideGhostPortal() {
     if (!ghostPortal) return;
     ghostPortal.classList.remove('visible');
     ghostPortal.style.transform = 'scale(1)';
+    const inner = ghostPortal.querySelector('.ghost-portal-inner');
+    if (inner) {
+        inner.style.transform = 'none';
+        inner.classList.remove('foil-card-effect');
+    }
     setTimeout(() => { if (!ghostPortal.classList.contains('visible')) ghostPortal.style.display = 'none'; }, 200);
 }
 
@@ -920,12 +938,14 @@ export function displayBooster(cards, stockWarning = false, isMassOpen = false, 
                 card.style.boxShadow = `0 15px 30px rgba(0,0,0,0.8)`;
 
                 if (ghostPortal && ghostPortal.classList.contains('visible') && ghostPortal.dataset.activeUuid === card.dataset.uuid) {
-                    ghostPortal.style.setProperty('--pos-x', `${xPercent}%`);
-                    ghostPortal.style.setProperty('--pos-y', `${yPercent}%`);
-                    ghostPortal.style.setProperty('--rot-x', `${rotX}deg`);
-                    ghostPortal.style.setProperty('--rot-y', `${rotY}deg`);
-                    const portalZoom = getComputedStyle(document.documentElement).getPropertyValue('--card-hover-zoom') || '1.4';
-                    ghostPortal.style.transform = `scale(${portalZoom}) perspective(1000px) rotateX(var(--rot-x)) rotateY(var(--rot-y))`;
+                    const inner = ghostPortal.querySelector('.ghost-portal-inner');
+                    if (inner) {
+                        inner.style.setProperty('--pos-x', `${xPercent}%`);
+                        inner.style.setProperty('--pos-y', `${yPercent}%`);
+                        inner.style.setProperty('--rot-x', `${rotX}deg`);
+                        inner.style.setProperty('--rot-y', `${rotY}deg`);
+                        inner.style.transform = `perspective(1000px) rotateX(var(--rot-x)) rotateY(var(--rot-y))`;
+                    }
                 }
             });
 

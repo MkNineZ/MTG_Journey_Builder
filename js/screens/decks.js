@@ -847,6 +847,7 @@ function openCardModal(uuid) {
     const imgUrl      = getCardImageUrl(card, state.language || 'en');
     const fallbackUrl = getCardImageUrlEn(card);
     const inDeck      = totalInDeck(card.name);
+    const badgeCount = (card.regularCount || 0) + (card.foilCount || 0);
 
     document.getElementById('deck-card-modal-content').innerHTML = `
         <button id="deck-modal-close" class="deck-modal-close">✕</button>
@@ -861,8 +862,8 @@ function openCardModal(uuid) {
                 ${card.setCode?.toUpperCase()} · ${card.rarity}
             </p>
             <p style="font-size:0.9rem;margin-bottom:1.5rem;">
-                Tienes: <strong style="color:var(--accent-secondary)">${card.count}</strong> &nbsp;·&nbsp;
-                En mazo: <strong style="color:${inDeck>card.count?'#e74c3c':'var(--text-primary)'}">${inDeck}</strong>
+                Tienes: <strong style="color:var(--accent-secondary)">${badgeCount}</strong> &nbsp;·&nbsp;
+                En mazo: <strong style="color:${inDeck>badgeCount?'#e74c3c':'var(--text-primary)'}">${inDeck}</strong>
             </p>
             <div style="display:flex;flex-direction:column;gap:0.6rem;">
                 <button class="save-btn deck-modal-add" data-uuid="${card.uuid}" data-zone="mainboard">+ Añadir al Mainboard</button>
@@ -901,10 +902,11 @@ function renderInventoryGrid() {
         const imgUrl      = getCardImageUrl(card, lang);
         const fallbackUrl = getCardImageUrlEn(card);
         const inDeck      = totalInDeck(card.name);
+        const badgeCount  = (card.regularCount || 0) + (card.foilCount || 0);
         
         const atLimit     = !isBasicLand(card) && inDeck >= MAX_COPIES;
-        const noStock     = card.count <= 0;
-        const outOfStock  = inDeck >= card.count;
+        const noStock     = badgeCount <= 0;
+        const outOfStock  = inDeck >= badgeCount;
         const isDisabled  = atLimit || noStock || outOfStock;
         
         const cardStyle   = isDisabled ? 'opacity: 0.3; cursor: not-allowed;' 
@@ -912,11 +914,11 @@ function renderInventoryGrid() {
         
         return `
             <div class="deck-inv-card" data-uuid="${card.uuid}" style="${cardStyle}"
-                 title="${card.name} — Tienes: ${card.count} | En mazo: ${inDeck}">
+                 title="${card.name} — Tienes: ${badgeCount} | En mazo: ${inDeck}">
                 <img src="${imgUrl}" alt="${card.name}" loading="lazy" class="deck-inv-img"
                      onload="this.style.opacity=1"
                      onerror="this.onerror=null;this.src='${fallbackUrl}'">
-                <div class="card-quantity-badge">x${card.count}</div>
+                <div class="card-quantity-badge">x${badgeCount}</div>
             </div>`;
     }).join('');
 }
