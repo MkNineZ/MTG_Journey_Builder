@@ -127,18 +127,31 @@ export async function saveToInventory(cards, source = 'manual') {
         const logStore = tx.objectStore('activity_log');
         
         let completed = 0;
-        if (cards.length === 0) {
+        if (!cards || cards.length === 0) {
             resolve(stats);
             return;
         }
 
-        cards.forEach(card => {
-            if (!card.uuid) {
-                console.error("[DB] Carta sin UUID detectada:", card.name || 'Desconocida');
-                stats.failed++;
-                checkFinish();
-                return;
+        // Consolidate cards by UUID to prevent race conditions in large pools
+        const consolidatedMap = new Map();
+        for (const card of cards) {
+            if (!card.uuid) continue;
+            const existing = consolidatedMap.get(card.uuid);
+            if (existing) {
+                existing.count += (card.count || 1);
+            } else {
+                consolidatedMap.set(card.uuid, { ...card, count: (card.count || 1) });
             }
+        }
+        
+        const consolidatedCards = Array.from(consolidatedMap.values());
+        
+        if (consolidatedCards.length === 0) {
+            resolve(stats);
+            return;
+        }
+
+        consolidatedCards.forEach(card => {
 
             const getReq = store.get(card.uuid);
             getReq.onsuccess = () => {
@@ -180,7 +193,7 @@ export async function saveToInventory(cards, source = 'manual') {
 
         function checkFinish() {
             completed++;
-            if (completed === cards.length) {
+            if (completed === consolidatedCards.length) {
                 finalize();
             }
         }

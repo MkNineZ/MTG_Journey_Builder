@@ -38,7 +38,7 @@ export function initBoosters() {
                     <div id="booster-result" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem;"></div>
                 </div>
                 
-                <div style="width: 320px; flex-shrink: 0; display: flex; flex-direction: column;">
+                <div id="booster-export-wrapper" style="width: 320px; flex-shrink: 0; display: flex; flex-direction: column;">
                     <h4 style="color: var(--text-secondary); margin-bottom: 0.5rem; font-size: 0.9rem;">Lista de Texto:</h4>
                     <textarea id="booster-export-text" readonly style="width: 100%; height: 500px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; color: #aaa; padding: 0.8rem; font-family: monospace; resize: none; outline: none;"></textarea>
                 </div>
@@ -76,65 +76,38 @@ export function initBoosters() {
             <h2>Apertura de Sobres</h2>
             <p style="color: var(--text-secondary); margin-bottom: 2rem;">Elige un set y un modo de apertura.</p>`;
 
-        grid.innerHTML = activeSetsData.map((setData, index) => {
-            const setArtUrl = `assets/pack-bg-${setData.code.toLowerCase()}.jpg`;
-            
+        const cardsHtml = activeSetsData.map((setData, index) => {
             return `
-            <div class="booster-set-group" style="grid-column: 1 / -1; display: flex; flex-direction: column; gap: 1.5rem; margin-bottom: 3rem; background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 16px; border: 1px solid var(--border-color);">
-                
-                <!-- Cabecera del Set con Engranaje Custom -->
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 1rem;">
-                    <div style="display: flex; gap: 1rem; align-items: center;">
-                        <i class="ss ss-${setData.code.toLowerCase()} ss-mtg ss-3x" style="color: var(--accent-color); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i>
-                        <div>
-                            <h3 style="margin-bottom: 0.1rem; font-family: var(--font-heading); font-size: 1.2rem;">${setData.code}</h3>
-                            <div style="font-size: 0.85rem; color: var(--text-secondary);">${setData.name}</div>
-                        </div>
-                    </div>
-                    <button class="nav-btn open-booster-custom" data-index="${index}" style="padding: 0.5rem 0.8rem; border-radius: 8px; font-size: 1rem; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2); transition: background 0.2s;" title="Configuración Custom">
-                        ⚙️ Custom
+            <!-- Flat UI: Sobre Individual -->
+            <div class="set-card" data-index="${index}" style="padding: 1.5rem; position: relative; background: rgba(0,0,0,0.3); border-radius: 12px; border: 1px solid var(--border-color);">
+                <button class="nav-btn open-booster-custom" data-index="${index}" style="position: absolute; top: 1rem; right: 1rem; padding: 0.4rem; border-radius: 6px; font-size: 1rem; background: rgba(255,255,255,0.1); border: none;" title="Configuración Custom">⚙️</button>
+                <i class="ss ss-${setData.code.toLowerCase()} ss-mtg ss-3x" style="color: var(--accent-color); margin-bottom: 0.8rem;"></i>
+                <h3 style="margin-bottom: 0.2rem; font-family: var(--font-heading); font-size: 1.1rem;">${setData.code}</h3>
+                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${setData.name}</div>
+                <div style="font-size: 0.75rem; color: #aaa; margin-bottom: 1.5rem;">Sobre Individual (15 Cartas)</div>
+                <button class="save-btn open-booster-classic" data-index="${index}" style="width: 100%; padding: 0.8rem; font-size: 0.95rem;">
+                    🗡️ Abrir 1 Sobre
+                </button>
+            </div>
+
+            <!-- Flat UI: Caja de Sobres -->
+            <div class="set-card" data-index="${index}" style="padding: 1.5rem; position: relative; background: rgba(0,0,0,0.3); border-radius: 12px; border: 1px solid var(--border-color);">
+                <button class="nav-btn open-booster-custom" data-index="${index}" style="position: absolute; top: 1rem; right: 1rem; padding: 0.4rem; border-radius: 6px; font-size: 1rem; background: rgba(255,255,255,0.1); border: none;" title="Configuración Custom">⚙️</button>
+                <i class="ss ss-${setData.code.toLowerCase()} ss-mtg ss-4x" style="color: var(--accent-color); margin-bottom: 0.8rem; opacity: 0.8;"></i>
+                <h3 style="margin-bottom: 0.2rem; font-family: var(--font-heading); font-size: 1.1rem;">${setData.code}</h3>
+                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${setData.name}</div>
+                <div style="font-size: 0.75rem; color: #aaa; margin-bottom: 1.5rem;">Caja de Sobres</div>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <input type="number" class="mass-open-count" data-index="${index}" value="36" min="1" max="100" style="width: 60px; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.4); color: #fff; font-size: 0.95rem; text-align: center;">
+                    <button class="save-btn open-booster-mass-classic" data-index="${index}" style="flex: 1; padding: 0.8rem; font-size: 0.95rem; background: var(--accent-hover);">
+                        📦 Abrir Múltiples
                     </button>
                 </div>
-
-                <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
-                    <!-- Single Pack (Opción 1) -->
-                    <div class="booster-pack-card pack-art-anim" data-index="${index}" style="flex: 1; min-width: 200px; max-width: 300px; aspect-ratio: 2.5/3.5; position: relative; border-radius: 8px; overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.6); cursor: pointer; background-image: url('${setArtUrl}'), url('assets/booster%20blank.png'); background-size: cover; background-position: center; background-blend-mode: multiply; border: 1px solid rgba(255,255,255,0.05); transition: transform 0.2s, box-shadow 0.2s;">
-                        <div class="pack-foil-overlay"></div>
-                        
-                        <div style="position: absolute; top: 15%; width: 100%; text-align: center; z-index: 2; pointer-events: none;">
-                            <i class="ss ss-${setData.code.toLowerCase()} ss-mtg ss-3x" style="color: #fff; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8)); opacity: 0.8;"></i>
-                            <h3 style="color: #fff; font-family: var(--font-heading); margin-top: 0.5rem; text-shadow: 0 2px 4px rgba(0,0,0,0.9); font-size: 1rem;">${setData.code}</h3>
-                        </div>
-
-                        <button class="save-btn open-booster-classic" data-index="${index}" style="position: absolute; bottom: 8%; left: 50%; transform: translateX(-50%); width: 80%; padding: 0.7rem; font-size: 0.9rem; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.2); z-index: 3;">
-                            🗡️ Abrir Sobre
-                        </button>
-                    </div>
-
-                    <!-- Booster Box (Opción 2) -->
-                    <div class="booster-box-card box-art-anim" data-index="${index}" style="flex: 2; min-width: 300px; aspect-ratio: 16/9; position: relative; border-radius: 8px; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.8); background-image: url('${setArtUrl}'), url('assets/booster%20box%20blank.png'); background-size: contain; background-position: center; background-blend-mode: multiply; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; justify-content: center; align-items: center; transition: transform 0.2s, box-shadow 0.2s;">
-                        
-                        <div style="position: absolute; right: 5%; top: 10%;">
-                            <i class="ss ss-${setData.code.toLowerCase()} ss-mtg ss-5x" style="color: #fff; opacity: 0.3; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.9));"></i>
-                        </div>
-
-                        <div style="position: relative; z-index: 2; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); text-align: center;">
-                            <h3 style="margin-bottom: 0.5rem; font-family: var(--font-heading); font-size: 1.3rem; color: #fff;">${setData.name}</h3>
-                            <p style="color: #ccc; font-size: 0.85rem; margin-bottom: 1.5rem;">Draft Booster Display</p>
-                            
-                            <div style="display: flex; gap: 0.5rem; align-items: center; justify-content: center;">
-                                <input type="number" class="mass-open-count" data-index="${index}" value="36" min="1" max="100" style="width: 60px; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.1); color: #fff; font-size: 1rem; text-align: center;">
-                                <button class="save-btn open-booster-mass-classic" data-index="${index}" style="padding: 0.7rem 1.5rem; font-size: 1rem; background: var(--accent-hover);">
-                                    📦 Abrir Caja
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
             </div>
             `;
         }).join('');
+        
+        grid.innerHTML = cardsHtml;
 
         // Render custom panels for each set (hidden by default)
         const customPanelsHTML = activeSetsData.map((setData, index) => `
@@ -190,18 +163,6 @@ export function initBoosters() {
                                     style="width: 18px; height: 18px; accent-color: var(--accent-color);">
                                 <span style="font-size: 0.9rem;">Omitir cartas con ≥ 4 copias</span>
                             </label>
-                        </div>
-                    </div>
-
-                    <div style="display: flex; gap: 1rem; margin-top: 1rem;">
-                        <button class="save-btn open-booster-custom-confirm" data-index="${index}" style="flex: 1; padding: 0.8rem; font-size: 0.95rem;">
-                            ⚡ Generar 1 Sobre Custom
-                        </button>
-                        <div style="display: flex; gap: 0.5rem; flex: 1;">
-                            <input type="number" class="mass-custom-count" data-index="${index}" value="36" min="1" max="100" style="width: 60px; padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.4); color: #fff; font-size: 0.95rem; text-align: center;">
-                            <button class="save-btn open-booster-mass-custom-confirm" data-index="${index}" style="flex: 1; padding: 0.8rem; font-size: 0.95rem; background: var(--accent-hover);">
-                                📦 Generar Caja Custom
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -280,30 +241,45 @@ function hideGhostPortal() {
 
 // ─── Exported actions (called from app.js global delegation) ──────────────────
 
+async function generateBoosterWithPanelSettings(setData, index) {
+    const panel = document.getElementById(`custom-panel-${index}`);
+    if (!panel) return { cards: await generateBoosterClassic(setData), stockWarning: false };
+
+    const counts = {};
+    panel.querySelectorAll('.rarity-input').forEach(inp => {
+        counts[inp.dataset.rarity] = parseInt(inp.value, 10) || 0;
+    });
+
+    const colors = [];
+    panel.querySelectorAll('.color-identity-btn.active').forEach(btn => {
+        colors.push(btn.dataset.color);
+    });
+
+    const smartFilter = panel.querySelector('.smart-filter-cb')?.checked ?? true;
+
+    // Si los colores están vacíos y las cantidades son las de defecto (10, 3, 1, 0), podríamos usar el clásico para ir más rápido, pero generateBoosterCustom lo maneja bien.
+    const inventoryMap = smartFilter ? await getInventoryMap() : new Map();
+    return await generateBoosterCustom(setData, counts, colors, inventoryMap);
+}
+
 export async function openBoosterClassic(index) {
-    console.log('INICIANDO APERTURA — Modo Clásico');
+    console.log('INICIANDO APERTURA — Sobre Individual');
     const setData = state.activeSetsData[index];
     if (!setData) return;
 
     const btn = document.querySelector(`.open-booster-classic[data-index="${index}"]`);
-    const packArt = btn?.closest('.booster-pack-card')?.querySelector('.pack-art-anim');
-    if (btn) { btn.innerText = 'GENERANDO...'; btn.disabled = true; }
-    if (packArt) { packArt.style.animation = 'packTear 0.5s forwards'; }
+    if (btn) { btn.innerText = 'Abriendo...'; btn.disabled = true; }
 
-    const cards = await generateBoosterClassic(setData);
+    const result = await generateBoosterWithPanelSettings(setData, index);
     
-    // Simulate animation delay
-    if (packArt) await new Promise(r => setTimeout(r, 400));
+    state.currentOpeningPack = result.cards;
+    displayBooster(state.currentOpeningPack, result.stockWarning, false);
 
-    state.currentOpeningPack = cards;
-    displayBooster(state.currentOpeningPack, false);
-
-    if (btn) { btn.innerText = '🗡️ Abrir Sobre'; btn.disabled = false; }
-    if (packArt) { packArt.style.animation = 'none'; }
+    if (btn) { btn.innerText = '🗡️ Abrir 1 Sobre'; btn.disabled = false; }
 }
 
 export async function openBoosterMassClassic(index) {
-    console.log('INICIANDO APERTURA MASIVA — Modo Clásico');
+    console.log('INICIANDO APERTURA MASIVA — Caja');
     const setData = state.activeSetsData[index];
     if (!setData) return;
 
@@ -315,23 +291,20 @@ export async function openBoosterMassClassic(index) {
     }
 
     const btn = document.querySelector(`.open-booster-mass-classic[data-index="${index}"]`);
-    const boxArt = btn?.closest('.booster-box-card')?.querySelector('.box-art-anim');
-    if (btn) { btn.innerText = 'GENERANDO...'; btn.disabled = true; }
-    if (boxArt) { boxArt.style.animation = 'boxOpen 0.6s forwards'; }
+    if (btn) { btn.innerText = 'Abriendo...'; btn.disabled = true; }
 
     let allCards = [];
+    let anyStockWarning = false;
     for (let i = 0; i < count; i++) {
-        const packCards = await generateBoosterClassic(setData);
-        allCards = allCards.concat(packCards);
+        const result = await generateBoosterWithPanelSettings(setData, index);
+        allCards = allCards.concat(result.cards);
+        if (result.stockWarning) anyStockWarning = true;
     }
     
-    if (boxArt) await new Promise(r => setTimeout(r, 400));
-    
     state.currentOpeningPack = allCards;
-    displayBooster(state.currentOpeningPack, false);
+    displayBooster(state.currentOpeningPack, anyStockWarning, true);
 
-    if (btn) { btn.innerText = '📦 Abrir Caja'; btn.disabled = false; }
-    if (boxArt) { boxArt.style.animation = 'none'; }
+    if (btn) { btn.innerText = '📦 Abrir Múltiples'; btn.disabled = false; }
 }
 
 export async function openBoosterCustom(index) {
@@ -634,11 +607,12 @@ function getLocalizedName(card, lang) {
     return card.name;
 }
 
-function displayBooster(cards, stockWarning = false) {
+export function displayBooster(cards, stockWarning = false, isMassOpen = false) {
     const resultContainer = document.getElementById('booster-result-container');
     const grid            = document.getElementById('booster-result');
     const warning         = document.getElementById('booster-stock-warning');
     const exportText      = document.getElementById('booster-export-text');
+    const exportWrapper   = document.getElementById('booster-export-wrapper');
     const lang            = state.language || 'en';
 
     console.log('[Boosters] Renderizando', cards.length, 'cartas en idioma:', lang);
@@ -649,6 +623,11 @@ function displayBooster(cards, stockWarning = false) {
 
     resultContainer.style.display = 'block';
     warning.style.display = stockWarning ? 'block' : 'none';
+    
+    // Conditionally show/hide the export text area wrapper for mass openings
+    if (exportWrapper) {
+        exportWrapper.style.display = isMassOpen ? 'none' : 'flex';
+    }
 
     const renderCard = c => {
         const color       = rarityColors[c.rarity?.toLowerCase()] || '#ccc';
@@ -669,7 +648,7 @@ function displayBooster(cards, stockWarning = false) {
             </div>`;
     };
 
-    if (cards.length > 30) {
+    if (isMassOpen) {
         // Group by rarity for mass openings
         const groups = { mythic: [], rare: [], uncommon: [], common: [] };
         cards.forEach(c => {
