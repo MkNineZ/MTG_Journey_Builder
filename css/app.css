@@ -2595,8 +2595,8 @@ strong {
     background-image: url('../assets/foil.jpeg');
     background-size: 200% 200%;
     background-position: var(--pos-x, 50%) var(--pos-y, 50%);
-    mix-blend-mode: color-dodge;
-    opacity: 0.6;
+    mix-blend-mode: hard-light;
+    opacity: 0.35;
     pointer-events: none;
     z-index: 5;
     border-radius: inherit;

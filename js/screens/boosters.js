@@ -198,8 +198,14 @@ export function initBoosters() {
 let ghostPortal = null;
 function getGhostPortal() {
     if (!ghostPortal) {
-        ghostPortal = document.createElement('img');
+        ghostPortal = document.createElement('div');
         ghostPortal.className = 'ghost-zoom-portal';
+        const img = document.createElement('img');
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.objectFit = 'contain';
+        img.style.borderRadius = 'inherit';
+        ghostPortal.appendChild(img);
         document.body.appendChild(ghostPortal);
     }
     return ghostPortal;
@@ -210,6 +216,14 @@ function showGhostPortal(cardEl) {
     const imgEl  = cardEl.querySelector('img');
     if (!imgEl) return;
 
+    portal.dataset.activeUuid = cardEl.dataset.uuid;
+
+    if (cardEl.classList.contains('foil-card-effect')) {
+        portal.classList.add('foil-card-effect');
+    } else {
+        portal.classList.remove('foil-card-effect');
+    }
+
     const rect = cardEl.getBoundingClientRect();
     const zoom = getComputedStyle(document.documentElement).getPropertyValue('--card-hover-zoom') || '1.4';
 
@@ -219,7 +233,8 @@ function showGhostPortal(cardEl) {
     let finalLeft = rect.left;
     if (finalLeft - offset < 20) finalLeft = 20 + offset;
 
-    portal.src = imgEl.src;
+    const portalImg = portal.querySelector('img');
+    portalImg.src = imgEl.src;
     portal.style.width  = rect.width + 'px';
     portal.style.height = rect.height + 'px';
     portal.style.top    = rect.top + 'px';
@@ -228,7 +243,17 @@ function showGhostPortal(cardEl) {
     portal.style.display = 'block';
     requestAnimationFrame(() => {
         portal.classList.add('visible');
-        portal.style.transform = `scale(${zoom})`;
+        if (cardEl.classList.contains('foil-card-effect')) {
+            const rotX = cardEl.style.getPropertyValue('--rot-x') || '0deg';
+            const rotY = cardEl.style.getPropertyValue('--rot-y') || '0deg';
+            portal.style.setProperty('--pos-x', cardEl.style.getPropertyValue('--pos-x') || '50%');
+            portal.style.setProperty('--pos-y', cardEl.style.getPropertyValue('--pos-y') || '50%');
+            portal.style.setProperty('--rot-x', rotX);
+            portal.style.setProperty('--rot-y', rotY);
+            portal.style.transform = `scale(${zoom}) perspective(1000px) rotateX(${rotX}) rotateY(${rotY})`;
+        } else {
+            portal.style.transform = `scale(${zoom})`;
+        }
     });
 }
 
@@ -893,6 +918,15 @@ export function displayBooster(cards, stockWarning = false, isMassOpen = false, 
                 card.style.transform = `perspective(1000px) rotateX(var(--rot-x)) rotateY(var(--rot-y)) scale(1.05)`;
                 card.style.zIndex = '10';
                 card.style.boxShadow = `0 15px 30px rgba(0,0,0,0.8)`;
+
+                if (ghostPortal && ghostPortal.classList.contains('visible') && ghostPortal.dataset.activeUuid === card.dataset.uuid) {
+                    ghostPortal.style.setProperty('--pos-x', `${xPercent}%`);
+                    ghostPortal.style.setProperty('--pos-y', `${yPercent}%`);
+                    ghostPortal.style.setProperty('--rot-x', `${rotX}deg`);
+                    ghostPortal.style.setProperty('--rot-y', `${rotY}deg`);
+                    const portalZoom = getComputedStyle(document.documentElement).getPropertyValue('--card-hover-zoom') || '1.4';
+                    ghostPortal.style.transform = `scale(${portalZoom}) perspective(1000px) rotateX(var(--rot-x)) rotateY(var(--rot-y))`;
+                }
             });
 
             card.addEventListener('mouseleave', () => {
