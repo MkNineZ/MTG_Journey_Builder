@@ -853,8 +853,7 @@ export function displayBooster(cards, stockWarning = false, isMassOpen = false, 
     if (exportText) {
         exportText.value = Object.entries(counts)
             .map(([name, qty]) => `${qty} ${name}`)
-            .join('
-');
+            .join('\n');
     }
 
     resultContainer.scrollIntoView({ behavior: 'smooth' });
