@@ -97,6 +97,7 @@ export async function initTournaments() {
             <div class="deck-modal-content" style="width: 90%; max-width: 1000px; max-height: 85vh; display: flex; flex-direction: column;">
                 <button id="visualizer-close" class="deck-modal-close">&times;</button>
                 <h2 id="visualizer-title" style="color: var(--accent-color); margin-bottom: 1rem;">Mazo de Jugador</h2>
+                <div id="visualizer-stats" style="margin-bottom: 1rem; display: flex; gap: 2rem; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 1rem;"></div>
                 <div id="visualizer-grid" style="flex: 1; overflow-y: auto; padding: 1rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px;">
                     <!-- Cards injected here -->
                 </div>
@@ -549,10 +550,18 @@ function openVisualizerModal(playerId, tournament) {
     if (!player) return;
 
     const title = document.getElementById('visualizer-title');
-    title.textContent = `Mazo de ${player.name}`;
+    const colorsHtml = (player.deckColors || []).map(c => 
+        `<img src="https://svgs.scryfall.io/card-symbols/${c}.svg" style="width: 24px; height: 24px;" title="${c}">`
+    ).join('');
+    
+    title.innerHTML = `<div style="display: flex; align-items: center; gap: 10px;">${player.deckName || 'Mazo de ' + player.name} <div style="display: flex; gap: 5px; margin-left: 10px;">${colorsHtml}</div></div>`;
 
     const grid = document.getElementById('visualizer-grid');
     grid.innerHTML = '<p style="color: var(--text-secondary); text-align: center; grid-column: 1 / -1;">Cargando mazo...</p>';
+    
+    const statsContainer = document.getElementById('visualizer-stats');
+    statsContainer.innerHTML = '';
+    
     document.getElementById('visualizer-modal').style.display = 'flex';
 
     // Parse decklist
@@ -563,6 +572,34 @@ function openVisualizerModal(playerId, tournament) {
         grid.innerHTML = '<p style="color: var(--text-secondary); text-align: center; grid-column: 1 / -1;">La lista está vacía o no contiene cartas válidas del pool actual.</p>';
         return;
     }
+
+    // Build mana curve
+    const curve = Array(8).fill(0);
+    parsed.forEach(card => {
+        const type = card.type || card.type_line || '';
+        if (type.toLowerCase().includes('land') || type.toLowerCase().includes('tierra')) return;
+        const cmc = card.convertedManaCost !== undefined ? card.convertedManaCost : (card.manaValue || card.cmc || 0);
+        const index = Math.min(parseInt(cmc) || 0, 7);
+        curve[index] += card.count;
+    });
+    const maxVal = Math.max(...curve, 1);
+    const curveHtml = curve.map((c, i) => {
+        const label = `<img src="https://svgs.scryfall.io/card-symbols/${i}.svg" class="mana-sym" style="width:13px;height:13px" onerror="this.outerHTML='${i===7?'7+':i}'">`;
+        return `<div class="curve-bar-col" style="display: flex; flex-direction: column; align-items: center; width: 20px; gap: 3px;">
+            <div class="curve-bar-count" style="font-size: 0.7rem; color: var(--text-secondary);">${c||''}</div>
+            <div class="curve-bar-wrap" style="height: 60px; width: 8px; background: rgba(255,255,255,0.05); border-radius: 4px; display: flex; align-items: flex-end; overflow: hidden;">
+                <div class="curve-bar" style="width: 100%; background: var(--accent-color); border-radius: 4px; transition: height 0.5s ease; height: ${(c/maxVal)*100}%"></div>
+            </div>
+            ${label}
+        </div>`;
+    }).join('');
+    
+    statsContainer.innerHTML = `
+        <div style="display: flex; gap: 8px; align-items: flex-end; background: rgba(0,0,0,0.3); padding: 10px 15px; border-radius: 12px; border: 1px solid var(--border-color);">
+            <div style="margin-right: 15px; color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Curva de Maná</div>
+            ${curveHtml}
+        </div>
+    `;
 
     let html = '';
     const allCards = [...parsed, ...(unknown || [])];
@@ -589,10 +626,10 @@ function openVisualizerModal(playerId, tournament) {
             const fallbackUrl = getCardImageUrlEn(card);
             
             html += `
-                <div style="position: relative; aspect-ratio: 63/88; background: #000; border-radius: 4.75% / 3.5%; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s, z-index 0s;"
-                     onmouseover="this.style.transform='scale(${state.hoverZoom || 1.1})'; this.style.boxShadow='0 10px 20px rgba(0,0,0,0.5), 0 0 15px rgba(255, 250, 141, 0.3)'; this.style.zIndex='100';"
-                     onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'; this.style.zIndex='';">
-                    <img src="${imgUrl}" alt="${card.name}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4.75% / 3.5%; display: block; opacity: 0; transition: opacity 0.3s ease;" onload="this.style.opacity=1;" onerror="this.onerror=null;this.src='${fallbackUrl}'">
+                <div style="position: relative; aspect-ratio: 63/88; background: transparent; border-radius: 4.75% / 3.5%; cursor: pointer;"
+                     onmouseenter="if(!window.tourneyHoverImg){window.tourneyHoverImg=document.createElement('img');window.tourneyHoverImg.className='card-hover-preview';window.tourneyHoverImg.style.zIndex='11000';document.body.appendChild(window.tourneyHoverImg);} window.tourneyHoverImg.src='${imgUrl}'; window.tourneyHoverImg.onerror=function(){if(this.src!=='${fallbackUrl}')this.src='${fallbackUrl}'}; window.tourneyHoverImg.style.display='block'; const rect=this.getBoundingClientRect(); const zoom=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--card-hover-zoom')||'1.4'); const tw=rect.width*zoom; const th=rect.height*zoom; window.tourneyHoverImg.style.left=(rect.left+(rect.width/2)-(tw/2))+'px'; window.tourneyHoverImg.style.top=(rect.top+(rect.height/2)-(th/2))+'px'; requestAnimationFrame(()=>window.tourneyHoverImg.classList.add('visible')); this.children[0].style.opacity='0';"
+                     onmouseleave="if(window.tourneyHoverImg){window.tourneyHoverImg.classList.remove('visible'); setTimeout(()=>{if(!window.tourneyHoverImg.classList.contains('visible'))window.tourneyHoverImg.style.display='none';},150);} this.children[0].style.opacity='1';">
+                    <img src="${imgUrl}" alt="${card.name}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4.75% / 3.5%; display: block; transition: opacity 0.15s ease;" onerror="this.onerror=null;this.src='${fallbackUrl}'">
                     ${badgeHTML}
                 </div>
             `;
