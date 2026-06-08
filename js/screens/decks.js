@@ -129,7 +129,11 @@ function hideGhostPortal() {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const isBasicLand = c   => BASIC_LANDS.some(b => c.name?.startsWith(b) || c.name?.includes('Llanura') || c.name?.includes('Isla') || c.name?.includes('Pantano') || c.name?.includes('Montaña') || c.name?.includes('Bosque'));
-const ownedCount  = entry => isBasicLand(entry) ? 999 : (state.inventory.find(i => i.uuid === entry.uuid)?.count ?? 0);
+const ownedCount = entry => {
+    if (isBasicLand(entry)) return 999;
+    const i = state.inventory.find(i => i.uuid === entry.uuid);
+    return i ? (i.regularCount || 0) + (i.foilCount || 0) : 0;
+};
 const totalInDeck = name => !currentDeck ? 0 :
     [...currentDeck.mainboard, ...currentDeck.sideboard, ...(currentDeck.commander || [])]
         .filter(e => e.name === name).reduce((s, e) => s + e.quantity, 0);
@@ -676,8 +680,10 @@ function renderEditView() {
             if (!c) return;
             
             const inDeck      = totalInDeck(c.name);
-            const atLimit     = !isBasicLand(c) && inDeck >= MAX_COPIES;
-            const outOfStock  = inDeck >= c.count;
+            const isBasic     = isBasicLand(c);
+            const atLimit     = !isBasic && inDeck >= MAX_COPIES;
+            const bCount      = isBasic ? '∞' : (c.regularCount || 0) + (c.foilCount || 0);
+            const outOfStock  = !isBasic && inDeck >= bCount;
             const isDisabled  = atLimit || outOfStock;
 
             // Only add if not disabled
@@ -847,7 +853,8 @@ function openCardModal(uuid) {
     const imgUrl      = getCardImageUrl(card, state.language || 'en');
     const fallbackUrl = getCardImageUrlEn(card);
     const inDeck      = totalInDeck(card.name);
-    const badgeCount = (card.regularCount || 0) + (card.foilCount || 0);
+    const isBasic     = isBasicLand(card);
+    const badgeCount  = isBasic ? '∞' : (card.regularCount || 0) + (card.foilCount || 0);
 
     document.getElementById('deck-card-modal-content').innerHTML = `
         <button id="deck-modal-close" class="deck-modal-close">✕</button>
@@ -863,7 +870,7 @@ function openCardModal(uuid) {
             </p>
             <p style="font-size:0.9rem;margin-bottom:1.5rem;">
                 Tienes: <strong style="color:var(--accent-secondary)">${badgeCount}</strong> &nbsp;·&nbsp;
-                En mazo: <strong style="color:${inDeck>badgeCount?'#e74c3c':'var(--text-primary)'}">${inDeck}</strong>
+                En mazo: <strong style="color:${!isBasic && inDeck > badgeCount ? '#e74c3c' : 'var(--text-primary)'}">${inDeck}</strong>
             </p>
             <div style="display:flex;flex-direction:column;gap:0.6rem;">
                 <button class="save-btn deck-modal-add" data-uuid="${card.uuid}" data-zone="mainboard">+ Añadir al Mainboard</button>
@@ -902,11 +909,12 @@ function renderInventoryGrid() {
         const imgUrl      = getCardImageUrl(card, lang);
         const fallbackUrl = getCardImageUrlEn(card);
         const inDeck      = totalInDeck(card.name);
-        const badgeCount  = (card.regularCount || 0) + (card.foilCount || 0);
+        const isBasic     = isBasicLand(card);
+        const badgeCount  = isBasic ? '∞' : (card.regularCount || 0) + (card.foilCount || 0);
         
-        const atLimit     = !isBasicLand(card) && inDeck >= MAX_COPIES;
-        const noStock     = badgeCount <= 0;
-        const outOfStock  = inDeck >= badgeCount;
+        const atLimit     = !isBasic && inDeck >= MAX_COPIES;
+        const noStock     = !isBasic && badgeCount <= 0;
+        const outOfStock  = !isBasic && inDeck >= badgeCount;
         const isDisabled  = atLimit || noStock || outOfStock;
         
         const cardStyle   = isDisabled ? 'opacity: 0.3; cursor: not-allowed;' 
@@ -918,7 +926,7 @@ function renderInventoryGrid() {
                 <img src="${imgUrl}" alt="${card.name}" loading="lazy" class="deck-inv-img"
                      onload="this.style.opacity=1"
                      onerror="this.onerror=null;this.src='${fallbackUrl}'">
-                <div class="card-quantity-badge">x${badgeCount}</div>
+                <div class="card-quantity-badge" style="font-size: ${isBasic ? '1.1rem' : '0.8rem'}; ${isBasic ? 'padding: 0 6px; display:flex; align-items:center;' : ''}">${isBasic ? '∞' : 'x' + badgeCount}</div>
             </div>`;
     }).join('');
 }
