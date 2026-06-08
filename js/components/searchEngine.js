@@ -89,7 +89,7 @@ export function filterCards(cards, criteria) {
         }
         
         // Return perfect dbCard combined with the inventory's count metric
-        results.push({ ...dbCard, count: card.count });
+        results.push({ ...dbCard, regularCount: card.regularCount || 0, foilCount: card.foilCount || 0 });
     }
     return results;
 }
