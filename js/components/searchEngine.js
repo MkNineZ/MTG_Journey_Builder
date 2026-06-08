@@ -241,3 +241,40 @@ export function renderSearchUI(containerElement, allCards, onFilterCallback) {
         });
     });
 }
+
+/**
+ * Reusable decklist text parser.
+ * @param {string} text - Plain text decklist.
+ * @param {Array} allAvailableCards - Array of all known valid cards to match against.
+ * @returns {Object} { parsed: [{...card, count}], errors: number }
+ */
+export function parseDecklistText(text, allAvailableCards) {
+    const lines = (text || '').split('\n').filter(l => l.trim() !== '');
+    if (lines.length === 0) return { parsed: [], errors: 0 };
+
+    const parsed = [];
+    let errors = 0;
+
+    lines.forEach(line => {
+        const match = line.match(/^(\d+)?\s*(.+)$/);
+        if (match) {
+            const count = parseInt(match[1]) || 1;
+            const name = match[2].trim();
+            
+            const found = allAvailableCards.find(c => c.name.toLowerCase() === name.toLowerCase());
+            if (found) {
+                // If duplicates are passed, sum them up
+                const existing = parsed.find(p => p.name === found.name);
+                if (existing) {
+                    existing.count += count;
+                } else {
+                    parsed.push({ ...found, count });
+                }
+            } else {
+                errors++;
+            }
+        }
+    });
+
+    return { parsed, errors };
+}

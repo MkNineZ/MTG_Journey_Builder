@@ -1,5 +1,5 @@
 import { state } from '../utils/state.js';
-import { renderSearchUI, filterCards } from '../components/searchEngine.js';
+import { renderSearchUI, filterCards, parseDecklistText } from '../components/searchEngine.js';
 import { updateInventoryCount, clearNewStatus, saveToInventory, removeFromInventory, clearInventory } from '../utils/db.js';
 import { getCardImageUrl, getCardImageUrlEn } from '../utils/api.js';
 
@@ -240,36 +240,24 @@ export function initCollection() {
     const importList = document.getElementById('import-list');
 
     analyzeBtn.onclick = () => {
-        const lines = importText.value.split('\n').filter(l => l.trim() !== '');
-        if (lines.length === 0) return;
-
-        cardsToImport = [];
-        let errors = 0;
-        let html = '';
+        if (!importText.value.trim()) return;
 
         // Flatten all available cards from active sets for lookup
         const allAvailableCards = (state.activeSetsData || []).flatMap(s => (s.cards || []).map(c => ({...c, setCode: s.code})));
+        
+        const result = parseDecklistText(importText.value, allAvailableCards);
+        cardsToImport = result.parsed;
+        const errors = result.errors;
 
-        lines.forEach(line => {
-            // Regex to match "4 Lightning Bolt" or just "Lightning Bolt"
-            const match = line.match(/^(\d+)?\s*(.+)$/);
-            if (match) {
-                const count = parseInt(match[1]) || 1;
-                const name = match[2].trim();
-                
-                // Find card by name (case insensitive)
-                const found = allAvailableCards.find(c => c.name.toLowerCase() === name.toLowerCase());
-                if (found) {
-                    cardsToImport.push({ ...found, count });
-                    html += `<div><span style="color: var(--accent-color); font-weight: bold;">${count}x</span> ${found.name} <span style="color: var(--text-secondary); font-size: 0.7rem;">(${found.setCode})</span></div>`;
-                } else {
-                    errors++;
-                    html += `<div style="color: #e74c3c;"><i class="fas fa-exclamation-circle"></i> Error: "${name}" no encontrada en sets activos.</div>`;
-                }
-            }
+        let html = '';
+        cardsToImport.forEach(c => {
+            html += `<div><span style="color: var(--accent-color); font-weight: bold;">${c.count}x</span> ${c.name} <span style="color: var(--text-secondary); font-size: 0.7rem;">(${c.setCode})</span></div>`;
         });
+        if (errors > 0) {
+            html += `<div style="color: #e74c3c; margin-top: 5px;"><i class="fas fa-exclamation-circle"></i> Hay ${errors} carta(s) no encontradas en los sets activos o mal escritas.</div>`;
+        }
 
-        summaryText.innerHTML = `Se han encontrado <strong>${cardsToImport.length}</strong> cartas. <strong>${errors}</strong> líneas fallaron.`;
+        summaryText.innerHTML = `Se han encontrado <strong>${cardsToImport.length}</strong> cartas diferentes. <strong>${errors}</strong> líneas fallaron.`;
         importList.innerHTML = html;
         previewArea.style.display = 'block';
         confirmBtn.style.display = cardsToImport.length > 0 ? 'block' : 'none';
