@@ -5,6 +5,7 @@ import { initExplore } from './screens/explore.js';
 import { initCollection } from './screens/collection.js';
 import { initBoosters, openBoosterClassic, openBoosterMassClassic, openBoosterCustom, openBoosterCustomConfirm, confirmBoosterSave, toggleColorBtn, discardBooster, openBoosterModal } from './screens/boosters.js';
 import { initDecks } from './screens/decks.js';
+import { initTournaments } from './screens/tournaments.js';
 import { initAbout } from './screens/about.js';
 import { state } from './utils/state.js';
 import { exportDatabase } from './utils/db.js';
@@ -22,6 +23,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         initCollection();
         initBoosters();
         initDecks();
+        initTournaments();
         initAbout();
 
         // ── Startup Routing ──────────────────────────────────────────────────

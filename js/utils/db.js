@@ -1,5 +1,5 @@
 const DB_NAME = 'mtg_nexus_db_v2';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // Bumped for tournaments support
 
 let dbInstance = null;
 
@@ -28,6 +28,10 @@ export function initDB() {
             // Store for Decks
             if (!db.objectStoreNames.contains('decks')) {
                 db.createObjectStore('decks', { keyPath: 'id', autoIncrement: true });
+            }
+            // Store for Tournaments
+            if (!db.objectStoreNames.contains('tournaments')) {
+                db.createObjectStore('tournaments', { keyPath: 'id' });
             }
         };
 
@@ -632,6 +636,59 @@ export async function importDatabase(data) {
             items.forEach(item => store.put(item));
         });
 
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+// ── Tournaments CRUD ─────────────────────────────────────────────────────────
+
+export async function getAllTournaments() {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction('tournaments', 'readonly');
+        const store = tx.objectStore('tournaments');
+        const request = store.getAll();
+        request.onsuccess = () => {
+            const tournaments = request.result || [];
+            tournaments.sort((a, b) => b.updatedAt - a.updatedAt);
+            resolve(tournaments);
+        };
+        request.onerror = () => reject(request.error);
+    });
+}
+
+export async function getTournament(id) {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction('tournaments', 'readonly');
+        const store = tx.objectStore('tournaments');
+        const request = store.get(id);
+        request.onsuccess = () => resolve(request.result || null);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+export async function saveTournament(tournamentObj) {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction('tournaments', 'readwrite');
+        const store = tx.objectStore('tournaments');
+        const toSave = { ...tournamentObj, updatedAt: Date.now() };
+        if (!toSave.createdAt) toSave.createdAt = Date.now();
+        if (!toSave.id) toSave.id = crypto.randomUUID(); // ensure UUID
+        const request = store.put(toSave);
+        request.onsuccess = () => resolve(toSave.id);
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+export async function deleteTournament(id) {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction('tournaments', 'readwrite');
+        const store = tx.objectStore('tournaments');
+        store.delete(id);
         tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error);
     });
