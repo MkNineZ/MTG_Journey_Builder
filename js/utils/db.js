@@ -1,5 +1,5 @@
-const DB_NAME = 'mtg_nexus_db';
-const DB_VERSION = 3; // Bumped for decks support
+const DB_NAME = 'mtg_nexus_db_v2';
+const DB_VERSION = 1;
 
 let dbInstance = null;
 
