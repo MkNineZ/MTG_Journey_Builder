@@ -500,14 +500,18 @@ function openVisualizerModal(playerId, tournament) {
     const allCards = [...parsed, ...(unknown || [])];
 
     allCards.forEach(card => {
+        const badgeHTML = `
+            <div style="position: absolute; bottom: 5px; right: 5px; left: auto; transform: none; background: rgba(0,0,0,0.85); border: 1px solid var(--accent-color); color: #fff; padding: 2px 8px; border-radius: 12px; font-size: 0.85rem; font-weight: bold; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.8);">
+                x${card.count}
+            </div>
+        `;
+
         if (card.isUnknown) {
             html += `
-                <div class="deck-inv-card" style="position: relative; aspect-ratio: 63/88; background: linear-gradient(135deg, rgba(30,20,10,0.8), rgba(0,0,0,0.9)); border: 1px solid var(--accent-color); border-radius: 4.75% / 3.5%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 10px; box-shadow: inset 0 0 20px rgba(133, 109, 64, 0.2);">
+                <div style="position: relative; aspect-ratio: 63/88; background: linear-gradient(135deg, rgba(30,20,10,0.8), rgba(0,0,0,0.9)); border: 1px solid var(--accent-color); border-radius: 4.75% / 3.5%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 10px; box-shadow: inset 0 0 20px rgba(133, 109, 64, 0.2);">
                     <i class="fas fa-question-circle" style="font-size: 2.5rem; color: var(--accent-secondary); margin-bottom: 0.5rem; opacity: 0.5;"></i>
                     <span style="color: var(--accent-color); font-weight: bold; font-size: 0.9rem; text-shadow: 0 2px 4px rgba(0,0,0,0.8); word-wrap: break-word; width: 100%;">${card.name}</span>
-                    <div class="card-quantity-badge" style="position: absolute; bottom: 5px; right: 5px; background: rgba(0,0,0,0.8); border: 1px solid var(--accent-color); color: #fff; padding: 2px 6px; border-radius: 10px; font-size: 0.8rem; font-weight: bold; z-index: 10;">
-                        x${card.count}
-                    </div>
+                    ${badgeHTML}
                 </div>
             `;
         } else {
@@ -515,13 +519,11 @@ function openVisualizerModal(playerId, tournament) {
             const fallbackUrl = getCardImageUrlEn(card);
             
             html += `
-                <div class="deck-inv-card" style="position: relative; aspect-ratio: 63/88; border-radius: 4.75% / 3.5%; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;"
-                     onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 10px 20px rgba(0,0,0,0.5)';"
+                <div style="position: relative; aspect-ratio: 63/88; background: #000; border-radius: 4.75% / 3.5%; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;"
+                     onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 10px 20px rgba(0,0,0,0.5), 0 0 15px rgba(255, 250, 141, 0.3)';"
                      onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">
-                    <img src="${imgUrl}" alt="${card.name}" loading="lazy" class="deck-inv-img" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4.75% / 3.5%; display: block;" onerror="this.onerror=null;this.src='${fallbackUrl}'">
-                    <div class="card-quantity-badge" style="position: absolute; bottom: 5px; right: 5px; background: rgba(0,0,0,0.8); border: 1px solid var(--accent-color); color: #fff; padding: 2px 6px; border-radius: 10px; font-size: 0.8rem; font-weight: bold; z-index: 10;">
-                        x${card.count}
-                    </div>
+                    <img src="${imgUrl}" alt="${card.name}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4.75% / 3.5%; display: block; opacity: 0; transition: opacity 0.3s ease;" onload="this.style.opacity=1;" onerror="this.onerror=null;this.src='${fallbackUrl}'">
+                    ${badgeHTML}
                 </div>
             `;
         }
