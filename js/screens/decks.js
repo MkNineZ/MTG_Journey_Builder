@@ -444,7 +444,10 @@ async function openCoverPicker(deckId) {
 function renderEditView() {
     statsOpen   = false;
     currentZone = 'mainboard';
-    filteredInv = filterCards(state.inventory, { name: '', oracleText: '', keywords: '', type: 'all', rarity: 'all', set: 'all', manaValue: '', colors: [], colorMode: 'includes' });
+    const initialFilter = filterCards(state.inventory, { name: '', oracleText: '', keywords: '', type: 'all', rarity: 'all', set: 'all', manaValue: '', colors: [], colorMode: 'includes' });
+    const initialNonLands = initialFilter.filter(c => !isBasicLand(c));
+    const initialBasicLands = initialFilter.filter(c => isBasicLand(c));
+    filteredInv = [...initialNonLands, ...initialBasicLands];
 
     const formatOpts = FORMATS.map(f =>
         `<option value="${f}" ${currentDeck?.format===f?'selected':''}>${FORMAT_LABELS[f]}</option>`).join('');
@@ -665,7 +668,9 @@ function renderEditView() {
 
     // Advanced search component
     renderSearchUI(document.getElementById('de-search-container'), state.inventory, filtered => {
-        filteredInv = filtered.filter(c => !isBasicLand(c));
+        const nonLands = filtered.filter(c => !isBasicLand(c));
+        const basicLands = filtered.filter(c => isBasicLand(c));
+        filteredInv = [...nonLands, ...basicLands];
         renderInventoryGrid();
     });
 
