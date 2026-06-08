@@ -227,6 +227,7 @@ function renderStandings(t, container) {
                 <tr>
                     <th style="width: 80px; text-align: center;">Pos</th>
                     <th>Jugador</th>
+                    <th>Mazo</th>
                     <th style="text-align: center;">V - D</th>
                     <th style="text-align: right;">Win Rate</th>
                 </tr>
@@ -241,10 +242,19 @@ function renderStandings(t, container) {
         const wr = total === 0 ? '0%' : Math.round((wins / total) * 100) + '%';
         const color = index === 0 ? 'var(--accent-color)' : 'var(--text-primary)';
 
+        const colorsHtml = (p.deckColors || []).map(c => 
+            `<img src="https://svgs.scryfall.io/card-symbols/${c}.svg" style="width: 16px; height: 16px;" title="${c}">`
+        ).join('');
+        
+        const deckInfoHtml = p.deckName || p.deckColors?.length ? 
+            `<div style="display: flex; align-items: center; gap: 8px;"><span style="color: var(--accent-color);">${p.deckName || 'Mazo sin nombre'}</span> <div style="display: flex; gap: 3px;">${colorsHtml}</div></div>` 
+            : `<span style="color: var(--text-secondary); font-style: italic;">Sin mazo</span>`;
+
         html += `
             <tr class="lol-row">
                 <td style="text-align: center; font-family: var(--font-heading); font-size: 1.2rem; color: ${color};">${index + 1}</td>
                 <td style="font-weight: 600;">${p.name}</td>
+                <td>${deckInfoHtml}</td>
                 <td style="text-align: center; color: var(--text-secondary);">${wins} V - ${losses} D</td>
                 <td style="text-align: right; color: var(--highlight-text);">${wr}</td>
             </tr>
@@ -294,7 +304,7 @@ function renderParticipants(t, container) {
             if (parsed && parsed.length > 0) {
                 const randomCard = parsed[Math.floor(Math.random() * parsed.length)];
                 const artUrl = getCardArtCropUrl(randomCard, state.language || 'en');
-                bgImage = `background: linear-gradient(rgba(15,15,15,0.85), rgba(15,15,15,0.95)), url('${artUrl}'); background-size: cover; background-position: center;`;
+                bgImage = `background: linear-gradient(rgba(15,15,15,0.6), rgba(15,15,15,0.8)), url('${artUrl}'); background-size: cover; background-position: center;`;
             }
 
             const colorsHtml = (p.deckColors || []).map(c => 
