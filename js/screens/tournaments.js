@@ -489,32 +489,42 @@ function openVisualizerModal(playerId, tournament) {
 
     // Parse decklist
     const allAvailableCards = (state.activeSetsData || []).flatMap(s => (s.cards || []).map(c => ({...c, setCode: s.code})));
-    const { parsed, errors } = parseDecklistText(player.decklist, allAvailableCards);
+    const { parsed, unknown, errors } = parseDecklistText(player.decklist, allAvailableCards);
 
-    if (parsed.length === 0) {
+    if (parsed.length === 0 && (!unknown || unknown.length === 0)) {
         grid.innerHTML = '<p style="color: var(--text-secondary); text-align: center; grid-column: 1 / -1;">La lista está vacía o no contiene cartas válidas del pool actual.</p>';
         return;
     }
 
     let html = '';
-    if (errors > 0) {
-        html += `<div style="grid-column: 1 / -1; padding: 10px; background: rgba(231, 76, 60, 0.2); border: 1px solid #e74c3c; border-radius: 8px; color: #fff; margin-bottom: 1rem;">
-            <i class="fas fa-exclamation-triangle"></i> Hubo ${errors} carta(s) no reconocidas en el texto.
-        </div>`;
-    }
+    const allCards = [...parsed, ...(unknown || [])];
 
-    parsed.forEach(card => {
-        const imgUrl = getCardImageUrl(card, state.language || 'en');
-        const fallbackUrl = getCardImageUrlEn(card);
-        
-        html += `
-            <div class="deck-inv-card" style="position: relative;">
-                <img src="${imgUrl}" alt="${card.name}" loading="lazy" class="deck-inv-img" style="width: 100%; border-radius: 4.75% / 3.5%; display: block;" onerror="this.onerror=null;this.src='${fallbackUrl}'">
-                <div class="card-quantity-badge" style="position: absolute; top: -5px; right: -5px; background: rgba(0,0,0,0.8); border: 1px solid var(--accent-color); color: #fff; padding: 2px 6px; border-radius: 10px; font-size: 0.8rem; font-weight: bold; z-index: 10;">
-                    x${card.count}
+    allCards.forEach(card => {
+        if (card.isUnknown) {
+            html += `
+                <div class="deck-inv-card" style="position: relative; aspect-ratio: 63/88; background: linear-gradient(135deg, rgba(30,20,10,0.8), rgba(0,0,0,0.9)); border: 1px solid var(--accent-color); border-radius: 4.75% / 3.5%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 10px; box-shadow: inset 0 0 20px rgba(133, 109, 64, 0.2);">
+                    <i class="fas fa-question-circle" style="font-size: 2.5rem; color: var(--accent-secondary); margin-bottom: 0.5rem; opacity: 0.5;"></i>
+                    <span style="color: var(--accent-color); font-weight: bold; font-size: 0.9rem; text-shadow: 0 2px 4px rgba(0,0,0,0.8); word-wrap: break-word; width: 100%;">${card.name}</span>
+                    <div class="card-quantity-badge" style="position: absolute; bottom: 5px; right: 5px; background: rgba(0,0,0,0.8); border: 1px solid var(--accent-color); color: #fff; padding: 2px 6px; border-radius: 10px; font-size: 0.8rem; font-weight: bold; z-index: 10;">
+                        x${card.count}
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
+        } else {
+            const imgUrl = getCardImageUrl(card, state.language || 'en');
+            const fallbackUrl = getCardImageUrlEn(card);
+            
+            html += `
+                <div class="deck-inv-card" style="position: relative; aspect-ratio: 63/88; border-radius: 4.75% / 3.5%; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;"
+                     onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 10px 20px rgba(0,0,0,0.5)';"
+                     onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">
+                    <img src="${imgUrl}" alt="${card.name}" loading="lazy" class="deck-inv-img" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4.75% / 3.5%; display: block;" onerror="this.onerror=null;this.src='${fallbackUrl}'">
+                    <div class="card-quantity-badge" style="position: absolute; bottom: 5px; right: 5px; background: rgba(0,0,0,0.8); border: 1px solid var(--accent-color); color: #fff; padding: 2px 6px; border-radius: 10px; font-size: 0.8rem; font-weight: bold; z-index: 10;">
+                        x${card.count}
+                    </div>
+                </div>
+            `;
+        }
     });
 
     grid.innerHTML = html;

@@ -250,9 +250,10 @@ export function renderSearchUI(containerElement, allCards, onFilterCallback) {
  */
 export function parseDecklistText(text, allAvailableCards) {
     const lines = (text || '').split('\n').filter(l => l.trim() !== '');
-    if (lines.length === 0) return { parsed: [], errors: 0 };
+    if (lines.length === 0) return { parsed: [], unknown: [], errors: 0 };
 
     const parsed = [];
+    const unknown = [];
     let errors = 0;
 
     lines.forEach(line => {
@@ -272,9 +273,15 @@ export function parseDecklistText(text, allAvailableCards) {
                 }
             } else {
                 errors++;
+                const existingUnk = unknown.find(u => u.name.toLowerCase() === name.toLowerCase());
+                if (existingUnk) {
+                    existingUnk.count += count;
+                } else {
+                    unknown.push({ name, count, isUnknown: true });
+                }
             }
         }
     });
 
-    return { parsed, errors };
+    return { parsed, unknown, errors };
 }
