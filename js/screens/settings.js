@@ -1,7 +1,7 @@
 import { state } from '../utils/state.js';
 import { navigateTo } from '../components/navigation.js';
 import { fetchSetData } from '../utils/api.js';
-import { saveSet, clearAllSets, exportDatabase, importDatabase, deleteSet } from '../utils/db.js';
+import { saveSet, clearAllSets, exportDatabase, importDatabase, deleteSet, saveToInventory } from '../utils/db.js';
 
 let availableSets = [];
 
@@ -264,6 +264,30 @@ export async function initSettings() {
                     await saveSet(set.code, data);
                     
                     fullSetsData.push(data);
+
+                    // Auto-inject 1 copy of every Basic Land into inventory
+                    const basicLandsToAdd = [];
+                    if (data && data.cards) {
+                        data.cards.forEach(c => {
+                            const typeLine = c.type ? c.type.toLowerCase() : '';
+                            if ((typeLine.includes('basic') && typeLine.includes('land')) || typeLine.includes('tierra básica')) {
+                                const existing = state.inventory.find(i => i.uuid === c.uuid);
+                                if (!existing || ((existing.regularCount || 0) === 0 && (existing.foilCount || 0) === 0)) {
+                                    basicLandsToAdd.push({ ...c, regularCount: 1, foilCount: 0 });
+                                    if (existing) {
+                                        existing.regularCount = 1;
+                                    } else {
+                                        state.inventory.push({ ...c, regularCount: 1, foilCount: 0 });
+                                    }
+                                }
+                            }
+                        });
+                    }
+
+                    if (basicLandsToAdd.length > 0) {
+                        await saveToInventory(basicLandsToAdd, 'System');
+                    }
+
                     syncBar.style.width = `${Math.round(((i + 1) / selectedSetObjects.length) * 100)}%`;
                 }
 
