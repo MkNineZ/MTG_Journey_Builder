@@ -290,7 +290,7 @@ function openModal(cardData) {
                 document.getElementById('modal-count-display').innerText = currentCount;
                 await updateInventoryCount(data, -1);
                 const invItem = state.inventory.find(i => i.uuid === data.uuid);
-                if (invItem) invItem.count = currentCount;
+                if (invItem) invItem.regularCount = Math.max(0, (invItem.regularCount || 0) - 1);
                 updateCardDOMState(data.uuid, currentCount, data.rarity);
             }
         };
@@ -300,8 +300,8 @@ function openModal(cardData) {
             document.getElementById('modal-count-display').innerText = currentCount;
             await updateInventoryCount(data, 1);
             const invItem = state.inventory.find(i => i.uuid === data.uuid);
-            if (invItem) invItem.count = currentCount;
-            else state.inventory.push({ ...data, count: currentCount });
+            if (invItem) invItem.regularCount = (invItem.regularCount || 0) + 1;
+            else state.inventory.push({ ...data, regularCount: 1, foilCount: 0 });
             updateCardDOMState(data.uuid, currentCount, data.rarity);
         };
     };

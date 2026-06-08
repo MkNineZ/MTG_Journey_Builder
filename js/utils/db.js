@@ -314,8 +314,19 @@ export async function removeFromInventory(cards) {
                     let item = getReq.result;
                     const removeCount = card.count || 1;
                     if (item) {
-                        item.count -= removeCount;
-                        if (item.count <= 0) {
+                        let remaining = removeCount;
+                        if (item.regularCount > 0) {
+                            const sub = Math.min(item.regularCount, remaining);
+                            item.regularCount -= sub;
+                            remaining -= sub;
+                        }
+                        if (remaining > 0 && item.foilCount > 0) {
+                            const sub = Math.min(item.foilCount, remaining);
+                            item.foilCount -= sub;
+                            remaining -= sub;
+                        }
+
+                        if ((item.regularCount || 0) <= 0 && (item.foilCount || 0) <= 0) {
                             store.delete(card.uuid);
                             stats.removed++;
                         } else {
@@ -398,16 +409,17 @@ export async function updateInventoryCount(cardData, delta) {
         request.onsuccess = () => {
             let item = request.result;
             if (item) {
-                item.count += delta;
+                item.regularCount = (item.regularCount || 0) + delta;
                 if (delta > 0) item.isNew = true;
                 
-                if (item.count <= 0) {
+                if ((item.regularCount || 0) <= 0 && (item.foilCount || 0) <= 0) {
                     store.delete(cardData.uuid);
                 } else {
+                    if (item.regularCount < 0) item.regularCount = 0;
                     store.put(item);
                 }
             } else if (delta > 0) {
-                item = { ...cardData, count: delta, isNew: true };
+                item = { ...cardData, regularCount: delta, foilCount: 0, isNew: true };
                 store.put(item);
             }
             
@@ -466,10 +478,16 @@ export async function undoActivity(logId) {
                     invReq.onsuccess = () => {
                         let item = invReq.result;
                         if (item) {
-                            item.count -= 1;
-                            if (item.count <= 0) {
+                            if (card._isFoil || card.isFoil) {
+                                item.foilCount = (item.foilCount || 0) - 1;
+                            } else {
+                                item.regularCount = (item.regularCount || 0) - 1;
+                            }
+                            if ((item.regularCount || 0) <= 0 && (item.foilCount || 0) <= 0) {
                                 invStore.delete(card.uuid);
                             } else {
+                                if (item.regularCount < 0) item.regularCount = 0;
+                                if (item.foilCount < 0) item.foilCount = 0;
                                 invStore.put(item);
                             }
                         }
@@ -480,10 +498,11 @@ export async function undoActivity(logId) {
                 invReq.onsuccess = () => {
                     let item = invReq.result;
                     if (item) {
-                        item.count -= logEntry.delta; // Reverse the delta
-                        if (item.count <= 0) {
+                        item.regularCount = (item.regularCount || 0) - logEntry.delta;
+                        if ((item.regularCount || 0) <= 0 && (item.foilCount || 0) <= 0) {
                             invStore.delete(logEntry.cardData.uuid);
                         } else {
+                            if (item.regularCount < 0) item.regularCount = 0;
                             invStore.put(item);
                         }
                     }

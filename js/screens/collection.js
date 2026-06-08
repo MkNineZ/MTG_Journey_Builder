@@ -174,10 +174,10 @@ export function initCollection() {
 
         const onFilter = (filtered) => {
             currentFilteredCards = filtered.filter(c => !isBasicLand(c));
-            const totalCards = currentFilteredCards.reduce((acc, c) => acc + c.count, 0);
+            const totalCards = currentFilteredCards.reduce((acc, c) => acc + ((c.regularCount || 0) + (c.foilCount || 0)), 0);
             infoContainer.innerHTML = `Tienes <strong>${totalCards}</strong> cartas en total (<strong>${currentFilteredCards.length}</strong> modelos únicos).`;
             const newHTML = currentFilteredCards
-                .sort((a, b) => b.count - a.count)
+                .sort((a, b) => ((b.regularCount || 0) + (b.foilCount || 0)) - ((a.regularCount || 0) + (a.foilCount || 0)))
                 .map(c => renderCard(c))
                 .join('');
             
@@ -282,7 +282,7 @@ export function initCollection() {
 
         try {
             console.log('[Bulk] Iniciando proceso de guardado para', cardsToImport.length, 'cartas.');
-            const totalToImport = cardsToImport.reduce((acc, c) => acc + c.count, 0);
+            const totalToImport = cardsToImport.reduce((acc, c) => acc + ((c.regularCount || 0) + (c.foilCount || 0) || c.count || 1), 0);
             const stats = await saveToInventory(cardsToImport, 'bulk');
             state.incrementSessionCards(totalToImport);
             await state.loadInventory();
@@ -317,7 +317,7 @@ export function initCollection() {
 
     const updateExportText = () => {
         const text = currentFilteredCards
-            .map(c => `${c.count} ${c.name}`)
+            .map(c => `${((c.regularCount || 0) + (c.foilCount || 0))} ${c.name}`)
             .join('\n');
         exportText.value = text;
     };
@@ -383,7 +383,7 @@ export function initCollection() {
 
         try {
             console.log('[Bulk] Iniciando proceso de eliminación para', cardsToDelete.length, 'cartas.');
-            const totalToRemove = cardsToDelete.reduce((acc, c) => acc + c.count, 0);
+            const totalToRemove = cardsToDelete.reduce((acc, c) => acc + (c.count || 1), 0);
             const stats = await removeFromInventory(cardsToDelete);
             await state.loadInventory();
             
@@ -482,7 +482,7 @@ function openModal(cardData) {
         const lang = state.language || 'en';
         const imgUrl = getCardImageUrl(data, lang);
         const fallbackUrl = getCardImageUrlEn(data);
-        let currentCount = data.count;
+        let currentCount = (data.regularCount || 0) + (data.foilCount || 0);
 
         const arrowStyle = `
             background: rgba(20, 15, 12, 0.8);
@@ -540,7 +540,7 @@ function openModal(cardData) {
                 document.getElementById('modal-count-display').innerText = currentCount;
                 await updateInventoryCount(data, -1);
                 const invItem = state.inventory.find(i => i.uuid === data.uuid);
-                if (invItem) invItem.count = currentCount;
+                if (invItem) invItem.regularCount = Math.max(0, (invItem.regularCount || 0) - 1);
             }
         };
 
@@ -550,8 +550,8 @@ function openModal(cardData) {
             await updateInventoryCount(data, 1);
             state.incrementSessionCards(1);
             const invItem = state.inventory.find(i => i.uuid === data.uuid);
-            if (invItem) invItem.count = currentCount;
-            else state.inventory.push({ ...data, count: currentCount });
+            if (invItem) invItem.regularCount = (invItem.regularCount || 0) + 1;
+            else state.inventory.push({ ...data, regularCount: 1, foilCount: 0 });
         };
     };
 
