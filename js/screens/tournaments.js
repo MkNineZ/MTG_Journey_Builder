@@ -1,7 +1,7 @@
 import { getAllTournaments, getTournament, saveTournament, deleteTournament } from '../utils/db.js';
 import { parseDecklistText } from '../components/searchEngine.js';
 import { state } from '../utils/state.js';
-import { getCardImageUrl, getCardImageUrlEn } from '../utils/api.js';
+import { getCardImageUrl, getCardImageUrlEn, getCardArtCropUrl, getCardArtCropUrlEn } from '../utils/api.js';
 
 let activeTournamentId = null;
 let currentTab = 'standings'; // 'standings', 'bracket', 'participants'
@@ -68,6 +68,20 @@ export async function initTournaments() {
                     <div>
                         <label style="color: var(--text-secondary); display: block; margin-bottom: 5px;">Nombre del Jugador</label>
                         <input type="text" id="tourney-player-name" class="settings-select" style="width: 100%; box-sizing: border-box;" placeholder="Ej. Faker">
+                    </div>
+                    <div>
+                        <label style="color: var(--text-secondary); display: block; margin-bottom: 5px;">Nombre del Mazo</label>
+                        <input type="text" id="tourney-deck-name" class="settings-select" style="width: 100%; box-sizing: border-box;" placeholder="Ej. Abzan Midrange">
+                    </div>
+                    <div>
+                        <label style="color: var(--text-secondary); display: block; margin-bottom: 5px;">Colores del Mazo</label>
+                        <div style="display: flex; gap: 10px; align-items: center;" id="tourney-deck-colors">
+                            <button class="mana-btn" data-color="W" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; background: #fffddd; padding: 3px; cursor: pointer; transition: 0.2s;" title="Blanco"><img src="https://svgs.scryfall.io/card-symbols/W.svg" style="width:100%;height:100%; pointer-events:none;"></button>
+                            <button class="mana-btn" data-color="U" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; background: #c1d8e9; padding: 3px; cursor: pointer; transition: 0.2s;" title="Azul"><img src="https://svgs.scryfall.io/card-symbols/U.svg" style="width:100%;height:100%; pointer-events:none;"></button>
+                            <button class="mana-btn" data-color="B" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; background: #bab1ab; padding: 3px; cursor: pointer; transition: 0.2s;" title="Negro"><img src="https://svgs.scryfall.io/card-symbols/B.svg" style="width:100%;height:100%; pointer-events:none;"></button>
+                            <button class="mana-btn" data-color="R" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; background: #f9aa8f; padding: 3px; cursor: pointer; transition: 0.2s;" title="Rojo"><img src="https://svgs.scryfall.io/card-symbols/R.svg" style="width:100%;height:100%; pointer-events:none;"></button>
+                            <button class="mana-btn" data-color="G" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; background: #9bd3ae; padding: 3px; cursor: pointer; transition: 0.2s;" title="Verde"><img src="https://svgs.scryfall.io/card-symbols/G.svg" style="width:100%;height:100%; pointer-events:none;"></button>
+                        </div>
                     </div>
                     <div>
                         <label style="color: var(--text-secondary); display: block; margin-bottom: 5px;">Lista del Mazo (Texto Plano)</label>
@@ -272,22 +286,37 @@ function renderParticipants(t, container) {
     if (!t.players || t.players.length === 0) {
         html += `<p style="color: var(--text-secondary); grid-column: 1 / -1;">No hay participantes.</p>`;
     } else {
+        const allAvailableCards = (state.activeSetsData || []).flatMap(s => (s.cards || []).map(c => ({...c, setCode: s.code})));
+        
         t.players.forEach(p => {
+            let bgImage = 'background: rgba(0,0,0,0.5);';
+            const { parsed } = parseDecklistText(p.decklist, allAvailableCards);
+            if (parsed && parsed.length > 0) {
+                const randomCard = parsed[Math.floor(Math.random() * parsed.length)];
+                const artUrl = getCardArtCropUrl(randomCard, state.language || 'en');
+                bgImage = `background: linear-gradient(rgba(15,15,15,0.85), rgba(15,15,15,0.95)), url('${artUrl}'); background-size: cover; background-position: center;`;
+            }
+
+            const colorsHtml = (p.deckColors || []).map(c => 
+                `<img src="https://svgs.scryfall.io/card-symbols/${c}.svg" style="width: 20px; height: 20px;" title="${c}">`
+            ).join('');
+
             html += `
-                <div class="lol-card">
+                <div class="lol-card" style="${bgImage}">
                     <div class="lol-card-header">
                         <strong style="font-size: 1.2rem; color: var(--text-primary);">${p.name}</strong>
                         <span style="color: var(--accent-secondary); font-family: var(--font-heading);">${p.stats?.wins || 0}V - ${p.stats?.losses || 0}D</span>
                     </div>
-                    <div style="flex-grow: 1;">
-                        <textarea readonly class="settings-select" style="width: 100%; height: 120px; resize: none; font-family: monospace; font-size: 0.8rem; background: rgba(0,0,0,0.3); color: var(--text-secondary); border: none;">${p.decklist || 'Sin lista registrada'}</textarea>
+                    <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 10px; padding: 1rem 0;">
+                        <h4 style="color: var(--accent-color); margin: 0; font-size: 1.1rem; text-align: center;">${p.deckName || 'Mazo sin nombre'}</h4>
+                        <div style="display: flex; gap: 5px;">${colorsHtml}</div>
                     </div>
                     <div style="display: flex; gap: 10px; margin-top: 0.5rem;">
                         <button class="lol-btn btn-view-visual" data-player-id="${p.id}" style="flex: 1; border-color: var(--text-secondary); color: var(--text-secondary);">
-                            <i class="fas fa-eye"></i> Visual
+                            <i class="fas fa-eye"></i> Ver Mazo
                         </button>
                         <button class="lol-btn btn-edit-deck" data-player-id="${p.id}" style="flex: 1;">
-                            <i class="fas fa-edit"></i> Editar
+                            <i class="fas fa-edit"></i> Editar Mazo
                         </button>
                         ${isDraft ? `
                             <button class="lol-btn btn-delete-player" data-player-id="${p.id}" style="border-color: #e74c3c; color: #e74c3c;" title="Eliminar">
@@ -419,13 +448,25 @@ async function openPlayerModal(playerId) {
     const modal = document.getElementById('tourney-modal');
     const title = document.getElementById('tourney-modal-title');
     const nameInput = document.getElementById('tourney-player-name');
+    const deckNameInput = document.getElementById('tourney-deck-name');
     const deckInput = document.getElementById('tourney-player-decklist');
+    const colorBtns = document.querySelectorAll('#tourney-deck-colors .mana-btn');
     
     currentPlayerEditingId = playerId;
     
     const t = await getTournament(activeTournamentId);
     
-    // Si el torneo ya empezó, no dejar editar el nombre. Solo el mazo.
+    // Reset colors
+    colorBtns.forEach(btn => {
+        btn.classList.remove('selected-color');
+        btn.style.borderColor = 'transparent';
+        btn.onclick = () => {
+            btn.classList.toggle('selected-color');
+            btn.style.borderColor = btn.classList.contains('selected-color') ? 'var(--accent-color)' : 'transparent';
+        };
+    });
+    
+    // Si el torneo ya empezó, no dejar editar el nombre del jugador.
     if (t.status === 'active' && playerId) {
         nameInput.disabled = true;
         nameInput.style.opacity = '0.5';
@@ -438,10 +479,20 @@ async function openPlayerModal(playerId) {
         title.textContent = 'Editar Jugador / Mazo';
         const p = t.players.find(x => x.id === playerId);
         nameInput.value = p.name;
+        deckNameInput.value = p.deckName || '';
         deckInput.value = p.decklist || '';
+        if (p.deckColors) {
+            colorBtns.forEach(btn => {
+                if (p.deckColors.includes(btn.dataset.color)) {
+                    btn.classList.add('selected-color');
+                    btn.style.borderColor = 'var(--accent-color)';
+                }
+            });
+        }
     } else {
         title.textContent = 'Añadir Nuevo Jugador';
         nameInput.value = '';
+        deckNameInput.value = '';
         deckInput.value = '';
     }
     
@@ -450,7 +501,10 @@ async function openPlayerModal(playerId) {
     const saveBtn = document.getElementById('tourney-modal-save');
     saveBtn.onclick = async () => {
         const name = nameInput.value.trim();
+        const deckName = deckNameInput.value.trim();
         const deck = deckInput.value.trim();
+        const deckColors = Array.from(document.querySelectorAll('#tourney-deck-colors .selected-color')).map(b => b.dataset.color);
+        
         if (!nameInput.disabled && !name) return alert('El nombre es obligatorio');
         
         const currentT = await getTournament(activeTournamentId);
@@ -459,12 +513,16 @@ async function openPlayerModal(playerId) {
             const p = currentT.players.find(x => x.id === currentPlayerEditingId);
             if (p) {
                 if (!nameInput.disabled) p.name = name;
+                p.deckName = deckName;
+                p.deckColors = deckColors;
                 p.decklist = deck;
             }
         } else {
             currentT.players.push({
                 id: crypto.randomUUID(),
                 name,
+                deckName,
+                deckColors,
                 decklist: deck,
                 stats: { wins: 0, losses: 0 }
             });
