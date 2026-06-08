@@ -96,8 +96,10 @@ export async function initTournaments() {
         <div id="visualizer-modal" class="deck-modal-overlay" style="display: none; z-index: 10000;">
             <div class="deck-modal-content" style="width: 90%; max-width: 1000px; max-height: 85vh; display: flex; flex-direction: column;">
                 <button id="visualizer-close" class="deck-modal-close">&times;</button>
-                <h2 id="visualizer-title" style="color: var(--accent-color); margin-bottom: 1rem;">Mazo de Jugador</h2>
-                <div id="visualizer-stats" style="margin-bottom: 1rem; display: flex; gap: 2rem; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 1rem;"></div>
+                <div id="visualizer-header-row" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 1rem; gap: 1rem;">
+                    <h2 id="visualizer-title" style="color: var(--accent-color); margin: 0;">Mazo de Jugador</h2>
+                    <div id="visualizer-stats" style="display: flex; gap: 2rem; align-items: center;"></div>
+                </div>
                 <div id="visualizer-grid" style="flex: 1; overflow-y: auto; padding: 1rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px;">
                     <!-- Cards injected here -->
                 </div>
