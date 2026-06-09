@@ -93,17 +93,17 @@ function hideHoverPreview() {
 let ghostPortal = null;
 function getGhostPortal() {
     if (!ghostPortal) {
-        ghostPortal = document.createElement('img');
+        ghostPortal = document.createElement('div');
         ghostPortal.className = 'ghost-zoom-portal';
         document.body.appendChild(ghostPortal);
     }
     return ghostPortal;
 }
+
 function showGhostPortal(cardEl) {
     const portal = getGhostPortal();
-    const imgEl  = cardEl.querySelector('img');
-    if (!imgEl) return;
-
+    portal.innerHTML = '';
+    
     const rect = cardEl.getBoundingClientRect();
     const zoom = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--card-hover-zoom') || '1.4');
     
@@ -112,18 +112,54 @@ function showGhostPortal(cardEl) {
     const finalLeft = rect.left + (rect.width / 2) - (targetW / 2);
     const finalTop = rect.top + (rect.height / 2) - (targetH / 2);
     
-    portal.src = imgEl.src;
     portal.style.left = finalLeft + 'px';
     portal.style.top = finalTop + 'px';
     portal.style.width = targetW + 'px';
     portal.style.height = targetH + 'px';
     
+    const dfcWrapper = cardEl.querySelector('.dfc-wrapper');
+    if (dfcWrapper) {
+        const cardFlipper = dfcWrapper.querySelector('.card-flipper');
+        const isFlipped = cardFlipper && cardFlipper.classList.contains('is-flipped');
+        
+        const imgFront = dfcWrapper.querySelector('.card-front img');
+        const imgBack = dfcWrapper.querySelector('.card-back img');
+        
+        if (imgFront && imgBack) {
+            portal.innerHTML = `
+            <div class="dfc-wrapper ghost-dfc-wrapper" style="width: 100%; height: 100%;">
+              <div class="card-flipper ghost-flipper ${isFlipped ? 'is-flipped' : ''}" style="width: 100%; height: 100%;">
+                <div class="card-face card-front" style="width: 100%; height: 100%;">
+                  <img src="${imgFront.src}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 4.75% / 3.5%;">
+                </div>
+                <div class="card-face card-back" style="width: 100%; height: 100%;">
+                  <img src="${imgBack.src}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 4.75% / 3.5%;">
+                </div>
+              </div>
+              <button class="flip-btn ghost-flip-btn" style="z-index: 2000;">↻</button>
+            </div>`;
+            
+            const ghostFlipBtn = portal.querySelector('.ghost-flip-btn');
+            ghostFlipBtn.onclick = (e) => {
+                e.stopPropagation();
+                portal.querySelector('.ghost-flipper').classList.toggle('is-flipped');
+                if (cardFlipper) cardFlipper.classList.toggle('is-flipped');
+            };
+        }
+    } else {
+        const imgEl = cardEl.querySelector('img');
+        if (imgEl) {
+            portal.innerHTML = `<img src="${imgEl.src}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 4.75% / 3.5%;">`;
+        }
+    }
+
     portal.style.display = 'block';
     requestAnimationFrame(() => {
         portal.classList.add('visible');
         portal.style.transform = `scale(1)`;
     });
 }
+
 function hideGhostPortal() {
     if (!ghostPortal) return;
     ghostPortal.classList.remove('visible');
