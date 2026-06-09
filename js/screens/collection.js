@@ -479,13 +479,36 @@ function openModal(cardData) {
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         `;
 
+        let imageSectionHtml = '';
+        
+        if (data.isTransformable && data.faces && data.faces.length >= 2) {
+            content.style.maxWidth = '1000px';
+            const faceA = { ...data, side: data.faces[0].side, name: data.faces[0].name, number: data.faces[0].number };
+            const faceB = { ...data, side: data.faces[1].side, name: data.faces[1].name, number: data.faces[1].number };
+            
+            const imgA = getCardImageUrl(faceA, lang);
+            const imgB = getCardImageUrl(faceB, lang);
+            const fbA = getCardImageUrlEn(faceA);
+            const fbB = getCardImageUrlEn(faceB);
+            
+            imageSectionHtml = `
+            <div style="flex: 2; min-width: 350px; display: flex; gap: 15px; justify-content: center; align-items: center;">
+                <img src="${imgA}" style="width: 100%; max-width: 350px; border-radius: 20px; box-shadow: 0 20px 80px rgba(0,0,0,0.9);" onerror="this.src='${fbA}';">
+                <img src="${imgB}" style="width: 100%; max-width: 350px; border-radius: 20px; box-shadow: 0 20px 80px rgba(0,0,0,0.9);" onerror="this.src='${fbB}';">
+            </div>`;
+        } else {
+            content.style.maxWidth = '800px';
+            imageSectionHtml = `
+            <div style="flex: 1; min-width: 350px; display: flex; justify-content: center;">
+                <img src="${imgUrl}" style="width: 100%; max-width: 400px; border-radius: 20px; box-shadow: 0 20px 80px rgba(0,0,0,0.9);" onerror="this.src='${fallbackUrl}';">
+            </div>`;
+        }
+
         content.innerHTML = `
             <button id="modal-prev" class="modal-nav-btn" style="${arrowStyle}"><i class="fas fa-chevron-left"></i></button>
             <button id="modal-next" class="modal-nav-btn" style="${arrowStyle}"><i class="fas fa-chevron-right"></i></button>
             
-            <div style="flex: 1; min-width: 350px; display: flex; justify-content: center;">
-                <img src="${imgUrl}" style="width: 100%; max-width: 400px; border-radius: 20px; box-shadow: 0 20px 80px rgba(0,0,0,0.9);" onerror="this.src='${fallbackUrl}';">
-            </div>
+            ${imageSectionHtml}
             <div style="flex: 1.2; min-width: 350px; display: flex; flex-direction: column; justify-content: center;">
                 <h2 style="font-size: 2.5rem; margin-bottom: 1rem; font-family: var(--font-heading); background: linear-gradient(to right, #fff, #aaa); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">${data.name}</h2>
                 <div style="display: flex; gap: 1.5rem; align-items: center; margin-bottom: 3rem; opacity: 0.7;">
