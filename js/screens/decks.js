@@ -106,6 +106,7 @@ document.addEventListener('keydown', (e) => {
                     img.src = img.dataset.frontUrl;
                     img.dataset.isFlipped = 'false';
                 } else {
+                    console.log("Flipping to backUrl:", img.dataset.backUrl, "Type:", typeof img.dataset.backUrl);
                     img.src = img.dataset.backUrl;
                     img.dataset.isFlipped = 'true';
                 }

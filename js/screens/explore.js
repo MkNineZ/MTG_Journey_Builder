@@ -175,10 +175,19 @@ function renderCard(c, owned) {
     const isOwned     = !!owned;
     const badgeCount  = isOwned ? (owned.regularCount || 0) + (owned.foilCount || 0) : 0;
     const styleOwned = isOwned ? '' : 'filter: grayscale(60%) brightness(0.7); opacity: 0.8;';
+    const isDFC = c.otherFaceIds && c.otherFaceIds.length > 0;
+    const badgeHTML = isDFC ? `
+        <div class="dfc-badge" style="position: absolute; top: 8px; right: 8px; z-index: 10; background: rgba(0,0,0,0.7); border: 1px solid var(--accent-color); border-radius: 50%; padding: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.8); pointer-events: none;" title="Pulse F para voltear (en inspección)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-color)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                <path d="M3 3v5h5"></path>
+            </svg>
+        </div>` : '';
 
     return `
-        <div class="library-card card-skeleton" data-uuid="${c.uuid}" data-rarity="${rarity}" style="position: relative; cursor: pointer; border: 2px solid ${isOwned ? color : '#333'}; border-radius: 12px; overflow: hidden; background: #000; transition: all 0.3s ease; ${styleOwned}">
+        <div class="library-card card-skeleton" data-uuid="${c.uuid}" data-rarity="${rarity}" ${isDFC ? `data-dfc="true" data-front="${imgUrl}" data-back="${c.otherFaceIds ? c.otherFaceIds[0] : ''}"` : ''} style="position: relative; cursor: pointer; border: 2px solid ${isOwned ? color : '#333'}; border-radius: 12px; overflow: hidden; background: #000; transition: all 0.3s ease; ${styleOwned}">
             ${isOwned ? `<div class="card-quantity-badge">x${badgeCount}</div>` : ''}
+            ${badgeHTML}
             <img src="${imgUrl}" alt="${c.name}" loading="lazy" style="width: 100%; display: block; opacity: 0; transition: opacity 0.3s ease;" onload="this.style.opacity=1; this.parentElement.classList.remove('card-skeleton');" onerror="this.onerror=null; this.src='${fallbackUrl}';">
             <div style="padding: 0.7rem; background: rgba(0,0,0,0.85); display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); position: relative; z-index: 2;">
                 <i class="ss ss-${c.setCode.toLowerCase()} ss-mtg" style="font-size: 1.2rem; color: ${isOwned ? color : '#555'};"></i>
