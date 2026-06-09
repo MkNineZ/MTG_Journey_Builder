@@ -829,16 +829,43 @@ export function displayBooster(cards, stockWarning = false, isMassOpen = false, 
         const foilClass = c.isFoil ? 'foil-card-effect' : '';
         const bonusLabel = c._isBonus ? '<div class="foil-upgrade-label">UPGRADE FOIL</div>' : '';
 
+        let cardImageHtml = `<img src="${imgUrl}" alt="${c.name}" loading="lazy"
+                    style="width: 100%; display: block; opacity: 0; transition: opacity 0.3s ease;"
+                    onload="this.style.opacity=1; this.closest('.card-skeleton')?.classList.remove('card-skeleton');"
+                    onerror="this.onerror=null; this.src='${fallbackUrl}';">`;
+        
+        let flipButton = '';
+
+        if (c.isTransformable && c.faces && c.faces.length >= 2) {
+            const faceA = { ...c, side: c.faces[0].side, name: c.faces[0].name, number: c.faces[0].number };
+            const faceB = { ...c, side: c.faces[1].side, name: c.faces[1].name, number: c.faces[1].number };
+            const imgA = getCardImageUrl(faceA, lang);
+            const imgB = getCardImageUrl(faceB, lang);
+            const fbA = getCardImageUrlEn(faceA);
+            const fbB = getCardImageUrlEn(faceB);
+
+            cardImageHtml = `
+            <div class="card-wrapper dfc-wrapper" style="width: 100%; height: 100%;">
+              <div class="card-flipper">
+                <div class="card-face card-front">
+                  <img src="${imgA}" alt="${c.name} Front" loading="lazy" style="width: 100%; display: block; opacity: 0; transition: opacity 0.3s ease;" onload="this.style.opacity=1; this.closest('.card-skeleton')?.classList.remove('card-skeleton');" onerror="this.onerror=null; this.src='${fbA}';">
+                </div>
+                <div class="card-face card-back">
+                  <img src="${imgB}" alt="${c.name} Back" loading="lazy" style="width: 100%; display: block; opacity: 0; transition: opacity 0.3s ease;" onload="this.style.opacity=1;" onerror="this.onerror=null; this.src='${fbB}';">
+                </div>
+              </div>
+            </div>`;
+            
+            flipButton = `<button class="flip-btn" title="Voltear carta" onclick="event.stopPropagation(); this.previousElementSibling.querySelector('.card-flipper').classList.toggle('is-flipped');">↻</button>`;
+        }
+
         return `
             <div class="booster-card-item card-skeleton ${foilClass}"
                 style="border: 2px solid ${color}; border-radius: 10px; overflow: hidden; background: #000; position: relative; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;"
                 data-uuid="${c.uuid}">
                 ${bonusLabel}
-
-                <img src="${imgUrl}" alt="${c.name}" loading="lazy"
-                    style="width: 100%; display: block; opacity: 0; transition: opacity 0.3s ease;"
-                    onload="this.style.opacity=1; this.parentElement.classList.remove('card-skeleton');"
-                    onerror="this.onerror=null; this.src='${fallbackUrl}';">
+                ${cardImageHtml}
+                ${flipButton}
                 <div style="position: absolute; bottom: 0; width: 100%; padding: 0.35rem; background: rgba(0,0,0,0.75); text-align: center; font-size: 0.65rem; color: ${color}; font-weight: 700; letter-spacing: 1px;">
                     ${c.rarity.toUpperCase()}
                 </div>

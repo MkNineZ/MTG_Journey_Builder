@@ -448,9 +448,36 @@ function renderCard(c) {
 
     const badgeCount = (c.regularCount || 0) + (c.foilCount || 0);
 
+    let cardImageHtml = `<img src="${imgUrl}" alt="${c.name}" loading="lazy" class="deck-inv-img" style="opacity: 0;" onload="this.style.opacity=1;" onerror="this.onerror=null; this.src='${fallbackUrl}';">`;
+    let flipButton = '';
+
+    if (c.isTransformable && c.faces && c.faces.length >= 2) {
+        const faceA = { ...c, side: c.faces[0].side, name: c.faces[0].name, number: c.faces[0].number };
+        const faceB = { ...c, side: c.faces[1].side, name: c.faces[1].name, number: c.faces[1].number };
+        const imgA = getCardImageUrl(faceA, lang);
+        const imgB = getCardImageUrl(faceB, lang);
+        const fbA = getCardImageUrlEn(faceA);
+        const fbB = getCardImageUrlEn(faceB);
+
+        cardImageHtml = `
+        <div class="card-wrapper dfc-wrapper" style="width: 100%; height: 100%;">
+          <div class="card-flipper">
+            <div class="card-face card-front">
+              <img src="${imgA}" alt="${c.name} Front" loading="lazy" class="deck-inv-img" style="opacity: 0; width: 100%; display: block;" onload="this.style.opacity=1;" onerror="this.onerror=null; this.src='${fbA}';">
+            </div>
+            <div class="card-face card-back">
+              <img src="${imgB}" alt="${c.name} Back" loading="lazy" class="deck-inv-img" style="opacity: 0; width: 100%; display: block;" onload="this.style.opacity=1;" onerror="this.onerror=null; this.src='${fbB}';">
+            </div>
+          </div>
+        </div>`;
+        
+        flipButton = `<button class="flip-btn" title="Voltear carta" onclick="event.stopPropagation(); this.previousElementSibling.querySelector('.card-flipper').classList.toggle('is-flipped');">↻</button>`;
+    }
+
     return `
         <div class="library-card deck-inv-card ${glowClass}" data-uuid="${c.uuid}" style="position: relative; cursor: pointer; border: 2px solid ${color}; background: #000;">
-            <img src="${imgUrl}" alt="${c.name}" loading="lazy" class="deck-inv-img" style="opacity: 0;" onload="this.style.opacity=1;" onerror="this.onerror=null; this.src='${fallbackUrl}';">
+            ${cardImageHtml}
+            ${flipButton}
             <div class="card-quantity-badge">x${badgeCount}</div>
             <div style="padding: 0.5rem 0.7rem; background: rgba(0,0,0,0.85); display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); position: relative; z-index: 2;">
                 <i class="ss ss-${c.setCode.toLowerCase()} ss-mtg" style="font-size: 1.1rem; color: ${color};"></i>
