@@ -2757,3 +2757,44 @@ strong {
     background: var(--accent-secondary);
     color: var(--bg-color);
 }
+
+
+/* DFC Modal Styles */
+.is-dfc-modal {
+    max-width: 900px !important;
+}
+
+.dfc-images-container {
+    display: flex;
+    gap: 15px;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: flex-start;
+    flex: 2;
+}
+
+.dfc-images-container img {
+    max-width: 100%;
+    object-fit: contain;
+    width: 250px;
+    border-radius: 20px;
+    box-shadow: 0 20px 80px rgba(0,0,0,0.9);
+}
+
+.is-dfc-modal .modal-info-col {
+    flex: 1 !important;
+}
+
+.is-dfc-modal h2 {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+}
+
+@media (max-width: 768px) {
+    .is-dfc-modal .dfc-images-container {
+        flex-direction: column;
+        align-items: center;
+    }
+}
+
