@@ -2763,7 +2763,9 @@ strong {
 .is-dfc-modal {
     width: fit-content !important;
     min-width: 850px;
-    max-width: 95vw !important;
+    max-width: 1050px !important;
+    padding-top: 1.5rem !important;
+    padding-bottom: 1.5rem !important;
 }
 
 .dfc-images-container {
@@ -2779,7 +2781,9 @@ strong {
 .dfc-images-container img {
     max-width: 100%;
     object-fit: contain;
-    width: 250px;
+    width: 100%;
+    min-width: 300px;
+    height: auto;
     border-radius: 20px;
     box-shadow: 0 20px 80px rgba(0,0,0,0.9);
 }
