@@ -237,68 +237,26 @@ function showGhostPortal(cardEl) {
         inner.style.transform = 'none';
     }
 
-    const rect = cardEl.getBoundingClientRect();
-    const zoom = getComputedStyle(document.documentElement).getPropertyValue('--card-hover-zoom') || '1.4';
-
-    // Boundary check for left edge
-    const z = parseFloat(zoom) || 1.4;
-    const offset = (rect.width * (z - 1)) / 2;
-    let finalLeft = rect.left;
-    if (finalLeft - offset < 20) finalLeft = 20 + offset;
-
     const portalImg = inner.querySelector('img');
     portalImg.src = imgEl.src;
     
-    // Store DFC info
-    portalImg.dataset.frontUrl = imgEl.src;
-    portalImg.dataset.isFlipped = 'false';
-    delete portalImg.dataset.backUrl;
+    const rect = imgEl.getBoundingClientRect();
+    const zoom = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--card-hover-zoom') || '1.4');
     
-    if (state.activeSetsData) {
-        let cardData = null;
-        for (const set of state.activeSetsData) {
-            cardData = (set.cards || []).find(c => c.uuid === cardEl.dataset.uuid);
-            if (cardData) break;
-        }
-        if (cardData && cardData.otherFaceIds && cardData.otherFaceIds.length > 0) {
-            let otherFace = null;
-            for (const set of state.activeSetsData) {
-                otherFace = (set.cards || []).find(c => c.uuid === cardData.otherFaceIds[0]);
-                if (otherFace) break;
-            }
-            if (otherFace) {
-                portalImg.dataset.backUrl = getCardImageUrl(otherFace, state.language || 'en');
-                
-                // Hint
-                if (!document.getElementById('flip-hint-booster')) {
-                    const hint = document.createElement('div');
-                    hint.id = 'flip-hint-booster';
-                    hint.style.cssText = 'position: fixed; background: rgba(0,0,0,0.8); color: white; padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; z-index: 9001; pointer-events: none; border: 1px solid var(--accent-color); opacity: 0; transition: opacity 0.2s;';
-                    hint.innerHTML = 'Press <kbd>F</kbd> to flip';
-                    document.body.appendChild(hint);
-                }
-            }
-        }
-    }
-
-    portal.style.width  = rect.width + 'px';
-    portal.style.height = rect.height + 'px';
-    portal.style.top    = rect.top + 'px';
-    portal.style.left   = finalLeft + 'px';
+    const targetW = rect.width * zoom;
+    const targetH = rect.height * zoom;
+    const finalLeft = rect.left + (rect.width / 2) - (targetW / 2);
+    const finalTop = rect.top + (rect.height / 2) - (targetH / 2);
+    
+    portal.style.left = finalLeft + 'px';
+    portal.style.top = finalTop + 'px';
+    portal.style.width = targetW + 'px';
+    portal.style.height = targetH + 'px';
     
     portal.style.display = 'block';
     requestAnimationFrame(() => {
         portal.classList.add('visible');
-        portal.style.transform = `scale(${zoom})`;
-        
-        if (portalImg.dataset.backUrl) {
-            const hint = document.getElementById('flip-hint-booster');
-            if (hint) {
-                hint.style.left = (finalLeft + rect.width / 2 - 50) + 'px';
-                hint.style.top = (rect.bottom + 10) + 'px';
-                hint.style.opacity = '1';
-            }
-        }
+        portal.style.transform = `scale(1)`;
         
         if (cardEl.classList.contains('foil-card-effect')) {
             const rotX = cardEl.style.getPropertyValue('--rot-x') || '0deg';
@@ -316,8 +274,6 @@ function hideGhostPortal() {
     if (!ghostPortal) return;
     ghostPortal.classList.remove('visible');
     ghostPortal.style.transform = 'scale(1)';
-    const hint = document.getElementById('flip-hint-booster');
-    if (hint) hint.style.opacity = '0';
     const inner = ghostPortal.querySelector('.ghost-portal-inner');
     if (inner) {
         inner.style.transform = 'none';
@@ -326,32 +282,7 @@ function hideGhostPortal() {
     setTimeout(() => { if (!ghostPortal.classList.contains('visible')) ghostPortal.style.display = 'none'; }, 200);
 }
 
-// Global keydown for flipping booster ghost portal
-document.addEventListener('keydown', (e) => {
-    if ((e.key === 'f' || e.key === 'F') && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
-        const portal = document.querySelector('.ghost-zoom-portal.visible');
-        if (portal) {
-            const img = portal.querySelector('img');
-            if (img && img.dataset.backUrl) {
-                const isFlipped = img.dataset.isFlipped === 'true';
-                img.style.transform = 'scale(0.9) rotateY(90deg)';
-                img.style.opacity = '0.5';
-                
-                setTimeout(() => {
-                    if (isFlipped) {
-                        img.src = img.dataset.frontUrl;
-                        img.dataset.isFlipped = 'false';
-                    } else {
-                        img.src = img.dataset.backUrl;
-                        img.dataset.isFlipped = 'true';
-                    }
-                    img.style.transform = 'scale(1) rotateY(0deg)';
-                    img.style.opacity = '1';
-                }, 150);
-            }
-        }
-    }
-});
+
 
 // ─── Exported actions (called from app.js global delegation) ──────────────────
 
@@ -897,17 +828,13 @@ export function displayBooster(cards, stockWarning = false, isMassOpen = false, 
         
         const foilClass = c.isFoil ? 'foil-card-effect' : '';
         const bonusLabel = c._isBonus ? '<div class="foil-upgrade-label">UPGRADE FOIL</div>' : '';
-        const dfcBadge = (c.otherFaceIds && c.otherFaceIds.length > 0) ? `
-            <div class="card-dfc-badge" title="Double-Faced Card (Pulsa F para girar al hacer hover)">
-                <svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0020 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 004 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
-            </div>` : '';
 
         return `
             <div class="booster-card-item card-skeleton ${foilClass}"
                 style="border: 2px solid ${color}; border-radius: 10px; overflow: hidden; background: #000; position: relative; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;"
                 data-uuid="${c.uuid}">
                 ${bonusLabel}
-                ${dfcBadge}
+
                 <img src="${imgUrl}" alt="${c.name}" loading="lazy"
                     style="width: 100%; display: block; opacity: 0; transition: opacity 0.3s ease;"
                     onload="this.style.opacity=1; this.parentElement.classList.remove('card-skeleton');"

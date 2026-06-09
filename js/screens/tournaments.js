@@ -613,11 +613,6 @@ function openVisualizerModal(playerId, tournament) {
             </div>
         `;
         
-        const dfcBadge = (card.otherFaceIds && card.otherFaceIds.length > 0) ? `
-            <div class="card-dfc-badge" title="Double-Faced Card (Pulsa F para girar al hacer hover)">
-                <svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0020 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 004 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
-            </div>` : '';
-
         if (card.isUnknown) {
             html += `
                 <div style="position: relative; aspect-ratio: 63/88; background: linear-gradient(135deg, rgba(30,20,10,0.8), rgba(0,0,0,0.9)); border: 1px solid var(--accent-color); border-radius: 4.75% / 3.5%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 10px; box-shadow: inset 0 0 20px rgba(133, 109, 64, 0.2); transition: transform 0.2s, box-shadow 0.2s, z-index 0s;"
@@ -626,7 +621,6 @@ function openVisualizerModal(playerId, tournament) {
                     <i class="fas fa-question-circle" style="font-size: 2.5rem; color: var(--accent-secondary); margin-bottom: 0.5rem; opacity: 0.5;"></i>
                     <span style="color: var(--accent-color); font-weight: bold; font-size: 0.9rem; text-shadow: 0 2px 4px rgba(0,0,0,0.8); word-wrap: break-word; width: 100%;">${card.name}</span>
                     ${badgeHTML}
-                    ${dfcBadge}
                 </div>
             `;
         } else {
@@ -634,12 +628,15 @@ function openVisualizerModal(playerId, tournament) {
             const fallbackUrl = getCardImageUrlEn(card);
             
             html += `
-                <div style="position: relative; aspect-ratio: 63/88; background: transparent; border-radius: 4.75% / 3.5%; cursor: pointer;"
-                     onmouseenter="if(!window.tourneyHoverImg){window.tourneyHoverImg=document.createElement('img');window.tourneyHoverImg.className='card-hover-preview';window.tourneyHoverImg.style.zIndex='11000';document.body.appendChild(window.tourneyHoverImg);} window.tourneyHoverImg.src='${imgUrl}'; window.tourneyHoverImg.onerror=function(){if(this.src!=='${fallbackUrl}')this.src='${fallbackUrl}'}; window.tourneyHoverImg.style.display='block'; const rect=this.getBoundingClientRect(); const zoom=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--card-hover-zoom')||'1.4'); const tw=rect.width*zoom; const th=rect.height*zoom; window.tourneyHoverImg.style.left=(rect.left+(rect.width/2)-(tw/2))+'px'; window.tourneyHoverImg.style.top=(rect.top+(rect.height/2)-(th/2))+'px'; requestAnimationFrame(()=>window.tourneyHoverImg.classList.add('visible')); this.children[0].style.opacity='0';"
-                     onmouseleave="if(window.tourneyHoverImg){window.tourneyHoverImg.classList.remove('visible'); setTimeout(()=>{if(!window.tourneyHoverImg.classList.contains('visible'))window.tourneyHoverImg.style.display='none';},150);} this.children[0].style.opacity='1';">
-                    <img src="${imgUrl}" alt="${card.name}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4.75% / 3.5%; display: block; transition: opacity 0.15s ease;" onerror="this.onerror=null;this.src='${fallbackUrl}'">
+                <div style="position: relative; aspect-ratio: 63/88; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s, z-index 0s;"
+                     onmouseover="this.style.transform='scale(${state.hoverZoom || 1.1})'; this.style.boxShadow='0 10px 20px rgba(0,0,0,0.5), 0 0 15px rgba(255, 250, 141, 0.3)'; this.style.zIndex='100';"
+                     onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'; this.style.zIndex='';">
+                    <div style="width: 100%; height: 100%;"
+                         onmouseenter="if(!window.tourneyHoverImg){window.tourneyHoverImg=document.createElement('img');window.tourneyHoverImg.className='card-hover-preview';window.tourneyHoverImg.style.zIndex='11000';document.body.appendChild(window.tourneyHoverImg);} window.tourneyHoverImg.src='${imgUrl}'; window.tourneyHoverImg.onerror=function(){if(this.src!=='${fallbackUrl}')this.src='${fallbackUrl}'}; window.tourneyHoverImg.style.display='block'; const rect=this.getBoundingClientRect(); const zoom=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--card-hover-zoom')||'1.4'); const tw=rect.width*zoom; const th=rect.height*zoom; window.tourneyHoverImg.style.left=(rect.left+(rect.width/2)-(tw/2))+'px'; window.tourneyHoverImg.style.top=(rect.top+(rect.height/2)-(th/2))+'px'; requestAnimationFrame(()=>window.tourneyHoverImg.classList.add('visible')); this.children[0].style.opacity='0';"
+                         onmouseleave="if(window.tourneyHoverImg){window.tourneyHoverImg.classList.remove('visible'); window.tourneyHoverImg.style.display='none';} this.children[0].style.opacity='1';">
+                        <img src="${imgUrl}" alt="${card.name}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4.75% / 3.5%; display: block; transition: opacity 0.15s ease;" onerror="this.onerror=null;this.src='${fallbackUrl}'">
+                    </div>
                     ${badgeHTML}
-                    ${dfcBadge}
                 </div>
             `;
         }
