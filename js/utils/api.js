@@ -25,6 +25,44 @@ export async function fetchSetData(code, progressCallback) {
         const responseData = await response.json();
         const setData = responseData.data; // MTGJSON wraps in { data: {...}, meta: {...} }
         
+        // --- PROCESADO PARA DFCs ---
+        if (setData && setData.cards) {
+            const originalCards = [...setData.cards];
+            const processedCards = [];
+            
+            for (const card of originalCards) {
+                // Filtro de Descarte: Ignorar Cara B
+                if (card.side === 'b') {
+                    continue;
+                }
+                
+                // Detección de Cara Principal y Fusión
+                if (card.side === 'a' || (card.otherFaceIds && card.otherFaceIds.length > 0)) {
+                    card.isTransformable = true;
+                    
+                    card.faces = [
+                        { side: 'a', name: card.name, number: card.number }
+                    ];
+                    
+                    const otherFaceId = card.otherFaceIds ? card.otherFaceIds[0] : null;
+                    const otherFace = otherFaceId ? originalCards.find(c => c.uuid === otherFaceId) : null;
+                    
+                    if (otherFace) {
+                        card.faces.push({
+                            side: 'b',
+                            name: otherFace.name,
+                            number: otherFace.number
+                        });
+                    }
+                }
+                
+                processedCards.push(card);
+            }
+            
+            setData.cards = processedCards;
+        }
+        // ---------------------------
+        
         // 3. Save to DB for future
         if (progressCallback) progressCallback(`Guardando ${code} en caché local...`);
         await saveSet(code, setData);
