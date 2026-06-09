@@ -38,17 +38,80 @@ function showHoverPreview(card, evt) {
     if (img.dataset.cardId !== card.uuid) {
         img.src = localizedUrl;
         img.dataset.cardId = card.uuid;
+        
+        // Store DFC info
+        img.dataset.frontUrl = localizedUrl;
+        img.dataset.frontFallback = fallbackUrl;
+        img.dataset.isFlipped = 'false';
+        
+        if (card.otherFaceIds && card.otherFaceIds.length > 0) {
+            const otherFace = getFullCardData(card.otherFaceIds[0]);
+            if (otherFace) {
+                img.dataset.backUrl = getCardImageUrl(otherFace, lang);
+                img.dataset.backFallback = getCardImageUrlEn(otherFace);
+                
+                // Show a hint that it can be flipped
+                if (!document.getElementById('flip-hint')) {
+                    const hint = document.createElement('div');
+                    hint.id = 'flip-hint';
+                    hint.style.cssText = 'position: fixed; background: rgba(0,0,0,0.8); color: white; padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; z-index: 9001; pointer-events: none; border: 1px solid var(--accent-color); opacity: 0; transition: opacity 0.2s;';
+                    hint.innerHTML = 'Press <kbd>F</kbd> to flip';
+                    document.body.appendChild(hint);
+                }
+            } else {
+                delete img.dataset.backUrl;
+            }
+        } else {
+            delete img.dataset.backUrl;
+        }
+
         img.onerror = function() {
-            if (this.src !== fallbackUrl) {
-                this.src = fallbackUrl;
+            const currentFallback = this.dataset.isFlipped === 'true' ? this.dataset.backFallback : this.dataset.frontFallback;
+            if (this.src !== currentFallback) {
+                this.src = currentFallback;
             }
         };
     }
     
     img.style.display = 'block';
     positionHoverPreview(evt);
-    requestAnimationFrame(() => img.classList.add('visible'));
+    requestAnimationFrame(() => {
+        img.classList.add('visible');
+        if (img.dataset.backUrl) {
+            const hint = document.getElementById('flip-hint');
+            if (hint) {
+                const rect = img.getBoundingClientRect();
+                hint.style.left = (rect.left + rect.width / 2 - 50) + 'px';
+                hint.style.top = (rect.bottom + 10) + 'px';
+                hint.style.opacity = '1';
+            }
+        }
+    });
 }
+
+// Global keydown for flipping
+document.addEventListener('keydown', (e) => {
+    if ((e.key === 'f' || e.key === 'F') && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+        const img = document.querySelector('.card-hover-preview');
+        if (img && img.classList.contains('visible') && img.dataset.backUrl) {
+            const isFlipped = img.dataset.isFlipped === 'true';
+            img.style.transform = 'scale(0.9) rotateY(90deg)';
+            img.style.opacity = '0.5';
+            
+            setTimeout(() => {
+                if (isFlipped) {
+                    img.src = img.dataset.frontUrl;
+                    img.dataset.isFlipped = 'false';
+                } else {
+                    img.src = img.dataset.backUrl;
+                    img.dataset.isFlipped = 'true';
+                }
+                img.style.transform = 'scale(1) rotateY(0deg)';
+                img.style.opacity = '1';
+            }, 150);
+        }
+    }
+});
 function positionHoverPreview(evt) {
     const img = getHoverImg();
     const itemEl = evt.target.closest('.deck-entry-name[data-uuid]') || evt.target.closest('.deck-entry-row') || evt.target.closest('li');
@@ -925,6 +988,11 @@ function renderInventoryGrid() {
         const cardStyle   = isDisabled ? 'opacity: 0.3; cursor: not-allowed;' 
                           : (inDeck > 0) ? 'border-color: rgba(255, 255, 255, 0.4); box-shadow: inset 0 0 20px rgba(255,255,255,0.1);' : '';
         
+        const dfcBadge = (card.otherFaceIds && card.otherFaceIds.length > 0) ? `
+            <div class="card-dfc-badge" title="Double-Faced Card (Pulsa F para girar al hacer hover)">
+                <svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0020 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 004 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+            </div>` : '';
+        
         return `
             <div class="deck-inv-card" data-uuid="${card.uuid}" style="${cardStyle}"
                  title="${card.name} — Tienes: ${badgeCount} | En mazo: ${inDeck}">
@@ -932,6 +1000,7 @@ function renderInventoryGrid() {
                      onload="this.style.opacity=1"
                      onerror="this.onerror=null;this.src='${fallbackUrl}'">
                 <div class="card-quantity-badge" style="font-size: ${isBasic ? '1.1rem' : '0.8rem'}; ${isBasic ? 'padding: 0 6px; display:flex; align-items:center;' : ''}">${isBasic ? '∞' : 'x' + badgeCount}</div>
+                ${dfcBadge}
             </div>`;
     }).join('');
 }

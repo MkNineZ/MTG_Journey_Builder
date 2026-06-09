@@ -44,10 +44,12 @@ export function getCardImageUrl(card, lang) {
     const setLower = card.setCode ? card.setCode.toLowerCase() : '';
     let url;
     
+    const faceParam = (card.side && card.side.toLowerCase() === 'b') ? '&face=back' : '';
+    
     if (card.number && setLower) {
-        url = `https://api.scryfall.com/cards/${setLower}/${card.number}/${safeLang}?format=image`;
+        url = `https://api.scryfall.com/cards/${setLower}/${card.number}/${safeLang}?format=image${faceParam}`;
     } else {
-        url = `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(card.name)}&set=${setLower}&lang=${safeLang}&format=image`;
+        url = `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(card.name)}&set=${setLower}&lang=${safeLang}&format=image${faceParam}`;
     }
     
     return url;
@@ -58,27 +60,33 @@ export function getCardArtCropUrl(card, lang) {
     const setLower = card.setCode ? card.setCode.toLowerCase() : '';
     let url;
     
+    const faceParam = (card.side && card.side.toLowerCase() === 'b') ? '&face=back' : '';
+    
     if (card.number && setLower) {
-        url = `https://api.scryfall.com/cards/${setLower}/${card.number}/${safeLang}?format=image&version=art_crop`;
+        url = `https://api.scryfall.com/cards/${setLower}/${card.number}/${safeLang}?format=image&version=art_crop${faceParam}`;
     } else {
-        url = `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(card.name)}&set=${setLower}&lang=${safeLang}&format=image&version=art_crop`;
+        url = `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(card.name)}&set=${setLower}&lang=${safeLang}&format=image&version=art_crop${faceParam}`;
     }
     return url;
 }
 
 export function getCardArtCropUrlEn(card) {
     const setLower = card.setCode ? card.setCode.toLowerCase() : '';
+    const faceParam = (card.side && card.side.toLowerCase() === 'b') ? '&face=back' : '';
+    
     if (card.number && setLower) {
-        return `https://api.scryfall.com/cards/${setLower}/${card.number}/en?format=image&version=art_crop`;
+        return `https://api.scryfall.com/cards/${setLower}/${card.number}/en?format=image&version=art_crop${faceParam}`;
     }
-    return `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(card.name)}&set=${setLower}&lang=en&format=image&version=art_crop`;
+    return `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(card.name)}&set=${setLower}&lang=en&format=image&version=art_crop${faceParam}`;
 }
 
-// English-only fallback URL (always resolves — use as onerror src).
+// English-only fallback URL (always resolves – use as onerror src).
 export function getCardImageUrlEn(card) {
-    const setLower = card.setCode.toLowerCase();
-    if (card.number) {
-        return `https://api.scryfall.com/cards/${setLower}/${card.number}/en?format=image`;
+    const setLower = card.setCode ? card.setCode.toLowerCase() : '';
+    const faceParam = (card.side && card.side.toLowerCase() === 'b') ? '&face=back' : '';
+    
+    if (card.number && setLower) {
+        return `https://api.scryfall.com/cards/${setLower}/${card.number}/en?format=image${faceParam}`;
     }
-    return `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(card.name)}&set=${setLower}&lang=en&format=image`;
+    return `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(card.name)}&set=${setLower}&lang=en&format=image${faceParam}`;
 }

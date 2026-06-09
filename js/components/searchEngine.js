@@ -21,6 +21,11 @@ export function filterCards(cards, criteria) {
             continue;
         }
 
+        // Excluir la Cara B de las DFCs por defecto en los resultados de búsqueda
+        if (dbCard.side === 'b') {
+            continue;
+        }
+
         const isSpanish = state.language === 'es';
         const fData = isSpanish && dbCard.foreignData ? dbCard.foreignData.find(f => f.language === 'Spanish') : null;
 
