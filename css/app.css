@@ -2761,7 +2761,9 @@ strong {
 
 /* DFC Modal Styles */
 .is-dfc-modal {
-    max-width: 900px !important;
+    width: fit-content !important;
+    min-width: 850px;
+    max-width: 95vw !important;
 }
 
 .dfc-images-container {
@@ -2771,6 +2773,7 @@ strong {
     justify-content: center;
     align-items: flex-start;
     flex: 2;
+    flex-shrink: 0;
 }
 
 .dfc-images-container img {
@@ -2783,6 +2786,7 @@ strong {
 
 .is-dfc-modal .modal-info-col {
     flex: 1 !important;
+    min-width: 320px;
 }
 
 .is-dfc-modal h2 {
