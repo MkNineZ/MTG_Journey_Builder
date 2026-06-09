@@ -92,7 +92,10 @@ function showHoverPreview(card, evt) {
 // Global keydown for flipping
 document.addEventListener('keydown', (e) => {
     if ((e.key === 'f' || e.key === 'F') && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
-        const img = document.querySelector('.card-hover-preview');
+        let img = document.querySelector('.card-hover-preview.visible');
+        if (!img) {
+            img = document.querySelector('img.ghost-zoom-portal.visible');
+        }
         if (img && img.classList.contains('visible') && img.dataset.backUrl) {
             const isFlipped = img.dataset.isFlipped === 'true';
             img.style.transform = 'scale(0.9) rotateY(90deg)';
@@ -144,6 +147,8 @@ function positionHoverPreview(evt) {
 function hideHoverPreview() {
     const img = getHoverImg();
     img.classList.remove('visible');
+    const hint = document.getElementById('flip-hint');
+    if (hint) hint.style.opacity = '0';
     setTimeout(() => { if (!img.classList.contains('visible')) img.style.display = 'none'; }, 160);
 }
 
@@ -172,6 +177,39 @@ function showGhostPortal(cardEl) {
     if (finalLeft - offset < 20) finalLeft = 20 + offset;
 
     portal.src = imgEl.src;
+    
+    // Store DFC info
+    portal.dataset.frontUrl = imgEl.src;
+    portal.dataset.isFlipped = 'false';
+    delete portal.dataset.backUrl;
+    
+    if (state.activeSetsData) {
+        let cardData = null;
+        for (const set of state.activeSetsData) {
+            cardData = (set.cards || []).find(c => c.uuid === cardEl.dataset.uuid);
+            if (cardData) break;
+        }
+        if (cardData && cardData.otherFaceIds && cardData.otherFaceIds.length > 0) {
+            let otherFace = null;
+            for (const set of state.activeSetsData) {
+                otherFace = (set.cards || []).find(c => c.uuid === cardData.otherFaceIds[0]);
+                if (otherFace) break;
+            }
+            if (otherFace) {
+                portal.dataset.backUrl = getCardImageUrl(otherFace, state.language || 'en');
+                
+                // Hint
+                if (!document.getElementById('flip-hint-inv')) {
+                    const hint = document.createElement('div');
+                    hint.id = 'flip-hint-inv';
+                    hint.style.cssText = 'position: fixed; background: rgba(0,0,0,0.8); color: white; padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; z-index: 9001; pointer-events: none; border: 1px solid var(--accent-color); opacity: 0; transition: opacity 0.2s;';
+                    hint.innerHTML = 'Press <kbd>F</kbd> to flip';
+                    document.body.appendChild(hint);
+                }
+            }
+        }
+    }
+
     portal.style.width  = rect.width + 'px';
     portal.style.height = rect.height + 'px';
     portal.style.top    = rect.top + 'px';
@@ -181,12 +219,22 @@ function showGhostPortal(cardEl) {
     requestAnimationFrame(() => {
         portal.classList.add('visible');
         portal.style.transform = `scale(${zoom})`;
+        if (portal.dataset.backUrl) {
+            const hint = document.getElementById('flip-hint-inv');
+            if (hint) {
+                hint.style.left = (finalLeft + rect.width / 2 - 50) + 'px';
+                hint.style.top = (rect.bottom + 10) + 'px';
+                hint.style.opacity = '1';
+            }
+        }
     });
 }
 function hideGhostPortal() {
     if (!ghostPortal) return;
     ghostPortal.classList.remove('visible');
     ghostPortal.style.transform = 'scale(1)';
+    const hint = document.getElementById('flip-hint-inv');
+    if (hint) hint.style.opacity = '0';
     setTimeout(() => { if (!ghostPortal.classList.contains('visible')) ghostPortal.style.display = 'none'; }, 200);
 }
 
@@ -857,9 +905,8 @@ function renderEditView() {
         const nameEl = e.target.closest('.deck-entry-name[data-uuid]');
         if (!nameEl) return;
         const uuid = nameEl.dataset.uuid;
-        const entry = [...(currentDeck?.mainboard||[]), ...(currentDeck?.sideboard||[]), ...(currentDeck?.commander||[])]
-            .find(en => en.uuid === uuid);
-        if (entry) showHoverPreview(entry, e);
+        const dbCard = getFullCardData(uuid);
+        if (dbCard) showHoverPreview(dbCard, e);
     });
     document.getElementById('decks').addEventListener('mousemove', e => {
         if (e.target.closest('.deck-entry-name[data-uuid]')) positionHoverPreview(e);
