@@ -2761,9 +2761,11 @@ strong {
 
 /* DFC Modal Styles */
 .is-dfc-modal {
-    width: fit-content !important;
-    min-width: 850px;
-    max-width: 1050px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    width: max-content !important;
+    max-width: 90vw !important;
     padding-top: 1.5rem !important;
     padding-bottom: 1.5rem !important;
 }
@@ -2771,26 +2773,22 @@ strong {
 .dfc-images-container {
     display: flex;
     gap: 15px;
-    flex-wrap: nowrap;
     justify-content: center;
-    align-items: flex-start;
-    flex: 2;
-    flex-shrink: 0;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
 }
 
 .dfc-images-container img {
-    max-width: 100%;
+    max-height: 65vh;
+    width: auto;
     object-fit: contain;
-    width: 100%;
-    min-width: 300px;
-    height: auto;
     border-radius: 20px;
     box-shadow: 0 20px 80px rgba(0,0,0,0.9);
 }
 
 .is-dfc-modal .modal-info-col {
-    flex: 1 !important;
-    min-width: 320px;
+    flex: 0 0 320px !important;
 }
 
 .is-dfc-modal h2 {
