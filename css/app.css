@@ -1246,6 +1246,26 @@ strong {
     transform-origin: center;
     contain: none !important; /* Allows visual overflow */
 }
+.ghost-zoom-portal {
+    position: fixed;
+    pointer-events: none;
+    z-index: 20000;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.9);
+    border: 2px solid rgba(255, 250, 141, 0.9);
+    transition: opacity 0.2s;
+    opacity: 0;
+    display: none;
+    perspective: 1000px;
+    transform-origin: center center;
+}
+.ghost-zoom-portal.visible {
+    display: block;
+    opacity: 1;
+}
+.ghost-zoom-portal .ghost-flip-btn {
+    pointer-events: auto;
+}
 
 .deck-inv-card:hover, .library-card:hover, .de-card-item:hover { 
     border-color: rgba(255, 250, 141, 1) !important; 

@@ -17,22 +17,29 @@ function getGhostPortal() {
     return ghostPortal;
 }
 
-function showGhostPortal(cardEl) {
+function updateGhostPortalPosition(e) {
+    if (!ghostPortal) return;
+    const zoom = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--card-hover-zoom') || '1.4');
+    const width = 220 * zoom; 
+    const height = width * (88 / 63); 
+    
+    let left = e.clientX + 20;
+    let top = e.clientY - (height / 2);
+    
+    if (top < 10) top = 10;
+    if (top + height > window.innerHeight - 10) top = window.innerHeight - height - 10;
+    if (left + width > window.innerWidth - 10) left = e.clientX - width - 20;
+
+    ghostPortal.style.left = left + 'px';
+    ghostPortal.style.top = top + 'px';
+    ghostPortal.style.width = width + 'px';
+}
+
+function showGhostPortal(cardEl, e) {
     const portal = getGhostPortal();
     portal.innerHTML = '';
     
-    const rect = cardEl.getBoundingClientRect();
-    const zoom = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--card-hover-zoom') || '1.4');
-    
-    // Boundary check for left edge
-    const offset = (rect.width * (zoom - 1)) / 2;
-    let finalLeft = rect.left;
-    if (finalLeft - offset < 20) finalLeft = 20 + offset;
-
-    portal.style.width  = rect.width + 'px';
-    portal.style.height = rect.height + 'px';
-    portal.style.top    = rect.top + 'px';
-    portal.style.left   = finalLeft + 'px';
+    updateGhostPortalPosition(e);
 
     const dfcWrapper = cardEl.querySelector('.dfc-wrapper');
     if (dfcWrapper) {
@@ -44,21 +51,21 @@ function showGhostPortal(cardEl) {
         
         if (imgFront && imgBack) {
             portal.innerHTML = `
-            <div class="dfc-wrapper ghost-dfc-wrapper" style="width: 100%; height: 100%;">
-              <div class="card-flipper ghost-flipper ${isFlipped ? 'is-flipped' : ''}" style="width: 100%; height: 100%;">
-                <div class="card-face card-front" style="width: 100%; height: 100%;">
-                  <img src="${imgFront.src}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 4.75% / 3.5%;">
+            <div class="dfc-wrapper ghost-dfc-wrapper" style="width: 100%;">
+              <div class="card-flipper ghost-flipper ${isFlipped ? 'is-flipped' : ''}" style="width: 100%;">
+                <div class="card-face card-front" style="width: 100%;">
+                  <img src="${imgFront.src}" style="width: 100%; height: auto; object-fit: contain; border-radius: 4.75% / 3.5%; display: block;">
                 </div>
-                <div class="card-face card-back" style="width: 100%; height: 100%;">
-                  <img src="${imgBack.src}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 4.75% / 3.5%;">
+                <div class="card-face card-back" style="width: 100%;">
+                  <img src="${imgBack.src}" style="width: 100%; height: auto; object-fit: contain; border-radius: 4.75% / 3.5%; display: block;">
                 </div>
               </div>
               <button class="flip-btn ghost-flip-btn" style="z-index: 2000;">↻</button>
             </div>`;
             
             const ghostFlipBtn = portal.querySelector('.ghost-flip-btn');
-            ghostFlipBtn.onclick = (e) => {
-                e.stopPropagation();
+            ghostFlipBtn.onclick = (event) => {
+                event.stopPropagation();
                 portal.querySelector('.ghost-flipper').classList.toggle('is-flipped');
                 if (cardFlipper) cardFlipper.classList.toggle('is-flipped');
             };
@@ -66,14 +73,13 @@ function showGhostPortal(cardEl) {
     } else {
         const imgEl = cardEl.querySelector('img');
         if (imgEl) {
-            portal.innerHTML = `<img src="${imgEl.src}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 4.75% / 3.5%;">`;
+            portal.innerHTML = `<img src="${imgEl.src}" style="width: 100%; height: auto; object-fit: contain; border-radius: 4.75% / 3.5%; display: block;">`;
         }
     }
 
     portal.style.display = 'block';
     requestAnimationFrame(() => {
         portal.classList.add('visible');
-        portal.style.transform = `scale(${zoom})`;
     });
 }
 
@@ -180,7 +186,12 @@ export function initCollection() {
     // Ghost Portal Zoom
     resultsContainer.addEventListener('mouseover', e => {
         const cardEl = e.target.closest('.deck-inv-card');
-        if (cardEl) showGhostPortal(cardEl);
+        if (cardEl) showGhostPortal(cardEl, e);
+    });
+    resultsContainer.addEventListener('mousemove', e => {
+        if (ghostPortal && ghostPortal.classList.contains('visible')) {
+            updateGhostPortalPosition(e);
+        }
     });
     resultsContainer.addEventListener('mouseout', e => {
         if (!e.relatedTarget || !e.relatedTarget.closest?.('.deck-inv-card')) {
