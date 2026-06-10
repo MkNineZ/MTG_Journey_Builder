@@ -90,6 +90,8 @@ function hideHoverPreview() {
 }
 
 // ── Ghost Portal Zoom (Escape Overflow) ───────────────────────────────────────
+
+// Ghost Portal Zoom
 let ghostPortal = null;
 function getGhostPortal() {
     let portal = document.getElementById('ghost-portal');
@@ -118,18 +120,18 @@ function showGhostPortal(cardEl) {
         const imgBack = dfcWrapper.querySelector('.card-back img');
         
         if (imgFront && imgBack) {
-            portal.innerHTML = \
-            <div class=\"ghost-preview-card-container dfc-wrapper\" style=\"top: \px; left: \px;\">
-              <div class=\"card-flipper ghost-flipper \\" style=\"width: 100%; height: 100%;\">
-                <div class=\"card-face card-front\" style=\"width: 100%; height: 100%;\">
-                  <img src=\"\\">
+            portal.innerHTML = `
+            <div class="ghost-preview-card-container dfc-wrapper" style="top: ${centerY}px; left: ${centerX}px;">
+              <div class="card-flipper ghost-flipper ${isFlipped ? 'is-flipped' : ''}" style="width: 100%; height: 100%;">
+                <div class="card-face card-front" style="width: 100%; height: 100%;">
+                  <img src="${imgFront.src}">
                 </div>
-                <div class=\"card-face card-back\" style=\"width: 100%; height: 100%;\">
-                  <img src=\"\\">
+                <div class="card-face card-back" style="width: 100%; height: 100%;">
+                  <img src="${imgBack.src}">
                 </div>
               </div>
-              <button class=\"flip-btn ghost-flip-btn\">?</button>
-            </div>\;
+              <button class="flip-btn ghost-flip-btn">↻</button>
+            </div>`;
             
             const ghostFlipBtn = portal.querySelector('.ghost-flip-btn');
             ghostFlipBtn.onclick = (event) => {
@@ -141,7 +143,7 @@ function showGhostPortal(cardEl) {
     } else {
         const imgEl = cardEl.querySelector('img');
         if (imgEl) {
-            portal.innerHTML = \<img src=\"\\" class=\"ghost-preview-card-container\" style=\"top: \px; left: \px;\">\;
+            portal.innerHTML = `<img src="${imgEl.src}" class="ghost-preview-card-container" style="top: ${centerY}px; left: ${centerX}px;">`;
         }
     }
 }
@@ -150,4 +152,3 @@ function hideGhostPortal() {
     const portal = document.getElementById('ghost-portal');
     if (portal) portal.innerHTML = '';
 }
-

@@ -1,17 +1,12 @@
-import { state } from '../utils/state.js';
-import { renderSearchUI, filterCards, parseDecklistText } from '../components/searchEngine.js';
-import { state } from '../utils/state.js';
-import { renderSearchUI, filterCards, parseDecklistText } from '../components/searchEngine.js';
-import { updateInventoryCount, clearNewStatus, saveToInventory, removeFromInventory, clearInventory } from '../utils/db.js';
-import { getCardImageUrl, getCardImageUrlEn } from '../utils/api.js';
+import os
 
-let currentFilteredCards = [];
-let currentCollectionModalIndex = -1;
+files = [
+    'js/screens/explore.js',
+    'js/screens/collection.js',
+    'js/screens/decks.js'
+]
 
-// ── Ghost Portal Zoom ───────────────────────────────────────
-
-// Ghost Portal Zoom
-let ghostPortal = null;
+portal_code = """let ghostPortal = null;
 function getGhostPortal() {
     let portal = document.getElementById('ghost-portal');
     if (!portal) {
@@ -71,3 +66,35 @@ function hideGhostPortal() {
     const portal = document.getElementById('ghost-portal');
     if (portal) portal.innerHTML = '';
 }
+"""
+
+for f in files:
+    with open(f, 'r', encoding='utf-8') as file:
+        code = file.read()
+    
+    # Fix collection.js duplicate imports
+    if 'collection.js' in f:
+        import_block = """import { state } from '../utils/state.js';
+import { renderSearchUI, filterCards, parseDecklistText } from '../components/searchEngine.js';
+import { updateInventoryCount, clearNewStatus, saveToInventory, removeFromInventory, clearInventory } from '../utils/db.js';
+import { getCardImageUrl, getCardImageUrlEn } from '../utils/api.js';"""
+        while code.count(import_block) > 1:
+            code = code.replace(import_block + '\n' + import_block, import_block)
+            code = code.replace(import_block + '\r\n' + import_block, import_block)
+    
+    start_str1 = '// Ghost Portal Zoom (Escape Overflow)'
+    start_str2 = '// Ghost Portal Zoom'
+    start_str3 = 'let ghostPortal = null;'
+    
+    idx = code.find(start_str1)
+    if idx == -1: idx = code.find(start_str2)
+    if idx == -1: idx = code.find(start_str3)
+    
+    if idx != -1:
+        before = code[:idx]
+        new_code = before + '\n// Ghost Portal Zoom\n' + portal_code
+        with open(f, 'w', encoding='utf-8') as file:
+            file.write(new_code)
+        print(f"Fixed {f}")
+    else:
+        print(f"Could not find portal block in {f}")
