@@ -1260,12 +1260,11 @@ strong {
     left: 0;
     transform: translate(-50%, -50%);
 
-    height: 60vh !important;
-    width: auto !important; 
+    width: calc(220px * var(--card-hover-zoom, 1.4)) !important;
+    height: auto !important;
     aspect-ratio: 63 / 88 !important;
     object-fit: contain;
-    min-height: 400px;
-    max-height: 700px;
+    max-height: 85vh; /* Safety limit */
     
     border-radius: 12px;
     box-shadow: 0 20px 60px rgba(0,0,0,0.9);

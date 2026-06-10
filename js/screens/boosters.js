@@ -194,92 +194,85 @@ export function initBoosters() {
     });
 }
 
-// ── Ghost Portal Zoom (Escape Overflow) ───────────────────────────────────────
+
+// Ghost Portal Zoom
 let ghostPortal = null;
 function getGhostPortal() {
-    if (!ghostPortal) {
-        ghostPortal = document.createElement('div');
-        ghostPortal.className = 'ghost-zoom-portal';
-        
-        const inner = document.createElement('div');
-        inner.className = 'ghost-portal-inner';
-        inner.style.width = '100%';
-        inner.style.height = '100%';
-        inner.style.borderRadius = 'inherit';
-        inner.style.transition = 'transform 0.1s ease-out';
-        
-        const img = document.createElement('img');
-        img.style.width = '100%';
-        img.style.height = '100%';
-        img.style.objectFit = 'contain';
-        img.style.borderRadius = 'inherit';
-        img.style.display = 'block';
-        
-        inner.appendChild(img);
-        ghostPortal.appendChild(inner);
-        document.body.appendChild(ghostPortal);
+    let portal = document.getElementById('ghost-portal');
+    if (!portal) {
+        portal = document.createElement('div');
+        portal.id = 'ghost-portal';
+        document.body.appendChild(portal);
     }
-    return ghostPortal;
+    return portal;
 }
 
 function showGhostPortal(cardEl) {
     const portal = getGhostPortal();
-    const inner = portal.querySelector('.ghost-portal-inner');
-    const imgEl  = cardEl.querySelector('img');
-    if (!imgEl) return;
+    portal.innerHTML = '';
+    
+    const rect = cardEl.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
 
-    portal.dataset.activeUuid = cardEl.dataset.uuid;
+    const isFoil = cardEl.classList.contains('foil-card-effect');
+    const foilClass = isFoil ? 'foil-card-effect' : '';
 
-    if (cardEl.classList.contains('foil-card-effect')) {
-        inner.classList.add('foil-card-effect');
+    const dfcWrapper = cardEl.querySelector('.dfc-wrapper');
+    if (dfcWrapper) {
+        const cardFlipper = dfcWrapper.querySelector('.card-flipper');
+        const isFlipped = cardFlipper && cardFlipper.classList.contains('is-flipped');
+        
+        const imgFront = dfcWrapper.querySelector('.card-front img');
+        const imgBack = dfcWrapper.querySelector('.card-back img');
+        
+        if (imgFront && imgBack) {
+            portal.innerHTML = `
+            <div class="ghost-preview-card-container dfc-wrapper ${foilClass}" style="top: ${centerY}px; left: ${centerX}px;">
+              <div class="card-flipper ghost-flipper ${isFlipped ? 'is-flipped' : ''}" style="width: 100%; height: 100%;">
+                <div class="card-face card-front" style="width: 100%; height: 100%;">
+                  <img src="${imgFront.src}">
+                </div>
+                <div class="card-face card-back" style="width: 100%; height: 100%;">
+                  <img src="${imgBack.src}">
+                </div>
+              </div>
+              <button class="flip-btn ghost-flip-btn">↻</button>
+            </div>`;
+            
+            const ghostFlipBtn = portal.querySelector('.ghost-flip-btn');
+            ghostFlipBtn.onclick = (event) => {
+                event.stopPropagation();
+                portal.querySelector('.ghost-flipper').classList.toggle('is-flipped');
+                if (cardFlipper) cardFlipper.classList.toggle('is-flipped');
+            };
+        }
     } else {
-        inner.classList.remove('foil-card-effect');
-        inner.style.transform = 'none';
+        const imgEl = cardEl.querySelector('img');
+        if (imgEl) {
+            portal.innerHTML = `<img src="${imgEl.src}" class="ghost-preview-card-container ${foilClass}" style="top: ${centerY}px; left: ${centerX}px;">`;
+        }
     }
 
-    const portalImg = inner.querySelector('img');
-    portalImg.src = imgEl.src;
-    
-    const rect = imgEl.getBoundingClientRect();
-    const zoom = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--card-hover-zoom') || '1.4');
-    
-    const targetW = rect.width * zoom;
-    const targetH = rect.height * zoom;
-    const finalLeft = rect.left + (rect.width / 2) - (targetW / 2);
-    const finalTop = rect.top + (rect.height / 2) - (targetH / 2);
-    
-    portal.style.left = finalLeft + 'px';
-    portal.style.top = finalTop + 'px';
-    portal.style.width = targetW + 'px';
-    portal.style.height = targetH + 'px';
-    
-    portal.style.display = 'block';
-    requestAnimationFrame(() => {
-        portal.classList.add('visible');
-        portal.style.transform = `scale(1)`;
-        
-        if (cardEl.classList.contains('foil-card-effect')) {
+    if (isFoil) {
+        const inner = portal.querySelector('.ghost-preview-card-container');
+        if (inner) {
             const rotX = cardEl.style.getPropertyValue('--rot-x') || '0deg';
             const rotY = cardEl.style.getPropertyValue('--rot-y') || '0deg';
             inner.style.setProperty('--pos-x', cardEl.style.getPropertyValue('--pos-x') || '50%');
             inner.style.setProperty('--pos-y', cardEl.style.getPropertyValue('--pos-y') || '50%');
             inner.style.setProperty('--rot-x', rotX);
             inner.style.setProperty('--rot-y', rotY);
-            inner.style.transform = `perspective(1000px) rotateX(${rotX}) rotateY(${rotY})`;
         }
-    });
+    }
 }
 
 function hideGhostPortal() {
-    if (!ghostPortal) return;
-    ghostPortal.classList.remove('visible');
-    ghostPortal.style.transform = 'scale(1)';
-    const inner = ghostPortal.querySelector('.ghost-portal-inner');
-    if (inner) {
-        inner.style.transform = 'none';
-        inner.classList.remove('foil-card-effect');
-    }
-    setTimeout(() => { if (!ghostPortal.classList.contains('visible')) ghostPortal.style.display = 'none'; }, 200);
+    const portal = document.getElementById('ghost-portal');
+    if (portal) portal.innerHTML = '';
+}
+
+setTimeout(() => { if (!ghostPortal.classList.contains('visible')) ghostPortal.style.display = 'none'; }, 200);
 }
 
 
