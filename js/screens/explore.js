@@ -343,12 +343,13 @@ function openModal(cardData) {
 // Ghost Portal Zoom (Escape Overflow)
 let ghostPortal = null;
 function getGhostPortal() {
-    if (!ghostPortal) {
-        ghostPortal = document.createElement('div');
-        ghostPortal.className = 'ghost-zoom-portal';
-        document.body.appendChild(ghostPortal);
+    let portal = document.getElementById('ghost-portal');
+    if (!portal) {
+        portal = document.createElement('div');
+        portal.id = 'ghost-portal';
+        document.body.appendChild(portal);
     }
-    return ghostPortal;
+    return portal;
 }
 
 function showGhostPortal(cardEl) {
@@ -356,13 +357,8 @@ function showGhostPortal(cardEl) {
     portal.innerHTML = '';
     
     const rect = cardEl.getBoundingClientRect();
-    
-    let left = rect.left + (rect.width / 2);
-    let top = rect.top + (rect.height / 2);
-
-    portal.style.left = left + 'px';
-    portal.style.top = top + 'px';
-    portal.style.width = 'auto'; // Let the internal image dictate width
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
 
     const dfcWrapper = cardEl.querySelector('.dfc-wrapper');
     if (dfcWrapper) {
@@ -373,18 +369,18 @@ function showGhostPortal(cardEl) {
         const imgBack = dfcWrapper.querySelector('.card-back img');
         
         if (imgFront && imgBack) {
-            portal.innerHTML = `
-            <div class="dfc-wrapper ghost-dfc-wrapper ghost-preview-card">
-              <div class="card-flipper ghost-flipper ${isFlipped ? 'is-flipped' : ''}" style="width: 100%; height: 100%;">
-                <div class="card-face card-front" style="width: 100%; height: 100%;">
-                  <img src="${imgFront.src}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 4.75% / 3.5%;">
+            portal.innerHTML = \
+            <div class=\"ghost-preview-card-container dfc-wrapper\" style=\"top: \px; left: \px;\">
+              <div class=\"card-flipper ghost-flipper \\" style=\"width: 100%; height: 100%;\">
+                <div class=\"card-face card-front\" style=\"width: 100%; height: 100%;\">
+                  <img src=\"\\">
                 </div>
-                <div class="card-face card-back" style="width: 100%; height: 100%;">
-                  <img src="${imgBack.src}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 4.75% / 3.5%;">
+                <div class=\"card-face card-back\" style=\"width: 100%; height: 100%;\">
+                  <img src=\"\\">
                 </div>
               </div>
-              <button class="flip-btn ghost-flip-btn" style="z-index: 2000;">↻</button>
-            </div>`;
+              <button class=\"flip-btn ghost-flip-btn\">?</button>
+            </div>\;
             
             const ghostFlipBtn = portal.querySelector('.ghost-flip-btn');
             ghostFlipBtn.onclick = (event) => {
@@ -396,19 +392,13 @@ function showGhostPortal(cardEl) {
     } else {
         const imgEl = cardEl.querySelector('img');
         if (imgEl) {
-            portal.innerHTML = `<img src="${imgEl.src}" class="ghost-preview-card" style="border-radius: 4.75% / 3.5%;">`;
+            portal.innerHTML = \<img src=\"\\" class=\"ghost-preview-card-container\" style=\"top: \px; left: \px;\">\;
         }
     }
-
-    portal.style.display = 'block';
-    requestAnimationFrame(() => {
-        portal.classList.add('visible');
-    });
 }
 
 function hideGhostPortal() {
-    if (!ghostPortal) return;
-    ghostPortal.classList.remove('visible');
-    ghostPortal.style.transform = 'scale(1)';
-    setTimeout(() => { if (!ghostPortal.classList.contains('visible')) ghostPortal.style.display = 'none'; }, 200);
+    const portal = document.getElementById('ghost-portal');
+    if (portal) portal.innerHTML = '';
 }
+
