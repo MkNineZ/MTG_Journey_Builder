@@ -528,6 +528,7 @@ async function renderListView() {
             const setBadges = [...new Set((d.mainboard || []).map(c => c.setCode))].filter(c => c).map(c => `<span class="set-badge">[${c.toUpperCase()}]</span>`).join('');
             
             let bgStyle = '';
+            let editBtn = '';
             const gf = d.gameFormat || ( (d.format === 'clasico' || d.format === 'commander') ? d.format : 'clasico' );
             const isCommander = gf === 'commander' || gf === 'brawl';
             const lang = state.language || 'en';
