@@ -410,7 +410,7 @@ function addCardToDeck(card, zone) {
     const isBasic   = isBasicLand(card);
     const total     = totalInDeck(card.name);
     const sideTotal = currentDeck.sideboard.reduce((s,e) => s+e.quantity, 0);
-    const formatMax = currentDeck.format === 'commander' ? 1 : MAX_COPIES;
+    const formatMax = currentDeck.gameFormat === 'commander' ? 1 : MAX_COPIES;
 
     if (!isBasic && total >= formatMax)         { showToast(`Máximo ${formatMax} copias de "${card.name}".`, 'warn'); return; }
     if (zone === 'sideboard' && sideTotal >= SIDE_MAX) { showToast(`Sideboard lleno (${SIDE_MAX}).`, 'warn'); return; }
@@ -460,11 +460,21 @@ async function loadDeckForEditing(id) {
     const deck = await getDeck(id);
     if (!deck) return;
     currentDeck = deck;
+    // Normalization of properties in old decks
+    if (currentDeck.gameFormat === undefined) {
+        currentDeck.gameFormat = currentDeck.format || 'clasico';
+    }
+    if (currentDeck.format !== 'constructed' && currentDeck.format !== 'limited') {
+        currentDeck.format = 'constructed';
+    }
+    if (currentDeck.minDeckSize === undefined) {
+        currentDeck.minDeckSize = currentDeck.gameFormat === 'commander' ? 100 : 60;
+    }
     switchView('edit');
 }
 
 function newEmptyDeck() {
-    currentDeck = { name: 'Nuevo Mazo', format: 'clasico',
+    currentDeck = { name: 'Nuevo Mazo', gameFormat: 'clasico', format: 'constructed', minDeckSize: 60,
         commander: [], mainboard: [], sideboard: [],
         stats: { totalCards:0, sideboardCards:0, colorIdentity:[] } };
     switchView('edit');
@@ -518,8 +528,8 @@ async function renderListView() {
             const setBadges = [...new Set((d.mainboard || []).map(c => c.setCode))].filter(c => c).map(c => `<span class="set-badge">[${c.toUpperCase()}]</span>`).join('');
             
             let bgStyle = '';
-            let editBtn = '';
-            const isCommander = d.format === 'commander' || d.format === 'brawl';
+            const gf = d.gameFormat || ( (d.format === 'clasico' || d.format === 'commander') ? d.format : 'clasico' );
+            const isCommander = gf === 'commander' || gf === 'brawl';
             const lang = state.language || 'en';
             
             if (isCommander && d.commander && d.commander.length > 0) {
@@ -537,7 +547,7 @@ async function renderListView() {
                 <div class="deck-card-body">
                     <div class="deck-card-name">${d.name}</div>
                     <div style="margin-bottom: 0.5rem;">${setBadges}</div>
-                    <div class="deck-card-format format-badge ${d.format}">${FORMAT_LABELS[d.format]||d.format}</div>
+                    <div class="deck-card-format format-badge ${gf}">${FORMAT_LABELS[gf]||gf}</div>
                     <div class="deck-card-colors">${colorPips(d.stats?.colorIdentity)}</div>
                     <div class="deck-card-count">${total} cartas${side ? ` · SB: ${side}` : ''}</div>
                 </div>
@@ -662,7 +672,13 @@ function renderEditView() {
     filteredInv = [...initialNonLands, ...initialBasicLands];
 
     const formatOpts = FORMATS.map(f =>
-        `<option value="${f}" ${currentDeck?.format===f?'selected':''}>${FORMAT_LABELS[f]}</option>`).join('');
+        `<option value="${f}" ${currentDeck?.gameFormat===f?'selected':''}>${FORMAT_LABELS[f]}</option>`).join('');
+    
+    const deckModeOpts = `
+        <option value="constructed" ${currentDeck?.format === 'constructed' ? 'selected' : ''}>Construido (Min. 60)</option>
+        <option value="limited" ${currentDeck?.format === 'limited' ? 'selected' : ''}>Limitado (Min. 40)</option>
+    `;
+    const showDeckMode = currentDeck?.gameFormat === 'clasico' ? 'inline-block' : 'none';
 
     document.getElementById('decks').innerHTML = `
         <!-- Top bar -->
@@ -670,7 +686,8 @@ function renderEditView() {
             <button id="de-back" class="nav-btn">← Mis Mazos</button>
             <input id="de-name" class="deck-name-input" type="text"
                    placeholder="Nombre del mazo..." value="${currentDeck?.name||'Nuevo Mazo'}">
-            <select id="de-format" class="deck-format-select">${formatOpts}</select>
+            <select id="de-game-format" class="deck-format-select">${formatOpts}</select>
+            <select id="de-deck-mode" class="deck-format-select" style="display: ${showDeckMode};">${deckModeOpts}</select>
             <div class="de-topbar-actions">
                 <button id="de-export" class="nav-btn">📤 Exportar</button>
                 <button id="de-save" class="save-btn">💾 Guardar</button>
@@ -707,7 +724,7 @@ function renderEditView() {
                 <!-- Stacked Zones -->
                 <div class="deck-zone-stacked-layout" style="display: flex; flex-direction: column; gap: 1rem; flex: 1; overflow-y: auto;">
                     <!-- Commander Zone -->
-                    <div class="deck-zone-wrapper" id="zone-wrapper-commander" style="display: ${currentDeck?.format === 'commander' ? 'block' : 'none'};">
+                    <div class="deck-zone-wrapper" id="zone-wrapper-commander" style="display: ${currentDeck?.gameFormat === 'commander' ? 'block' : 'none'};">
                         <div class="deck-zone-header" style="background: rgba(255,255,255,0.05); padding: 0.5rem 1rem; border-radius: 6px; font-weight: 700; color: var(--accent-color); margin-bottom: 0.5rem; border-left: 3px solid var(--accent-color);">
                             Commander <span id="commander-count-label" class="zone-count" style="margin-left: 0.5rem; font-size: 0.9em; opacity: 0.8;"></span>
                         </div>
@@ -723,7 +740,7 @@ function renderEditView() {
                     </div>
                     
                     <!-- Sideboard Zone -->
-                    <div class="deck-zone-wrapper" id="zone-wrapper-sideboard" style="display: ${currentDeck?.format === 'clasico' ? 'block' : 'none'};">
+                    <div class="deck-zone-wrapper" id="zone-wrapper-sideboard" style="display: ${currentDeck?.gameFormat === 'clasico' ? 'block' : 'none'};">
                         <div class="deck-zone-header" style="background: rgba(255,255,255,0.05); padding: 0.5rem 1rem; border-radius: 6px; font-weight: 700; color: var(--text-secondary); margin-bottom: 0.5rem;">
                             Sideboard <span id="side-count-label" class="zone-count" style="margin-left: 0.5rem; font-size: 0.9em; opacity: 0.8;"></span>
                         </div>
@@ -813,47 +830,72 @@ function renderEditView() {
     document.getElementById('de-save').onclick    = () => saveCurrentDeck();
     document.getElementById('de-export').onclick  = () => exportDeckText();
     document.getElementById('de-name').oninput    = e => { if (currentDeck) currentDeck.name = e.target.value; };
-    document.getElementById('de-format').onchange = e => { 
-        if (currentDeck) {
-            currentDeck.format = e.target.value;
-            const isCmd = currentDeck.format === 'commander';
-            
-            const cmdWrapper = document.getElementById('zone-wrapper-commander');
-            const sideWrapper = document.getElementById('zone-wrapper-sideboard');
-            
-            if (cmdWrapper) cmdWrapper.style.display = isCmd ? 'block' : 'none';
-            if (sideWrapper) sideWrapper.style.display = isCmd ? 'none' : 'block';
-            
-            // Si pasamos a clásico y había cartas en commander, las pasamos al mainboard
-            if (!isCmd && currentDeck.commander && currentDeck.commander.length > 0) {
-                currentDeck.commander.forEach(c => {
-                    const existing = currentDeck.mainboard.find(m => m.uuid === c.uuid);
-                    if (existing) {
-                        existing.quantity += c.quantity;
-                    } else {
-                        currentDeck.mainboard.push({ ...c });
-                    }
-                });
-                currentDeck.commander = [];
+    
+    const formatSelect = document.getElementById('de-game-format');
+    if (formatSelect) {
+        formatSelect.onchange = e => {
+            if (currentDeck) {
+                currentDeck.gameFormat = e.target.value;
+                const isCmd = currentDeck.gameFormat === 'commander';
+                
+                if (isCmd) {
+                    currentDeck.minDeckSize = 100;
+                    currentDeck.format = 'constructed';
+                } else {
+                    currentDeck.minDeckSize = currentDeck.format === 'limited' ? 40 : 60;
+                }
+                
+                const cmdWrapper = document.getElementById('zone-wrapper-commander');
+                const sideWrapper = document.getElementById('zone-wrapper-sideboard');
+                const modeSelect = document.getElementById('de-deck-mode');
+                
+                if (cmdWrapper) cmdWrapper.style.display = isCmd ? 'block' : 'none';
+                if (sideWrapper) sideWrapper.style.display = isCmd ? 'none' : 'block';
+                if (modeSelect) modeSelect.style.display = isCmd ? 'none' : 'inline-block';
+                
+                // Si pasamos a clásico y había cartas en commander, las pasamos al mainboard
+                if (!isCmd && currentDeck.commander && currentDeck.commander.length > 0) {
+                    currentDeck.commander.forEach(c => {
+                        const existing = currentDeck.mainboard.find(m => m.uuid === c.uuid);
+                        if (existing) {
+                            existing.quantity += c.quantity;
+                        } else {
+                            currentDeck.mainboard.push({ ...c });
+                        }
+                    });
+                    currentDeck.commander = [];
+                }
+                
+                // Si pasamos a commander y había cartas en sideboard, las pasamos al mainboard
+                if (isCmd && currentDeck.sideboard && currentDeck.sideboard.length > 0) {
+                    currentDeck.sideboard.forEach(c => {
+                        const existing = currentDeck.mainboard.find(m => m.uuid === c.uuid);
+                        if (existing) {
+                            existing.quantity += c.quantity;
+                        } else {
+                            currentDeck.mainboard.push({ ...c });
+                        }
+                    });
+                    currentDeck.sideboard = [];
+                }
+                
+                saveCurrentDeck();
+                refreshEditor();
             }
-            
-            // Si pasamos a commander y había cartas en sideboard, las pasamos al mainboard
-            if (isCmd && currentDeck.sideboard && currentDeck.sideboard.length > 0) {
-                currentDeck.sideboard.forEach(c => {
-                    const existing = currentDeck.mainboard.find(m => m.uuid === c.uuid);
-                    if (existing) {
-                        existing.quantity += c.quantity;
-                    } else {
-                        currentDeck.mainboard.push({ ...c });
-                    }
-                });
-                currentDeck.sideboard = [];
-            }
-            
+        };
+    }
 
-            refreshEditor();
-        }
-    };
+    const modeSelect = document.getElementById('de-deck-mode');
+    if (modeSelect) {
+        modeSelect.onchange = e => {
+            if (currentDeck) {
+                currentDeck.format = e.target.value;
+                currentDeck.minDeckSize = (e.target.value === 'limited' ? 40 : 60);
+                saveCurrentDeck();
+                refreshEditor();
+            }
+        };
+    }
 
     // Tabletop Toggle
     const layoutContainer = document.getElementById('de-body');
@@ -1094,7 +1136,7 @@ function openCardModal(uuid) {
             </p>
             <div style="display:flex;flex-direction:column;gap:0.6rem;">
                 <button class="save-btn deck-modal-add" data-uuid="${card.uuid}" data-zone="mainboard">+ Añadir al Mainboard</button>
-                ${currentDeck.format !== 'commander' ? `<button class="nav-btn deck-modal-add" data-uuid="${card.uuid}" data-zone="sideboard" style="border:1px solid var(--border-color);">+ Añadir al Sideboard</button>` : ''}
+                ${currentDeck.gameFormat !== 'commander' ? `<button class="nav-btn deck-modal-add" data-uuid="${card.uuid}" data-zone="sideboard" style="border:1px solid var(--border-color);">+ Añadir al Sideboard</button>` : ''}
             </div>
         </div>`;
 
@@ -1192,11 +1234,11 @@ function renderZone(zone) {
 
             const over       = entry.quantity > ownedCount(entry);
             
-            const formatMax  = currentDeck.format === 'commander' ? 1 : MAX_COPIES;
+            const formatMax  = currentDeck.gameFormat === 'commander' ? 1 : MAX_COPIES;
             const atLimit    = !isBasicLand(entry) && totalInDeck(entry.name) >= formatMax;
             
             // Si es commander y tiene más de 1 copia (y no es tierra básica), pintamos de rojo la cantidad
-            const isIllegalQuantity = currentDeck.format === 'commander' && !isBasicLand(entry) && entry.quantity > 1;
+            const isIllegalQuantity = currentDeck.gameFormat === 'commander' && !isBasicLand(entry) && entry.quantity > 1;
             
             const noStock    = ownedCount(entry) <= 0;
             const outOfStock = totalInDeck(entry.name) >= ownedCount(entry);
@@ -1211,9 +1253,9 @@ function renderZone(zone) {
                 <div class="deck-entry-name" data-uuid="${entry.uuid}">${displayName}</div>
                 <div class="deck-entry-cost">${costHtml}</div>
                 <div class="deck-entry-controls">
-                    ${currentDeck.format === 'clasico' ? 
+                    ${currentDeck.gameFormat === 'clasico' ? 
                         `<button class="btn-transfer" data-uuid="${entry.uuid}" data-zone="${zone}" title="Mover a ${zone === 'mainboard' ? 'Sideboard' : 'Mainboard'}" style="background: transparent; border: none; color: var(--text-secondary); cursor: pointer; padding: 0 0.4rem; font-size: 1.1rem;">⇄</button>` : ''}
-                    ${currentDeck.format === 'commander' && (zone === 'mainboard' || zone === 'commander') ? 
+                    ${currentDeck.gameFormat === 'commander' && (zone === 'mainboard' || zone === 'commander') ? 
                         `<button class="btn-commander" data-uuid="${entry.uuid}" data-zone="${zone}" title="${zone === 'commander' ? 'Quitar de Comandante' : 'Hacer Comandante'}">👑</button>` : ''}
                     <button class="deck-entry-minus" data-uuid="${entry.uuid}" data-zone="${zone}">-</button>
                     <button class="deck-entry-plus"  data-uuid="${entry.uuid}" data-zone="${zone}" ${plusDisabled}>+</button>
@@ -1233,12 +1275,10 @@ function updateDeckCountLabel() {
     
     let isMainValid = false;
     let isSideValid = false;
-    let targetMain = MAIN_MIN;
-    let targetSide = SIDE_MAX;
+    const minSize = currentDeck.minDeckSize || 60;
 
-    if (currentDeck.format === 'commander') {
+    if (currentDeck.gameFormat === 'commander') {
         const total = main + cmd;
-        targetMain = 100;
         isMainValid = (total === 100);
         isSideValid = (side === 0);
         
@@ -1252,21 +1292,20 @@ function updateDeckCountLabel() {
             cmdLbl.innerHTML = `(${cmd})`;
         }
     } else {
-        // Formato clásico: 60 exacto? No, el usuario dijo "supera las 60"
-        isMainValid = (main === MAIN_MIN);
+        isMainValid = (main >= minSize);
         isSideValid = (side <= SIDE_MAX);
         
         const lbl = document.getElementById('deck-count-label');
         if (lbl) {
             const color = isMainValid ? 'var(--accent-secondary)' : '#ff4444';
-            lbl.innerHTML = `<span style="color:${color};font-weight:700">${main}</span>/${MAIN_MIN}`;
+            lbl.innerHTML = `<span style="color:${color};font-weight:700">${main}</span>/${minSize}`;
         }
     }
 
     const slbl = document.getElementById('side-count-label');
     if (slbl) {
         const scolor = isSideValid ? 'var(--text-secondary)' : '#ff4444';
-        slbl.innerHTML = `<span style="color:${scolor}">${side}</span>/${currentDeck.format === 'commander' ? 0 : SIDE_MAX}`;
+        slbl.innerHTML = `<span style="color:${scolor}">${side}</span>/${currentDeck.gameFormat === 'commander' ? 0 : SIDE_MAX}`;
     }
 }
 
@@ -1274,7 +1313,7 @@ function updateStats() {
     if (!currentDeck) return;
     
     // --- Commander Banner Injection ---
-    const isCommanderFormat = (currentDeck.format === 'commander' || currentDeck.format === 'brawl');
+    const isCommanderFormat = (currentDeck.gameFormat === 'commander' || currentDeck.gameFormat === 'brawl');
     const hasCommander = currentDeck.commander && currentDeck.commander.length > 0;
     
     document.querySelectorAll('.commander-stats-banner').forEach(el => el.remove());
@@ -1449,7 +1488,7 @@ function updateStats() {
                 <div class="comp-legality" style="display: flex; flex-direction: column; gap: 0.4rem;">
                     <div style="display: flex; justify-content: space-between;">
                         <span>Mainboard:</span>
-                        <strong style="color: ${mainCount > 60 ? '#ff4444' : 'var(--text-primary)'};">${mainCount} / 60</strong>
+                        <strong style="color: ${mainCount > (currentDeck.minDeckSize || 60) ? '#ff4444' : 'var(--text-primary)'};">${mainCount} / ${currentDeck.minDeckSize || 60}</strong>
                     </div>
                     <div style="display: flex; justify-content: space-between;">
                         <span>Sideboard:</span>
@@ -1617,7 +1656,7 @@ function simulateStartingHand() {
     if (!currentDeck) return;
     
     const mainCards = [...currentDeck.mainboard];
-    if (currentDeck.format === 'commander' && currentDeck.commander) {
+    if (currentDeck.gameFormat === 'commander' && currentDeck.commander) {
         mainCards.push(...currentDeck.commander);
     }
     
