@@ -982,14 +982,15 @@ export function displayBooster(cards, stockWarning = false, isMassOpen = false, 
                 card.style.zIndex = '10';
                 card.style.boxShadow = `0 15px 30px rgba(0,0,0,0.8)`;
 
-                if (ghostPortal && ghostPortal.classList.contains('visible') && ghostPortal.dataset.activeUuid === card.dataset.uuid) {
-                    const inner = ghostPortal.querySelector('.ghost-portal-inner');
+                const globalPortal = document.getElementById('ghost-portal');
+                if (globalPortal && globalPortal.dataset.activeUuid === card.dataset.uuid) {
+                    const inner = globalPortal.querySelector('.ghost-preview-card-container');
                     if (inner) {
                         inner.style.setProperty('--pos-x', `${xPercent}%`);
                         inner.style.setProperty('--pos-y', `${yPercent}%`);
                         inner.style.setProperty('--rot-x', `${rotX}deg`);
                         inner.style.setProperty('--rot-y', `${rotY}deg`);
-                        inner.style.transform = `perspective(1000px) rotateX(var(--rot-x)) rotateY(var(--rot-y))`;
+                        inner.style.transform = `translate(-50%, -50%) perspective(1000px) rotateX(var(--rot-x)) rotateY(var(--rot-y))`;
                     }
                 }
             });
