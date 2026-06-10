@@ -289,8 +289,24 @@ export function parseDecklistText(text, allAvailableCards) {
         if (match) {
             const count = parseInt(match[1]) || 1;
             const name = match[2].trim();
-            
-            const found = allAvailableCards.find(c => c.name.toLowerCase() === name.toLowerCase());
+            const found = allAvailableCards.find(dbCard => {
+                // 1. Búsqueda Principal (Inglés)
+                if (dbCard.name.toLowerCase() === name.toLowerCase()) {
+                    return true;
+                }
+                // 2. Búsqueda Secundaria (Traducciones en foreignData)
+                if (dbCard.foreignData && dbCard.foreignData.length > 0) {
+                    const matchInSpanish = dbCard.foreignData.some(fd => 
+                        fd.language === "Spanish" && 
+                        fd.name && 
+                        fd.name.toLowerCase() === name.toLowerCase()
+                    );
+                    if (matchInSpanish) {
+                        return true;
+                    }
+                }
+                return false;
+            });
             if (found) {
                 // If duplicates are passed, sum them up
                 const existing = parsed.find(p => p.name === found.name);
