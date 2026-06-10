@@ -19,6 +19,172 @@ let statsOpen   = false;
 let filteredInv = []; // current filtered inventory for the editor
 let handHistory = [];
 
+let editorSortCriteria = 'color';
+let editorSortDirection = 'asc';
+
+function getManaValueForSort(card) {
+    const val = card.manaValue !== undefined ? card.manaValue : (card.convertedManaCost !== undefined ? card.convertedManaCost : card.cmc);
+    if (val !== undefined) return val;
+    const dbCard = getFullCardData(card.uuid || card.id);
+    if (dbCard) {
+        const dbVal = dbCard.manaValue !== undefined ? dbCard.manaValue : (dbCard.convertedManaCost !== undefined ? dbCard.convertedManaCost : dbCard.cmc);
+        if (dbVal !== undefined) return dbVal;
+    }
+    return 0;
+}
+
+function cardComparator(a, b, criteria, direction) {
+    const isAsc = direction === 'asc';
+    const compareValues = (valA, valB) => {
+        if (valA < valB) return isAsc ? -1 : 1;
+        if (valA > valB) return isAsc ? 1 : -1;
+        return 0;
+    };
+    
+    if (criteria === 'cost') {
+        const mvA = getManaValueForSort(a);
+        const mvB = getManaValueForSort(b);
+        if (mvA !== mvB) {
+            return compareValues(mvA, mvB);
+        }
+        const nameA = (a.name || '').toLowerCase();
+        const nameB = (b.name || '').toLowerCase();
+        return compareValues(nameA, nameB);
+    }
+    
+    if (criteria === 'color') {
+        const getColorWeight = (card) => {
+            const colors = card.colors || [];
+            if (colors.length === 0) return 7; // Colorless
+            if (colors.length > 1) return 6; // Multicolor
+            const c = colors[0];
+            if (c === 'W') return 1;
+            if (c === 'U') return 2;
+            if (c === 'B') return 3;
+            if (c === 'R') return 4;
+            if (c === 'G') return 5;
+            return 7;
+        };
+        const wA = getColorWeight(a);
+        const wB = getColorWeight(b);
+        if (wA !== wB) {
+            return compareValues(wA, wB);
+        }
+        const mvA = getManaValueForSort(a);
+        const mvB = getManaValueForSort(b);
+        if (mvA !== mvB) {
+            return compareValues(mvA, mvB);
+        }
+        const nameA = (a.name || '').toLowerCase();
+        const nameB = (b.name || '').toLowerCase();
+        return compareValues(nameA, nameB);
+    }
+    
+    if (criteria === 'type') {
+        const typeOrder = {
+            "Artifact": 1,    // Artefacto
+            "Sorcery": 2,     // Conjuro
+            "Creature": 3,    // Criatura
+            "Enchantment": 4, // Encantamiento
+            "Instant": 5,     // Instantáneo
+            "Planeswalker": 6,// Planeswalker
+            "Land": 7         // Tierra
+        };
+        const getTypeWeight = (card) => {
+            const types = card.types || [];
+            const firstType = types[0];
+            if (firstType && typeOrder[firstType] !== undefined) {
+                return typeOrder[firstType];
+            }
+            const typeStr = (card.type || '').toLowerCase();
+            if (typeStr.includes('artifact'))     return 1;
+            if (typeStr.includes('sorcery'))      return 2;
+            if (typeStr.includes('creature'))     return 3;
+            if (typeStr.includes('enchantment'))  return 4;
+            if (typeStr.includes('instant'))      return 5;
+            if (typeStr.includes('planeswalker')) return 6;
+            if (typeStr.includes('land'))         return 7;
+            return 8;
+        };
+        
+        const wA = getTypeWeight(a);
+        const wB = getTypeWeight(b);
+        if (wA !== wB) {
+            return compareValues(wA, wB);
+        }
+        const mvA = getManaValueForSort(a);
+        const mvB = getManaValueForSort(b);
+        if (mvA !== mvB) {
+            return compareValues(mvA, mvB);
+        }
+        const nameA = (a.name || '').toLowerCase();
+        const nameB = (b.name || '').toLowerCase();
+        return compareValues(nameA, nameB);
+    }
+    
+    if (criteria === 'number') {
+        const parseCardNumber = (card) => {
+            const numStr = (card.number || '').trim();
+            if (!numStr) return { num: 9999, suffix: '' };
+            const match = numStr.match(/^(\d+)(.*)$/);
+            if (match) {
+                return {
+                    num: parseInt(match[1]) || 0,
+                    suffix: match[2] || ''
+                };
+            }
+            return { num: 9999, suffix: numStr };
+        };
+        
+        const pA = parseCardNumber(a);
+        const pB = parseCardNumber(b);
+        if (pA.num !== pB.num) {
+            return compareValues(pA.num, pB.num);
+        }
+        return compareValues(pA.suffix, pB.suffix);
+    }
+    return 0;
+}
+
+function renderEditorSortButtons() {
+    const sortContainer = document.getElementById('de-sort-container');
+    if (!sortContainer) return;
+    
+    const criteriaList = [
+        { id: 'color', label: 'Color' },
+        { id: 'cost', label: 'Coste' },
+        { id: 'type', label: 'Tipo' },
+        { id: 'number', label: 'Nº Colección' }
+    ];
+    
+    sortContainer.innerHTML = `
+        <div class="sort-controls-container">
+            <span class="sort-label">Ordenar por:</span>
+            ${criteriaList.map(c => {
+                const isActive = editorSortCriteria === c.id;
+                const activeClass = isActive ? 'active' : '';
+                const arrow = editorSortDirection === 'asc' ? '↑' : '↓';
+                const indicator = isActive ? `<span class="direction-indicator">${arrow}</span>` : '';
+                return `<button class="sort-btn ${activeClass}" data-criteria="${c.id}">${c.label} ${indicator}</button>`;
+            }).join('')}
+        </div>
+    `;
+    
+    sortContainer.querySelectorAll('.sort-btn').forEach(btn => {
+        btn.onclick = () => {
+            const criteria = btn.dataset.criteria;
+            if (editorSortCriteria === criteria) {
+                editorSortDirection = editorSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                editorSortCriteria = criteria;
+                editorSortDirection = 'asc';
+            }
+            renderEditorSortButtons();
+            renderInventoryGrid();
+        };
+    });
+}
+
 // ── Hover preview element ─────────────────────────────────────────────────────
 let hoverImg = null;
 function getHoverImg() {
@@ -518,6 +684,7 @@ function renderEditView() {
 
             <!-- CENTER: Inventory Grid -->
             <div class="app-main-content">
+                <div id="de-sort-container"></div>
                 <div id="de-inv-grid" class="card-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem;"></div>
             </div>
 
@@ -895,6 +1062,7 @@ function renderEditView() {
         };
     }
 
+    renderEditorSortButtons();
     refreshEditor();
 }
 
@@ -957,7 +1125,10 @@ function renderInventoryGrid() {
     }
 
     const lang = state.language || 'en';
-    container.innerHTML = filteredInv.map(card => {
+    
+    const sorted = [...filteredInv].sort((a, b) => cardComparator(a, b, editorSortCriteria, editorSortDirection));
+    
+    container.innerHTML = sorted.map(card => {
         const imgUrl      = getCardImageUrl(card, lang);
         const fallbackUrl = getCardImageUrlEn(card);
         const inDeck      = totalInDeck(card.name);

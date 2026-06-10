@@ -2578,6 +2578,68 @@ strong {
     transform: rotateX(80deg);
 }
 
+/* ─── DYNAMIC SORT CONTROLS ─── */
+.sort-controls-container {
+    display: flex;
+    gap: 0.8rem;
+    margin-bottom: 1.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+    background: rgba(255, 255, 255, 0.02);
+    padding: 0.6rem 1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.sort-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-right: 0.5rem;
+}
+
+.sort-btn {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: var(--text-secondary);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sort-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: var(--text-primary);
+}
+
+.sort-btn.active {
+    background: linear-gradient(135deg, #a77c37 0%, #d4af37 50%, #f3e5ab 100%) !important;
+    color: #1a0f0a !important;
+    border-color: #f3e5ab !important;
+    box-shadow: 0 0 12px rgba(212, 175, 55, 0.5) !important;
+    font-weight: 700 !important;
+}
+
+.sort-btn.active .direction-indicator {
+    color: #1a0f0a !important;
+}
+
+.direction-indicator {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    transition: transform 0.2s ease;
+}
+
+
 
 /* --- FOIL AND BONUS DROP EFFECTS --- */
 .foil-card-effect {

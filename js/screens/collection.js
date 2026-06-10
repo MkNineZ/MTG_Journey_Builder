@@ -7,6 +7,142 @@ let currentFilteredCards = [];
 let currentSearchState = null;
 let currentCollectionModalIndex = -1;
 
+let currentSortCriteria = 'color';
+let currentSortDirection = 'asc';
+
+function getFullCardData(uuid) {
+    if (!state || !state.activeSetsData) return null;
+    for (const set of state.activeSetsData) {
+        const card = (set.cards || []).find(c => c.uuid === uuid);
+        if (card) return card;
+    }
+    return null;
+}
+
+function getManaValueForSort(card) {
+    const val = card.manaValue !== undefined ? card.manaValue : (card.convertedManaCost !== undefined ? card.convertedManaCost : card.cmc);
+    if (val !== undefined) return val;
+    const dbCard = getFullCardData(card.uuid || card.id);
+    if (dbCard) {
+        const dbVal = dbCard.manaValue !== undefined ? dbCard.manaValue : (dbCard.convertedManaCost !== undefined ? dbCard.convertedManaCost : dbCard.cmc);
+        if (dbVal !== undefined) return dbVal;
+    }
+    return 0;
+}
+
+function cardComparator(a, b, criteria, direction) {
+    const isAsc = direction === 'asc';
+    const compareValues = (valA, valB) => {
+        if (valA < valB) return isAsc ? -1 : 1;
+        if (valA > valB) return isAsc ? 1 : -1;
+        return 0;
+    };
+    
+    if (criteria === 'cost') {
+        const mvA = getManaValueForSort(a);
+        const mvB = getManaValueForSort(b);
+        if (mvA !== mvB) {
+            return compareValues(mvA, mvB);
+        }
+        const nameA = (a.name || '').toLowerCase();
+        const nameB = (b.name || '').toLowerCase();
+        return compareValues(nameA, nameB);
+    }
+    
+    if (criteria === 'color') {
+        const getColorWeight = (card) => {
+            const colors = card.colors || [];
+            if (colors.length === 0) return 7; // Colorless
+            if (colors.length > 1) return 6; // Multicolor
+            const c = colors[0];
+            if (c === 'W') return 1;
+            if (c === 'U') return 2;
+            if (c === 'B') return 3;
+            if (c === 'R') return 4;
+            if (c === 'G') return 5;
+            return 7;
+        };
+        const wA = getColorWeight(a);
+        const wB = getColorWeight(b);
+        if (wA !== wB) {
+            return compareValues(wA, wB);
+        }
+        const mvA = getManaValueForSort(a);
+        const mvB = getManaValueForSort(b);
+        if (mvA !== mvB) {
+            return compareValues(mvA, mvB);
+        }
+        const nameA = (a.name || '').toLowerCase();
+        const nameB = (b.name || '').toLowerCase();
+        return compareValues(nameA, nameB);
+    }
+    
+    if (criteria === 'type') {
+        const typeOrder = {
+            "Artifact": 1,    // Artefacto
+            "Sorcery": 2,     // Conjuro
+            "Creature": 3,    // Criatura
+            "Enchantment": 4, // Encantamiento
+            "Instant": 5,     // Instantáneo
+            "Planeswalker": 6,// Planeswalker
+            "Land": 7         // Tierra
+        };
+        const getTypeWeight = (card) => {
+            const types = card.types || [];
+            const firstType = types[0];
+            if (firstType && typeOrder[firstType] !== undefined) {
+                return typeOrder[firstType];
+            }
+            const typeStr = (card.type || '').toLowerCase();
+            if (typeStr.includes('artifact'))     return 1;
+            if (typeStr.includes('sorcery'))      return 2;
+            if (typeStr.includes('creature'))     return 3;
+            if (typeStr.includes('enchantment'))  return 4;
+            if (typeStr.includes('instant'))      return 5;
+            if (typeStr.includes('planeswalker')) return 6;
+            if (typeStr.includes('land'))         return 7;
+            return 8;
+        };
+        
+        const wA = getTypeWeight(a);
+        const wB = getTypeWeight(b);
+        if (wA !== wB) {
+            return compareValues(wA, wB);
+        }
+        const mvA = getManaValueForSort(a);
+        const mvB = getManaValueForSort(b);
+        if (mvA !== mvB) {
+            return compareValues(mvA, mvB);
+        }
+        const nameA = (a.name || '').toLowerCase();
+        const nameB = (b.name || '').toLowerCase();
+        return compareValues(nameA, nameB);
+    }
+    
+    if (criteria === 'number') {
+        const parseCardNumber = (card) => {
+            const numStr = (card.number || '').trim();
+            if (!numStr) return { num: 9999, suffix: '' };
+            const match = numStr.match(/^(\d+)(.*)$/);
+            if (match) {
+                return {
+                    num: parseInt(match[1]) || 0,
+                    suffix: match[2] || ''
+                };
+            }
+            return { num: 9999, suffix: numStr };
+        };
+        
+        const pA = parseCardNumber(a);
+        const pB = parseCardNumber(b);
+        if (pA.num !== pB.num) {
+            return compareValues(pA.num, pB.num);
+        }
+        return compareValues(pA.suffix, pB.suffix);
+    }
+    return 0;
+}
+
 // ── Ghost Portal Zoom (Escape Overflow) ───────────────────────────────────────
 let ghostPortal = null;
 function getGhostPortal() {
@@ -109,6 +245,7 @@ export function initCollection() {
                         <i class="fas fa-boxes" style="margin-right: 0.5rem;"></i> Gestión Masiva
                     </button>
                 </div>
+                <div id="collection-sort-container"></div>
                 <div id="collection-results" class="card-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem; margin-top: 1rem;"></div>
             </div>
         </div>
@@ -217,12 +354,53 @@ export function initCollection() {
         const BASIC_LANDS = ['Plains', 'Island', 'Swamp', 'Mountain', 'Forest', 'Wastes'];
         const isBasicLand = c => BASIC_LANDS.some(b => c.name?.startsWith(b) || c.name?.includes('Llanura') || c.name?.includes('Isla') || c.name?.includes('Pantano') || c.name?.includes('Montaña') || c.name?.includes('Bosque'));
 
+        const renderSortButtons = (onFilterCallback, inv) => {
+            const sortContainer = document.getElementById('collection-sort-container');
+            if (!sortContainer) return;
+            
+            const criteriaList = [
+                { id: 'color', label: 'Color' },
+                { id: 'cost', label: 'Coste' },
+                { id: 'type', label: 'Tipo' },
+                { id: 'number', label: 'Nº Colección' }
+            ];
+            
+            sortContainer.innerHTML = `
+                <div class="sort-controls-container">
+                    <span class="sort-label">Ordenar por:</span>
+                    ${criteriaList.map(c => {
+                        const isActive = currentSortCriteria === c.id;
+                        const activeClass = isActive ? 'active' : '';
+                        const arrow = currentSortDirection === 'asc' ? '↑' : '↓';
+                        const indicator = isActive ? `<span class="direction-indicator">${arrow}</span>` : '';
+                        return `<button class="sort-btn ${activeClass}" data-criteria="${c.id}">${c.label} ${indicator}</button>`;
+                    }).join('')}
+                </div>
+            `;
+            
+            sortContainer.querySelectorAll('.sort-btn').forEach(btn => {
+                btn.onclick = () => {
+                    const criteria = btn.dataset.criteria;
+                    if (currentSortCriteria === criteria) {
+                        currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        currentSortCriteria = criteria;
+                        currentSortDirection = 'asc';
+                    }
+                    renderSortButtons(onFilterCallback, inv);
+                    onFilterCallback(filterCards(inv, currentSearchState));
+                };
+            });
+        };
+
         const onFilter = (filtered) => {
             currentFilteredCards = filtered.filter(c => !isBasicLand(c));
             const totalCards = currentFilteredCards.reduce((acc, c) => acc + ((c.regularCount || 0) + (c.foilCount || 0)), 0);
             infoContainer.innerHTML = `Tienes <strong>${totalCards}</strong> cartas en total (<strong>${currentFilteredCards.length}</strong> modelos únicos).`;
-            const newHTML = currentFilteredCards
-                .sort((a, b) => ((b.regularCount || 0) + (b.foilCount || 0)) - ((a.regularCount || 0) + (a.foilCount || 0)))
+            
+            const sorted = [...currentFilteredCards].sort((a, b) => cardComparator(a, b, currentSortCriteria, currentSortDirection));
+            
+            const newHTML = sorted
                 .map(c => renderCard(c))
                 .join('');
             
@@ -234,6 +412,8 @@ export function initCollection() {
 
         const searchContainer = document.getElementById('collection-search');
         currentSearchState = renderSearchUI(searchContainer, inventory, onFilter, currentSearchState);
+        
+        renderSortButtons(onFilter, inventory);
         
         // Execute initial or restored filter
         onFilter(filterCards(inventory, currentSearchState));
