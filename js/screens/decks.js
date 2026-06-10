@@ -105,9 +105,15 @@ function showGhostPortal(cardEl) {
     const portal = getGhostPortal();
     portal.innerHTML = '';
     
+    // Guardamos el UUID para sincronizar el hover 3D global
+    portal.dataset.activeUuid = cardEl.dataset.uuid || '';
+
     const rect = cardEl.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
+
+    const isFoil = cardEl.classList.contains('foil-card-effect');
+    const foilClass = isFoil ? 'foil-card-effect' : '';
 
     const dfcWrapper = cardEl.querySelector('.dfc-wrapper');
     if (dfcWrapper) {
@@ -119,7 +125,7 @@ function showGhostPortal(cardEl) {
         
         if (imgFront && imgBack) {
             portal.innerHTML = `
-            <div class="ghost-preview-card-container dfc-wrapper" style="top: ${centerY}px; left: ${centerX}px;">
+            <div class="ghost-preview-card-container dfc-wrapper ${foilClass}" style="top: ${centerY}px; left: ${centerX}px;">
               <div class="card-flipper ghost-flipper ${isFlipped ? 'is-flipped' : ''}" style="width: 100%; height: 100%;">
                 <div class="card-face card-front" style="width: 100%; height: 100%;">
                   <img src="${imgFront.src}">
@@ -141,8 +147,24 @@ function showGhostPortal(cardEl) {
     } else {
         const imgEl = cardEl.querySelector('img');
         if (imgEl) {
-            portal.innerHTML = `<img src="${imgEl.src}" class="ghost-preview-card-container" style="top: ${centerY}px; left: ${centerX}px;">`;
+            // Usamos un div en lugar de un img para que ::after funcione (Foil Effect)
+            portal.innerHTML = `
+            <div class="ghost-preview-card-container ${foilClass}" style="top: ${centerY}px; left: ${centerX}px;">
+                <img src="${imgEl.src}" style="width: 100%; height: 100%; border-radius: inherit; display: block;">
+            </div>`;
         }
+    }
+
+    // Inicializamos el transform para que no pierda el centrado
+    const inner = portal.querySelector('.ghost-preview-card-container');
+    if (inner && isFoil) {
+        const rotX = cardEl.style.getPropertyValue('--rot-x') || '0deg';
+        const rotY = cardEl.style.getPropertyValue('--rot-y') || '0deg';
+        inner.style.setProperty('--pos-x', cardEl.style.getPropertyValue('--pos-x') || '50%');
+        inner.style.setProperty('--pos-y', cardEl.style.getPropertyValue('--pos-y') || '50%');
+        inner.style.setProperty('--rot-x', rotX);
+        inner.style.setProperty('--rot-y', rotY);
+        inner.style.transform = `translate(-50%, -50%) perspective(1000px) rotateX(${rotX}) rotateY(${rotY})`;
     }
 }
 

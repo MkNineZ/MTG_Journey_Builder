@@ -210,7 +210,9 @@ function getGhostPortal() {
 function showGhostPortal(cardEl) {
     const portal = getGhostPortal();
     portal.innerHTML = '';
-    portal.dataset.activeUuid = cardEl.dataset.uuid;
+    
+    // Guardamos el UUID para sincronizar el hover 3D global
+    portal.dataset.activeUuid = cardEl.dataset.uuid || '';
 
     const rect = cardEl.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
@@ -251,20 +253,24 @@ function showGhostPortal(cardEl) {
     } else {
         const imgEl = cardEl.querySelector('img');
         if (imgEl) {
-            portal.innerHTML = `<img src="${imgEl.src}" class="ghost-preview-card-container ${foilClass}" style="top: ${centerY}px; left: ${centerX}px;">`;
+            // Usamos un div en lugar de un img para que ::after funcione (Foil Effect)
+            portal.innerHTML = `
+            <div class="ghost-preview-card-container ${foilClass}" style="top: ${centerY}px; left: ${centerX}px;">
+                <img src="${imgEl.src}" style="width: 100%; height: 100%; border-radius: inherit; display: block;">
+            </div>`;
         }
     }
 
-    if (isFoil) {
-        const inner = portal.querySelector('.ghost-preview-card-container');
-        if (inner) {
-            const rotX = cardEl.style.getPropertyValue('--rot-x') || '0deg';
-            const rotY = cardEl.style.getPropertyValue('--rot-y') || '0deg';
-            inner.style.setProperty('--pos-x', cardEl.style.getPropertyValue('--pos-x') || '50%');
-            inner.style.setProperty('--pos-y', cardEl.style.getPropertyValue('--pos-y') || '50%');
-            inner.style.setProperty('--rot-x', rotX);
-            inner.style.setProperty('--rot-y', rotY);
-        }
+    // Inicializamos el transform para que no pierda el centrado
+    const inner = portal.querySelector('.ghost-preview-card-container');
+    if (inner && isFoil) {
+        const rotX = cardEl.style.getPropertyValue('--rot-x') || '0deg';
+        const rotY = cardEl.style.getPropertyValue('--rot-y') || '0deg';
+        inner.style.setProperty('--pos-x', cardEl.style.getPropertyValue('--pos-x') || '50%');
+        inner.style.setProperty('--pos-y', cardEl.style.getPropertyValue('--pos-y') || '50%');
+        inner.style.setProperty('--rot-x', rotX);
+        inner.style.setProperty('--rot-y', rotY);
+        inner.style.transform = `translate(-50%, -50%) perspective(1000px) rotateX(${rotX}) rotateY(${rotY})`;
     }
 }
 
