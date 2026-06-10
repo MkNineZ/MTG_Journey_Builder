@@ -468,6 +468,7 @@ function renderCard(c) {
     const glowClass   = c.isNew ? `glow-active glow-${rarity}` : '';
 
     const badgeCount = (c.regularCount || 0) + (c.foilCount || 0);
+    const foilClass = c.foilCount > 0 ? 'foil-card-effect' : '';
 
     let cardImageHtml = `<img src="${imgUrl}" alt="${c.name}" loading="lazy" class="deck-inv-img" style="opacity: 0;" onload="this.style.opacity=1;" onerror="this.onerror=null; this.src='${fallbackUrl}';">`;
     let flipButton = '';
@@ -496,7 +497,7 @@ function renderCard(c) {
     }
 
     return `
-        <div class="library-card deck-inv-card ${glowClass}" data-uuid="${c.uuid}" style="position: relative; cursor: pointer; border: 2px solid ${color}; background: #000;">
+        <div class="library-card deck-inv-card ${glowClass} ${foilClass}" data-uuid="${c.uuid}" style="position: relative; cursor: pointer; border: 2px solid ${color}; background: #000;">
             ${cardImageHtml}
             ${flipButton}
             <div class="card-quantity-badge">x${badgeCount}</div>

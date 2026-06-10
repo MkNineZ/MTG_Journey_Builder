@@ -213,3 +213,55 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     console.log('MTG Journey Builder Initialized.');
 });
+
+
+// --- Global 3D Foil Effect Engine ---
+document.body.addEventListener('mousemove', (e) => {
+    const card = e.target.closest('.foil-card-effect');
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const xPercent = (x / rect.width) * 100;
+    const yPercent = (y / rect.height) * 100;
+
+    const rotX = ((y / rect.height) - 0.5) * -30;
+    const rotY = ((x / rect.width) - 0.5) * 30;
+
+    card.style.setProperty('--pos-x', `${xPercent}%`);
+    card.style.setProperty('--pos-y', `${yPercent}%`);
+    card.style.setProperty('--rot-x', `${rotX}deg`);
+    card.style.setProperty('--rot-y', `${rotY}deg`);
+    card.style.transform = `perspective(1000px) rotateX(var(--rot-x)) rotateY(var(--rot-y)) scale(1.05)`;
+    card.style.zIndex = '10';
+    card.style.boxShadow = `0 15px 30px rgba(0,0,0,0.8)`;
+
+    const globalPortal = document.getElementById('ghost-portal');
+    if (globalPortal && globalPortal.dataset.activeUuid === card.dataset.uuid) {
+        const inner = globalPortal.querySelector('.ghost-preview-card-container');
+        if (inner) {
+            inner.style.setProperty('--pos-x', `${xPercent}%`);
+            inner.style.setProperty('--pos-y', `${yPercent}%`);
+            inner.style.setProperty('--rot-x', `${rotX}deg`);
+            inner.style.setProperty('--rot-y', `${rotY}deg`);
+            inner.style.transform = `translate(-50%, -50%) perspective(1000px) rotateX(var(--rot-x)) rotateY(var(--rot-y))`;
+        }
+    }
+});
+
+document.body.addEventListener('mouseout', (e) => {
+    const card = e.target.closest('.foil-card-effect');
+    if (!card) return;
+    
+    // Check if we are actually leaving the card entirely
+    const related = e.relatedTarget;
+    if (related && card.contains(related)) return;
+
+    card.style.setProperty('--pos-x', `50%`);
+    card.style.setProperty('--pos-y', `50%`);
+    card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1)`;
+    card.style.zIndex = '1';
+    card.style.boxShadow = `none`;
+});
+
