@@ -1272,6 +1272,18 @@ strong {
 
 /* Center Preview Elements - Completely Removed */
 
+.ghost-preview-card {
+    aspect-ratio: 63 / 88 !important;
+    min-width: 0;
+    min-height: 0;
+    height: 55vh !important;
+    width: auto !important;
+    max-height: 700px;
+    min-height: 400px;
+    object-fit: contain;
+    display: block;
+}
+
 .deck-inv-img {
     width: 100% !important;
     height: 100% !important;

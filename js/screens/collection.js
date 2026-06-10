@@ -40,13 +40,13 @@ function showGhostPortal(cardEl) {
         
         if (imgFront && imgBack) {
             portal.innerHTML = `
-            <div class="dfc-wrapper ghost-dfc-wrapper" style="width: 100%;">
-              <div class="card-flipper ghost-flipper ${isFlipped ? 'is-flipped' : ''}" style="width: 100%;">
-                <div class="card-face card-front" style="width: 100%;">
-                  <img src="${imgFront.src}" class="ghost-preview-card" style="border-radius: 4.75% / 3.5%;">
+            <div class="dfc-wrapper ghost-dfc-wrapper ghost-preview-card">
+              <div class="card-flipper ghost-flipper ${isFlipped ? 'is-flipped' : ''}" style="width: 100%; height: 100%;">
+                <div class="card-face card-front" style="width: 100%; height: 100%;">
+                  <img src="${imgFront.src}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 4.75% / 3.5%;">
                 </div>
-                <div class="card-face card-back" style="width: 100%;">
-                  <img src="${imgBack.src}" class="ghost-preview-card" style="border-radius: 4.75% / 3.5%;">
+                <div class="card-face card-back" style="width: 100%; height: 100%;">
+                  <img src="${imgBack.src}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 4.75% / 3.5%;">
                 </div>
               </div>
               <button class="flip-btn ghost-flip-btn" style="z-index: 2000;">↻</button>
