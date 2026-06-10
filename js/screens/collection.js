@@ -300,8 +300,11 @@ export function initCollection() {
         cardsToImport.forEach(c => {
             html += `<div><span style="color: var(--accent-color); font-weight: bold;">${c.count}x</span> ${c.name} <span style="color: var(--text-secondary); font-size: 0.7rem;">(${c.setCode})</span></div>`;
         });
-        if (errors > 0) {
-            html += `<div style="color: #e74c3c; margin-top: 5px;"><i class="fas fa-exclamation-circle"></i> Hay ${errors} carta(s) no encontradas en los sets activos o mal escritas.</div>`;
+        if (result.unknown && result.unknown.length > 0) {
+            html += `<div style="border-top: 1px dashed rgba(231, 76, 60, 0.3); margin-top: 10px; padding-top: 10px; color: #e74c3c; font-weight: bold;"><i class="fas fa-exclamation-circle"></i> Líneas no encontradas:</div>`;
+            result.unknown.forEach(u => {
+                html += `<div style="color: #e74c3c; padding-left: 10px;"><span style="font-weight: bold;">${u.count}x</span> ${u.name}</div>`;
+            });
         }
 
         summaryText.innerHTML = `Se han encontrado <strong>${cardsToImport.length}</strong> cartas diferentes. <strong>${errors}</strong> líneas fallaron.`;
@@ -376,7 +379,7 @@ export function initCollection() {
     let cardsToDelete = [];
 
     analyzeDeleteBtn.onclick = () => {
-        const lines = deleteText.value.split('\n').filter(l => l.trim() !== '');
+        const lines = deleteText.value.split('\n').map(l => l.trim()).filter(l => l !== '');
         if (lines.length === 0) return;
 
         cardsToDelete = [];
@@ -394,7 +397,24 @@ export function initCollection() {
                 const name = match[2].trim();
                 
                 // Find card by name (case insensitive) in active inventory/sets
-                const found = allAvailableCards.find(c => c.name.toLowerCase() === name.toLowerCase());
+                const found = allAvailableCards.find(dbCard => {
+                    // 1. Búsqueda Principal (Inglés)
+                    if (dbCard.name.toLowerCase() === name.toLowerCase()) {
+                        return true;
+                    }
+                    // 2. Búsqueda Secundaria (Traducciones en foreignData)
+                    if (dbCard.foreignData && dbCard.foreignData.length > 0) {
+                        const matchInSpanish = dbCard.foreignData.some(fd => 
+                            fd.language === "Spanish" && 
+                            fd.name && 
+                            fd.name.toLowerCase() === name.toLowerCase()
+                        );
+                        if (matchInSpanish) {
+                            return true;
+                        }
+                    }
+                    return false;
+                });
                 if (found) {
                     cardsToDelete.push({ ...found, count });
                     html += `<div><span style="color: #e74c3c; font-weight: bold;">-${count}x</span> ${found.name} <span style="color: var(--text-secondary); font-size: 0.7rem;">(${found.setCode})</span></div>`;

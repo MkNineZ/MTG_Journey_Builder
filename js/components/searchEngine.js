@@ -277,7 +277,7 @@ export function renderSearchUI(containerElement, allCards, onFilterCallback, ini
  * @returns {Object} { parsed: [{...card, count}], errors: number }
  */
 export function parseDecklistText(text, allAvailableCards) {
-    const lines = (text || '').split('\n').filter(l => l.trim() !== '');
+    const lines = (text || '').split('\n').map(l => l.trim()).filter(l => l !== '');
     if (lines.length === 0) return { parsed: [], unknown: [], errors: 0 };
 
     const parsed = [];
