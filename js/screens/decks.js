@@ -100,29 +100,18 @@ function getGhostPortal() {
     return ghostPortal;
 }
 
-function updateGhostPortalPosition(e) {
-    if (!ghostPortal) return;
-    const zoom = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--card-hover-zoom') || '1.4');
-    const width = 220 * zoom; 
-    const height = width * (88 / 63); 
-    
-    let left = e.clientX + 20;
-    let top = e.clientY - (height / 2);
-    
-    if (top < 10) top = 10;
-    if (top + height > window.innerHeight - 10) top = window.innerHeight - height - 10;
-    if (left + width > window.innerWidth - 10) left = e.clientX - width - 20;
-
-    ghostPortal.style.left = left + 'px';
-    ghostPortal.style.top = top + 'px';
-    ghostPortal.style.width = width + 'px';
-}
-
-function showGhostPortal(cardEl, e) {
+function showGhostPortal(cardEl) {
     const portal = getGhostPortal();
     portal.innerHTML = '';
     
-    updateGhostPortalPosition(e);
+    const rect = cardEl.getBoundingClientRect();
+    
+    let left = rect.left + (rect.width / 2);
+    let top = rect.top + (rect.height / 2);
+
+    portal.style.left = left + 'px';
+    portal.style.top = top + 'px';
+    portal.style.width = 'auto'; // Let the internal image dictate width
 
     const dfcWrapper = cardEl.querySelector('.dfc-wrapper');
     if (dfcWrapper) {
@@ -137,10 +126,10 @@ function showGhostPortal(cardEl, e) {
             <div class="dfc-wrapper ghost-dfc-wrapper" style="width: 100%;">
               <div class="card-flipper ghost-flipper ${isFlipped ? 'is-flipped' : ''}" style="width: 100%;">
                 <div class="card-face card-front" style="width: 100%;">
-                  <img src="${imgFront.src}" style="width: 100%; height: auto; object-fit: contain; border-radius: 4.75% / 3.5%; display: block;">
+                  <img src="${imgFront.src}" class="ghost-preview-card" style="border-radius: 4.75% / 3.5%;">
                 </div>
                 <div class="card-face card-back" style="width: 100%;">
-                  <img src="${imgBack.src}" style="width: 100%; height: auto; object-fit: contain; border-radius: 4.75% / 3.5%; display: block;">
+                  <img src="${imgBack.src}" class="ghost-preview-card" style="border-radius: 4.75% / 3.5%;">
                 </div>
               </div>
               <button class="flip-btn ghost-flip-btn" style="z-index: 2000;">↻</button>
@@ -156,7 +145,7 @@ function showGhostPortal(cardEl, e) {
     } else {
         const imgEl = cardEl.querySelector('img');
         if (imgEl) {
-            portal.innerHTML = `<img src="${imgEl.src}" style="width: 100%; height: auto; object-fit: contain; border-radius: 4.75% / 3.5%; display: block;">`;
+            portal.innerHTML = `<img src="${imgEl.src}" class="ghost-preview-card" style="border-radius: 4.75% / 3.5%;">`;
         }
     }
 
@@ -751,12 +740,7 @@ function renderEditView() {
     const invGrid = document.getElementById('de-inv-grid');
     invGrid.addEventListener('mouseover', e => {
         const cardEl = e.target.closest('.deck-inv-card');
-        if (cardEl) showGhostPortal(cardEl, e);
-    });
-    invGrid.addEventListener('mousemove', e => {
-        if (ghostPortal && ghostPortal.classList.contains('visible')) {
-            updateGhostPortalPosition(e);
-        }
+        if (cardEl) showGhostPortal(cardEl);
     });
     invGrid.addEventListener('mouseout', e => {
         if (!e.relatedTarget || !e.relatedTarget.closest?.('.deck-inv-card')) {
