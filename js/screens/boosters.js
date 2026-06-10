@@ -570,6 +570,29 @@ export function toggleColorBtn(btn) {
 
 // ─── Internal generators ──────────────────────────────────────────────────────
 
+function fillSlotWithFallback(pool, targetCount, selectedArray, allowDuplicatesIfExhausted = true) {
+    if (!pool || pool.length === 0) return; // Cannot fill if pool is completely empty
+    
+    let filled = 0;
+    let attempts = 0;
+    const maxAttempts = 50;
+    
+    while (filled < targetCount) {
+        attempts++;
+        const randomIndex = Math.floor(Math.random() * pool.length);
+        const card = pool[randomIndex];
+        
+        // Check if already in selectedArray
+        const isDuplicate = selectedArray.some(c => c.uuid === card.uuid);
+        
+        if (!isDuplicate || (allowDuplicatesIfExhausted && attempts > maxAttempts)) {
+            selectedArray.push(card);
+            filled++;
+            attempts = 0; // reset attempts for the next card
+        }
+    }
+}
+
 async function generateBoosterClassic(setData, inventoryMap = new Map()) {
     if (!setData?.cards) return { cards: [], bonusUpgrades: [], stockWarning: false };
 
@@ -577,8 +600,9 @@ async function generateBoosterClassic(setData, inventoryMap = new Map()) {
     let selected = [];
     let bonusUpgradesRaw = [];
 
-    // Simulate MTG standard pack: 1 Rare/Mythic, 3 Uncommon, 10 Common, 1 Basic Land
-    const counts = { mythic: 0, rare: 1, uncommon: 3, common: 10, land: 1 };
+    // Simulate MTG standard pack: 1 Rare/Mythic, 3 Uncommon, 10 Common (14 cartas en total)
+    const counts = { mythic: 0, rare: 1, uncommon: 3, common: 10 };
+    let requiredCount = Object.values(counts).reduce((a, b) => a + b, 0);
     
     // --- Foil Engine (22.5% Drop Rate) ---
     if (Math.random() < 0.225) {
@@ -590,7 +614,7 @@ async function generateBoosterClassic(setData, inventoryMap = new Map()) {
 
         const foilPool = pool.filter(c => c.rarity === foilRarity && !c.type?.toLowerCase().includes('basic land'));
         if (foilPool.length > 0) {
-            const pickedRawFoil = getRandom(foilPool, 1)[0];
+            const pickedRawFoil = foilPool[Math.floor(Math.random() * foilPool.length)];
             const dbCard = inventoryMap.get(pickedRawFoil.uuid) || {};
             const totalOwned = (dbCard.regularCount || 0) + (dbCard.foilCount || 0);
 
@@ -609,24 +633,29 @@ async function generateBoosterClassic(setData, inventoryMap = new Map()) {
     const uncommons = pool.filter(c => c.rarity === 'uncommon');
     let rares = pool.filter(c => c.rarity === 'rare');
     let mythics = pool.filter(c => c.rarity === 'mythic');
-    const basicLands = pool.filter(c => c.type?.toLowerCase().includes('basic land'));
 
-    if (commons.length > 0) selected.push(...getRandom(commons, counts.common));
-    if (uncommons.length > 0) selected.push(...getRandom(uncommons, counts.uncommon));
+    fillSlotWithFallback(commons, counts.common, selected);
+    fillSlotWithFallback(uncommons, counts.uncommon, selected);
     
     // Rare or Mythic (approx 1/8 chance for Mythic)
     if (mythics.length > 0 && Math.random() < 0.125) {
-        selected.push(...getRandom(mythics, 1));
+        let beforeLen = selected.length;
+        fillSlotWithFallback(mythics, 1, selected);
+        if (selected.length === beforeLen) fillSlotWithFallback(rares, 1, selected); // fallback if mythic failed
     } else if (rares.length > 0) {
-        selected.push(...getRandom(rares, 1));
+        fillSlotWithFallback(rares, 1, selected);
     } else if (mythics.length > 0) {
-        selected.push(...getRandom(mythics, 1));
+        fillSlotWithFallback(mythics, 1, selected);
+    }
+    
+    // Safety generic fallback if still short
+    if (selected.length < requiredCount) {
+        fillSlotWithFallback(pool, requiredCount - selected.length, selected, true);
     }
 
-    if (basicLands.length > 0) {
-        selected.push(...getRandom(basicLands, 1));
-    } else {
-        selected.push(...getRandom(pool, 1)); // Fallback
+    // Sanity Check
+    if (selected.length !== requiredCount) {
+        console.error(`Generación fallida: el sobre tiene ${selected.length} cartas en lugar de ${requiredCount}.`);
     }
 
     const mapFn = c => {
@@ -647,6 +676,7 @@ async function generateBoosterCustom(setData, countsRaw, colors, inventoryMap) {
 
     let pool = [...setData.cards];
     const counts = { ...countsRaw };
+    let requiredCount = Object.values(counts).reduce((a, b) => a + b, 0);
 
     // 1. Color identity filter
     if (colors.length > 0) {
@@ -662,7 +692,6 @@ async function generateBoosterCustom(setData, countsRaw, colors, inventoryMap) {
     let stockWarning = false;
 
     // --- Foil Engine (22.5% Drop Rate) ---
-    // Replaces 1 common if triggered and valid
     if (Math.random() < 0.225 && counts.common > 0) {
         const foilRoll = Math.random();
         let foilRarity = 'common';
@@ -672,24 +701,22 @@ async function generateBoosterCustom(setData, countsRaw, colors, inventoryMap) {
 
         const foilPool = pool.filter(c => c.rarity === foilRarity);
         if (foilPool.length > 0) {
-            const pickedRawFoil = getRandom(foilPool, 1)[0];
+            const pickedRawFoil = foilPool[Math.floor(Math.random() * foilPool.length)];
             const dbCard = inventoryMap.get(pickedRawFoil.uuid) || {};
             const totalOwned = (dbCard.regularCount || 0) + (dbCard.foilCount || 0);
 
             const clonedFoil = { ...pickedRawFoil, _isFoil: true };
 
             if (totalOwned >= 4) {
-                // BONUS UPGRADE: User already has 4. Send to bonus, don't consume common slot (reroll)
                 bonusUpgradesRaw.push(clonedFoil);
             } else {
-                // NORMAL UPGRADE: Consume 1 common slot
                 selected.push(clonedFoil);
                 counts.common--;
             }
         }
     }
 
-    // 2. Smart filter: skip cards with >=4 copies (regular + foil) for the rest of the pack
+    // 2. Smart filter: skip cards with >=4 copies
     if (inventoryMap.size > 0) {
         pool = pool.filter(c => {
             const dbCard = inventoryMap.get(c.uuid) || {};
@@ -701,36 +728,38 @@ async function generateBoosterCustom(setData, countsRaw, colors, inventoryMap) {
     for (const [rarity, count] of Object.entries(counts)) {
         if (count <= 0) continue;
         
-        let picked = [];
-        // If picking rares and mythic is 0, give a 1/8 chance to upgrade each rare slot to mythic
+        let beforeCount = selected.length;
+        
         if (rarity === 'rare' && (counts.mythic || 0) === 0) {
             let rarePool = pool.filter(c => c.rarity === 'rare');
             let mythicPool = pool.filter(c => c.rarity === 'mythic');
             
             for (let i = 0; i < count; i++) {
                 if (mythicPool.length > 0 && Math.random() < 0.125) {
-                    const m = getRandom(mythicPool, 1);
-                    if (m.length > 0) {
-                        picked.push(m[0]);
-                        mythicPool = mythicPool.filter(c => c.uuid !== m[0].uuid);
-                    } else {
-                        const r = getRandom(rarePool, 1);
-                        picked.push(...r);
-                        if (r.length > 0) rarePool = rarePool.filter(c => c.uuid !== r[0].uuid);
-                    }
+                    let preMythic = selected.length;
+                    fillSlotWithFallback(mythicPool, 1, selected, false);
+                    if (selected.length === preMythic) fillSlotWithFallback(rarePool, 1, selected, true);
                 } else {
-                    const r = getRandom(rarePool, 1);
-                    picked.push(...r);
-                    if (r.length > 0) rarePool = rarePool.filter(c => c.uuid !== r[0].uuid);
+                    fillSlotWithFallback(rarePool, 1, selected, true);
                 }
             }
         } else {
             const rarityPool = pool.filter(c => c.rarity === rarity);
-            picked = getRandom(rarityPool, count);
+            fillSlotWithFallback(rarityPool, count, selected, true);
         }
 
-        if (picked.length < count) stockWarning = true;
-        selected.push(...picked);
+        if (selected.length - beforeCount < count) stockWarning = true;
+    }
+
+    // Safety generic fallback if still short
+    if (selected.length < requiredCount) {
+        fillSlotWithFallback(pool, requiredCount - selected.length, selected, true);
+        stockWarning = true;
+    }
+
+    // Sanity Check
+    if (selected.length !== requiredCount) {
+        console.error(`Generación fallida: el sobre tiene ${selected.length} cartas en lugar de ${requiredCount}.`);
     }
 
     const mapFn = c => {
@@ -751,17 +780,13 @@ function cardToBoosterEntry(c, setCode) {
         uuid:       c.uuid,
         name:       c.name,
         setCode:    setCode,
-        number:     c.number,          // needed for Scryfall set+number URL
-        lang:       state.language || 'en', // snapshot language at generation time
+        number:     c.number,          
+        lang:       state.language || 'en', 
         rarity:     c.rarity || 'common',
         type:       c.type   || 'Unknown',
         colors:     c.colors || [],
         scryfallId: c.identifiers?.scryfallId ?? null
     };
-}
-
-function getRandom(arr, count) {
-    return [...arr].sort(() => 0.5 - Math.random()).slice(0, count);
 }
 
 // ─── Display ──────────────────────────────────────────────────────────────────
