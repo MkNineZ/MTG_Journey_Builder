@@ -272,9 +272,6 @@ function hideGhostPortal() {
     if (portal) portal.innerHTML = '';
 }
 
-setTimeout(() => { if (!ghostPortal.classList.contains('visible')) ghostPortal.style.display = 'none'; }, 200);
-}
-
 
 
 // ─── Exported actions (called from app.js global delegation) ──────────────────
