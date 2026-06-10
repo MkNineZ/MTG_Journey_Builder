@@ -188,6 +188,7 @@ export function initBoosters() {
         if (cardEl) showGhostPortal(cardEl);
     });
     container.addEventListener('mouseout', e => {
+        if (e.relatedTarget?.closest?.('#ghost-portal')) return;
         if (!e.relatedTarget || !e.relatedTarget.closest?.('.booster-card-item')) {
             hideGhostPortal();
         }

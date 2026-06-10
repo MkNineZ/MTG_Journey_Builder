@@ -2834,9 +2834,9 @@ strong {
 }
 .flip-btn {
     position: absolute;
-    top: 60%;
-    right: 5px;
-    transform: translateY(-50%);
+    top: 28%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     background: rgba(10, 10, 12, 0.8);
     border: 1px solid #c4a052;
     color: #fff;
@@ -2855,8 +2855,12 @@ strong {
 .flip-btn:hover {
     background: rgba(20, 20, 25, 0.9);
     border-color: #f1c40f;
-    transform: translateY(-50%) scale(1.1);
+    transform: translate(-50%, -50%) scale(1.1);
     box-shadow: 0 0 10px rgba(196, 160, 82, 0.5);
+}
+
+.ghost-flip-btn {
+    pointer-events: auto;
 }
 
 

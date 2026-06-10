@@ -4,6 +4,7 @@ import { updateInventoryCount, clearNewStatus, saveToInventory, removeFromInvent
 import { getCardImageUrl, getCardImageUrlEn } from '../utils/api.js';
 
 let currentFilteredCards = [];
+let currentSearchState = null;
 let currentCollectionModalIndex = -1;
 
 // ── Ghost Portal Zoom (Escape Overflow) ───────────────────────────────────────
@@ -189,6 +190,7 @@ export function initCollection() {
         if (cardEl) showGhostPortal(cardEl);
     });
     resultsContainer.addEventListener('mouseout', e => {
+        if (e.relatedTarget?.closest?.('#ghost-portal')) return;
         if (!e.relatedTarget || !e.relatedTarget.closest?.('.deck-inv-card')) {
             hideGhostPortal();
         }
@@ -231,8 +233,10 @@ export function initCollection() {
         };
 
         const searchContainer = document.getElementById('collection-search');
-        renderSearchUI(searchContainer, inventory, onFilter);
-        onFilter(filterCards(inventory, { name: '', oracleText: '', keywords: '', type: 'all', rarity: 'all', set: 'all', manaValue: '', colors: [], colorMode: 'includes' }));
+        currentSearchState = renderSearchUI(searchContainer, inventory, onFilter, currentSearchState);
+        
+        // Execute initial or restored filter
+        onFilter(filterCards(inventory, currentSearchState));
     };
 
     // Card interactions

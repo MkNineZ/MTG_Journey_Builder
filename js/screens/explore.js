@@ -41,6 +41,7 @@ export function initExplore() {
         if (cardEl) showGhostPortal(cardEl);
     });
     resultsContainer.addEventListener('mouseout', e => {
+        if (e.relatedTarget?.closest?.('#ghost-portal')) return;
         if (!e.relatedTarget || !e.relatedTarget.closest?.('.library-card')) {
             hideGhostPortal();
         }

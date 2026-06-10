@@ -751,6 +751,7 @@ function renderEditView() {
         if (cardEl) showGhostPortal(cardEl);
     });
     invGrid.addEventListener('mouseout', e => {
+        if (e.relatedTarget?.closest?.('#ghost-portal')) return;
         if (!e.relatedTarget || !e.relatedTarget.closest?.('.deck-inv-card')) {
             hideGhostPortal();
         }
@@ -847,6 +848,7 @@ function renderEditView() {
         if (e.target.closest('.deck-entry-name[data-uuid]')) positionHoverPreview(e);
     });
     document.getElementById('decks').addEventListener('mouseout', e => {
+        if (e.relatedTarget?.closest?.('#ghost-portal')) return;
         if (!e.relatedTarget || !e.relatedTarget.closest?.('.deck-entry-name')) {
             hideHoverPreview();
         }

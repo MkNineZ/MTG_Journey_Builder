@@ -108,7 +108,7 @@ function debounce(func, wait) {
     };
 }
 
-export function renderSearchUI(containerElement, allCards, onFilterCallback) {
+export function renderSearchUI(containerElement, allCards, onFilterCallback, initialState = null) {
     // Filtrar para mostrar solo los sets activos en el desplegable
     const activeSetCodes = state.selectedSets ? state.selectedSets.map(s => s.code).sort() : [];
     const setOptions = activeSetCodes.map(code => `<option value="${code}">${code}</option>`).join('');
@@ -195,7 +195,40 @@ export function renderSearchUI(containerElement, allCards, onFilterCallback) {
         </div>
     `;
 
-    const uiState = { name: '', oracleText: '', keywords: '', type: 'all', subtype: '', rarity: 'all', set: 'all', manaValue: '', colors: [], colorMode: 'includes' };
+    const uiState = initialState ? { ...initialState } : { name: '', oracleText: '', keywords: '', type: 'all', subtype: '', rarity: 'all', set: 'all', manaValue: '', colors: [], colorMode: 'includes' };
+
+    const elName = containerElement.querySelector('.search-name');
+    const elOracle = containerElement.querySelector('.search-oracle');
+    const elKeywords = containerElement.querySelector('.search-keywords');
+    const elType = containerElement.querySelector('.search-type');
+    const elSubtype = containerElement.querySelector('.search-subtype');
+    const elRarity = containerElement.querySelector('.search-rarity');
+    const elSet = containerElement.querySelector('.search-set');
+    const elMv = containerElement.querySelector('.search-mv');
+    const elColorMode = containerElement.querySelector('.search-colormode');
+    const manaBtns = containerElement.querySelectorAll('.mana-btn');
+    const btnReset = containerElement.querySelector('.search-reset');
+
+    // Sync DOM to uiState
+    if (initialState) {
+        elName.value = uiState.name;
+        elOracle.value = uiState.oracleText;
+        elKeywords.value = uiState.keywords;
+        elType.value = uiState.type;
+        elSubtype.value = uiState.subtype;
+        elRarity.value = uiState.rarity;
+        elSet.value = uiState.set;
+        elMv.value = uiState.manaValue;
+        elColorMode.value = uiState.colorMode;
+        
+        uiState.colors.forEach(c => {
+            const btn = Array.from(manaBtns).find(b => b.getAttribute('data-color') === c);
+            if (btn) {
+                btn.style.borderColor = 'var(--accent-color)';
+                btn.style.boxShadow = '0 0 10px var(--accent-color)';
+            }
+        });
+    }
 
     const elName = containerElement.querySelector('.search-name');
     const elOracle = containerElement.querySelector('.search-oracle');
@@ -245,6 +278,8 @@ export function renderSearchUI(containerElement, allCards, onFilterCallback) {
             executeFilter();
         });
     });
+
+    return uiState;
 }
 
 /**
