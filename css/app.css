@@ -2622,15 +2622,15 @@ strong {
 }
 
 .sort-btn.active {
-    background: linear-gradient(135deg, #a77c37 0%, #d4af37 50%, #f3e5ab 100%) !important;
-    color: #1a0f0a !important;
-    border-color: #f3e5ab !important;
-    box-shadow: 0 0 12px rgba(212, 175, 55, 0.5) !important;
+    background: linear-gradient(135deg, var(--accent-color), var(--accent-secondary)) !important;
+    color: #fff !important;
+    border-color: var(--accent-color) !important;
+    box-shadow: 0 0 12px rgba(161, 61, 31, 0.4) !important;
     font-weight: 700 !important;
 }
 
 .sort-btn.active .direction-indicator {
-    color: #1a0f0a !important;
+    color: #fff !important;
 }
 
 .direction-indicator {
