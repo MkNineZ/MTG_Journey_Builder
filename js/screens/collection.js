@@ -68,9 +68,6 @@ function hideGhostPortal() {
     if (portal) portal.innerHTML = '';
 }
 
-, 200);
-}
-
 export function initCollection() {
     const container = document.getElementById('collection');
     
