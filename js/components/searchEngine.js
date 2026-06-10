@@ -206,8 +206,8 @@ export function renderSearchUI(containerElement, allCards, onFilterCallback, ini
     const elSet = containerElement.querySelector('.search-set');
     const elMv = containerElement.querySelector('.search-mv');
     const elColorMode = containerElement.querySelector('.search-colormode');
+    const btnReset = containerElement.querySelector('.btn-reset-filters');
     const manaBtns = containerElement.querySelectorAll('.mana-btn');
-    const btnReset = containerElement.querySelector('.search-reset');
 
     // Sync DOM to uiState
     if (initialState) {
@@ -229,18 +229,6 @@ export function renderSearchUI(containerElement, allCards, onFilterCallback, ini
             }
         });
     }
-
-    const elName = containerElement.querySelector('.search-name');
-    const elOracle = containerElement.querySelector('.search-oracle');
-    const elKeywords = containerElement.querySelector('.search-keywords');
-    const elType = containerElement.querySelector('.search-type');
-    const elSubtype = containerElement.querySelector('.search-subtype');
-    const elRarity = containerElement.querySelector('.search-rarity');
-    const elSet = containerElement.querySelector('.search-set');
-    const elMv = containerElement.querySelector('.search-mv');
-    const elColorMode = containerElement.querySelector('.search-colormode');
-    const btnReset = containerElement.querySelector('.btn-reset-filters');
-    const manaBtns = containerElement.querySelectorAll('.mana-btn');
 
     const executeFilter = () => { onFilterCallback(filterCards(allCards, uiState)); };
     const debouncedFilter = debounce(executeFilter, 300);
