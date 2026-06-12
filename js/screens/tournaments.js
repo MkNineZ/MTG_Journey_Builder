@@ -97,8 +97,14 @@ export async function initTournaments() {
             <div class="deck-modal-content" style="width: 90%; max-width: 1000px; max-height: 85vh; display: flex; flex-direction: column;">
                 <button id="visualizer-close" class="deck-modal-close">&times;</button>
                 <div id="visualizer-header-row" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 1rem; gap: 1rem;">
-                    <h2 id="visualizer-title" style="color: var(--accent-color); margin: 0;">Mazo de Jugador</h2>
-                    <div id="visualizer-stats" style="display: flex; gap: 2rem; align-items: center;"></div>
+                    <div style="display: flex; flex-direction: column; gap: 0.8rem; flex: 1; min-width: 300px;">
+                        <h2 id="visualizer-title" style="color: var(--accent-color); margin: 0;">Mazo de Jugador</h2>
+                        <div id="visualizer-tabs" style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: thin; scrollbar-color: var(--accent-color) transparent;"></div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 0.8rem; align-items: flex-end;">
+                        <button id="visualizer-copy-btn" class="lol-btn" style="padding: 0.4rem 1rem; font-size: 0.85rem;"><i class="fas fa-clipboard"></i> Copiar Lista</button>
+                        <div id="visualizer-stats" style="display: flex; gap: 2rem; align-items: center;"></div>
+                    </div>
                 </div>
                 <div id="visualizer-grid" style="flex: 1; overflow-y: auto; padding: 1rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px;">
                     <!-- Cards injected here -->
@@ -565,6 +571,7 @@ function bindBracketListeners(t) {
             
             if (t.currentRoundIndex < t.rounds.length - 1) {
                 t.currentRoundIndex++;
+                captureDeckSnapshots(t, t.currentRoundIndex);
                 await saveTournament(t);
                 renderBracket(t, document.getElementById('tournament-content'));
             } else {
@@ -621,6 +628,7 @@ function bindDynamicListeners(t) {
             t.rounds = generateRoundRobinPairings(t.players, t.isDoubleRound);
             t.currentRoundIndex = 0;
             t.status = 'active';
+            captureDeckSnapshots(t, 0);
             await saveTournament(t);
             renderCurrentTab();
         });
@@ -648,7 +656,20 @@ function bindDynamicListeners(t) {
     });
 }
 
+function captureDeckSnapshots(t, rIndex) {
+    if (!t.rounds || !t.rounds[rIndex]) return;
+    t.rounds[rIndex].deckSnapshots = {};
+    t.players.forEach(p => {
+        t.rounds[rIndex].deckSnapshots[p.id] = {
+            name: p.deckName || 'Sin nombre',
+            colors: [...(p.deckColors || [])],
+            decklist: p.decklist || ''
+        };
+    });
+}
+
 // ── Modals & Algorithms ──────────────────────────────────────────────────────
+
 
 let currentPlayerEditingId = null;
 
@@ -746,12 +767,77 @@ function openVisualizerModal(playerId, tournament) {
     const player = tournament.players.find(p => p.id === playerId);
     if (!player) return;
 
+    document.getElementById('visualizer-modal').style.display = 'flex';
+    const tabsContainer = document.getElementById('visualizer-tabs');
+    tabsContainer.innerHTML = '';
+    
+    // Prepare deck objects
+    const activeDeck = {
+        name: player.deckName,
+        colors: player.deckColors || [],
+        decklist: player.decklist || ''
+    };
+    
+    const availableDecks = [ { label: 'Mazo Activo', data: activeDeck, id: 'tab-active' } ];
+    
+    if (tournament.rounds) {
+        tournament.rounds.forEach((round, index) => {
+            if (round.deckSnapshots && round.deckSnapshots[playerId]) {
+                availableDecks.push({
+                    label: `Jornada ${index + 1}`,
+                    data: round.deckSnapshots[playerId],
+                    id: `tab-j${index + 1}`
+                });
+            }
+        });
+    }
+
+    // Render tabs
+    availableDecks.forEach((deckTab, idx) => {
+        const btn = document.createElement('button');
+        btn.className = `lol-tab-btn ${idx === 0 ? 'active' : ''}`;
+        btn.style.padding = '0.3rem 0.8rem';
+        btn.style.fontSize = '0.85rem';
+        btn.textContent = deckTab.label;
+        btn.onclick = () => {
+            Array.from(tabsContainer.children).forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderVisualizerDeck(deckTab.data, player.name);
+        };
+        tabsContainer.appendChild(btn);
+    });
+
+    // Copy Button setup
+    const copyBtn = document.getElementById('visualizer-copy-btn');
+    copyBtn.onclick = () => {
+        const activeTabBtn = tabsContainer.querySelector('.active');
+        const activeTabIndex = Array.from(tabsContainer.children).indexOf(activeTabBtn);
+        const textToCopy = availableDecks[activeTabIndex]?.data.decklist || '';
+        
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            const originalHTML = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<i class="fas fa-check"></i> Copiado!';
+            copyBtn.style.color = '#2ecc71';
+            copyBtn.style.borderColor = '#2ecc71';
+            setTimeout(() => {
+                copyBtn.innerHTML = originalHTML;
+                copyBtn.style.color = '';
+                copyBtn.style.borderColor = '';
+            }, 2000);
+        });
+    };
+
+    // Render initial deck
+    renderVisualizerDeck(availableDecks[0].data, player.name);
+}
+
+function renderVisualizerDeck(deckData, playerName) {
     const title = document.getElementById('visualizer-title');
-    const colorsHtml = (player.deckColors || []).map(c => 
+    const colorsHtml = (deckData.colors || []).map(c => 
         `<img src="https://svgs.scryfall.io/card-symbols/${c}.svg" style="width: 24px; height: 24px;" title="${c}">`
     ).join('');
     
-    title.innerHTML = `<div style="display: flex; align-items: center; gap: 10px;">${player.deckName || 'Mazo de ' + player.name} <div style="display: flex; gap: 5px; margin-left: 10px;">${colorsHtml}</div></div>`;
+    title.innerHTML = `<div style="display: flex; align-items: center; gap: 10px;">${deckData.name || 'Mazo de ' + playerName} <div style="display: flex; gap: 5px; margin-left: 10px;">${colorsHtml}</div></div>`;
 
     const grid = document.getElementById('visualizer-grid');
     grid.innerHTML = '<p style="color: var(--text-secondary); text-align: center; grid-column: 1 / -1;">Cargando mazo...</p>';
@@ -759,11 +845,9 @@ function openVisualizerModal(playerId, tournament) {
     const statsContainer = document.getElementById('visualizer-stats');
     statsContainer.innerHTML = '';
     
-    document.getElementById('visualizer-modal').style.display = 'flex';
-
     // Parse decklist
     const allAvailableCards = (state.activeSetsData || []).flatMap(s => (s.cards || []).map(c => ({...c, setCode: s.code})));
-    const { parsed, unknown, errors } = parseDecklistText(player.decklist, allAvailableCards);
+    const { parsed, unknown, errors } = parseDecklistText(deckData.decklist, allAvailableCards);
 
     if (parsed.length === 0 && (!unknown || unknown.length === 0)) {
         grid.innerHTML = '<p style="color: var(--text-secondary); text-align: center; grid-column: 1 / -1;">La lista está vacía o no contiene cartas válidas del pool actual.</p>';
